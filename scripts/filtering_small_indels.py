@@ -5,10 +5,8 @@ import sys
 def load_file(filepath):
     """Load TSV file with proper type handling"""
     try:
-        # df = pd.read_csv(filepath, sep='\t')
-        # return df
-        df = pd.read_csv(filepath, sep='\t', # just a quick fix. remove later
-                        usecols=range(29))
+        df = pd.read_csv(filepath, sep='\t', low_memory=False,
+                        on_bad_lines='warn')
         print(f"Loaded {len(df.columns)} columns: {list(df.columns)}", file=sys.stderr)
         return df
     except FileNotFoundError:
@@ -58,6 +56,36 @@ def filter_indels(df, **filters):
     
     return filtered_df
 
+def apply_filters_with_report(df, filter_steps):
+    """
+    Apply filters sequentially and report how many rows each step removes.
+    
+    Parameters:
+        df: DataFrame
+        filter_steps: list of (filter_name, column, condition) tuples
+    
+    Returns:
+        filtered_df: DataFrame after all filters
+        report: list of (filter_name, rows_before, rows_after, rows_removed) tuples
+    """
+    report = []
+    current_df = df.copy()
+    
+    for filter_name, column, condition in filter_steps:
+        rows_before = len(current_df)
+        if column not in current_df.columns:
+            print(f"Warning: Column '{column}' not found, skipping filter '{filter_name}'", file=sys.stderr)
+            report.append((filter_name, rows_before, rows_before, 0))
+            continue
+        
+        current_df = filter_indels(current_df, **{column: condition})
+        rows_after = len(current_df)
+        rows_removed = rows_before - rows_after
+        report.append((filter_name, rows_before, rows_after, rows_removed))
+        print(f"  {filter_name}: {rows_before} -> {rows_after} ({rows_removed} removed)", file=sys.stderr)
+    
+    return current_df, report
+
 def main():
     parser = argparse.ArgumentParser(
         description='Filter small indels based on haploid mapping results'
@@ -68,8 +96,8 @@ def main():
                         help='Filter by haploid_check column')
     parser.add_argument('--softclip', choices=['True', 'False'],
                         help='Filter by softclip_haploid column')
-    parser.add_argument('--min-distance', type=int, default=0,
-                        help='Minimum distance to indel in haploid (default: 0)')
+    parser.add_argument('--min-distance', type=int,
+                        help='Minimum distance to indel in haploid')
     parser.add_argument('--max-distance', type=int,
                         help='Maximum distance to indel in haploid')
     parser.add_argument('--indel-type', choices=['insertion', 'deletion'],
@@ -80,6 +108,10 @@ def main():
                         help='Keep only unique indels')
     parser.add_argument('--min-quality', type=int,
                         help='Minimum kmerQ quality score')
+    parser.add_argument('--min-read-end-distance', type=int,
+                        help='Minimum distance from indel to read end (ToreadEnd column)')
+    parser.add_argument('--report', 
+                        help='Output filter report TSV file showing rows removed per step')
     
     args = parser.parse_args()
     
@@ -88,42 +120,51 @@ def main():
     df = load_file(args.indel_file)
     print(f"Loaded {len(df)} rows", file=sys.stderr)
     
-    # Build filters
-    filters = {}
+    # Build filter steps as ordered list for reporting
+    filter_steps = []
     
     if args.haploid_check:
-        filters['haploid_check'] = args.haploid_check == 'True'
+        filter_steps.append(('haploid_check', 'haploid_check', args.haploid_check == 'True'))
     
     if args.softclip:
-        filters['softclip_haploid'] = args.softclip == 'True'
+        filter_steps.append(('softclip_filter', 'softclip_haploid', args.softclip == 'True'))
     
     if args.min_distance is not None:
-        filters['distance_to_indel_in_hap'] = ('gte', args.min_distance)
+        filter_steps.append(('min_distance', 'distance_to_indel_in_hap', ('gte', args.min_distance)))
     
     if args.max_distance is not None:
-        filters['distance_to_indel_in_hap'] = ('lte', args.max_distance)
+        filter_steps.append(('max_distance', 'distance_to_indel_in_hap', ('lte', args.max_distance)))
     
     if args.indel_type:
-        filters['indel_type'] = args.indel_type
+        filter_steps.append(('indel_type', 'indel_type', args.indel_type))
     
     if args.tissue:
         tissues = [t.strip() for t in args.tissue.split(',')]
-        filters['tissue'] = ('in', tissues)
+        filter_steps.append(('tissue', 'tissue', ('in', tissues)))
     
     if args.unique_only:
-        filters['unique'] = 'unique'
+        filter_steps.append(('unique_only', 'unique', 'unique'))
     
     if args.min_quality:
-        filters['kmerQ'] = ('gte', args.min_quality)
+        filter_steps.append(('min_kmerQ', 'kmerQ', ('gte', args.min_quality)))
     
-    # Apply filters
-    print(f"Applying {len(filters)} filters...", file=sys.stderr)
-    filtered_df = filter_indels(df, **filters)
+    if args.min_read_end_distance:
+        filter_steps.append(('min_read_end_distance', 'ToreadEnd', ('gte', args.min_read_end_distance)))
+    
+    # Apply filters with reporting
+    print(f"Applying {len(filter_steps)} filters...", file=sys.stderr)
+    filtered_df, report = apply_filters_with_report(df, filter_steps)
     print(f"Filtered to {len(filtered_df)} rows", file=sys.stderr)
     
     # Save output
     filtered_df.to_csv(args.output, sep='\t', index=False)
     print(f"Saved to {args.output}", file=sys.stderr)
+    
+    # Save filter report if requested
+    if args.report:
+        report_df = pd.DataFrame(report, columns=['filter', 'rows_before', 'rows_after', 'rows_removed'])
+        report_df.to_csv(args.report, sep='\t', index=False)
+        print(f"Filter report saved to {args.report}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
