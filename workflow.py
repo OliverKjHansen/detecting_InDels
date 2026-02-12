@@ -57,7 +57,7 @@ for species, samples in sample_dict.items():
                         outputs=[f"output/mutation_fastq/{species}/{sample}/{contig}_remapping.fastq"]
                         ) << f"""
                         mkdir -p output/mutation_fastq/{species}/{sample}
-                        python {scripts}/build_mutation_fastq.py output/small_indels/{species}/{sample}/{contig}_small_indels.tsv {alignment} {contig} output/mutation_fastq/{species}/{sample}/{contig}_remapping.fastq
+                        python {scripts}/build_mutation_fastq.py output/small_indels/{species}/{sample}/{contig}_small_indels.tsv {alignment} {contig} "output/mutation_fastq/{species}/{sample}/{contig}_remapping.fastq"
                         """
 
                     # Step 3: Count indel opportunities per contig
@@ -122,8 +122,7 @@ for species, samples in sample_dict.items():
                 inputs=[f"output/final/{sample}_haploid_combined.tsv",
                         f"output/final/{sample}_opportunities_combined.tsv"],
                 outputs=[f"output/final/{sample}_combined_filtered.tsv",
-                        f"output/final/{sample}_opportunities_combined_filtered.tsv",
-                        f"output/final/{sample}_filter_report.tsv"],
+                        f"output/final/{sample}_opportunities_combined_filtered.tsv"],
                 cores=8,
                 memory="100g",
                 walltime='1:00:00',

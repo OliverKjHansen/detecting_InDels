@@ -6,7 +6,7 @@ def load_file(filepath):
     """Load TSV file with proper type handling"""
     try:
         df = pd.read_csv(filepath, sep='\t', low_memory=False,
-                        on_bad_lines='skip')
+                        on_bad_lines='warn')
         print(f"Loaded {len(df.columns)} columns: {list(df.columns)}", file=sys.stderr)
         return df
     except FileNotFoundError:

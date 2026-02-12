@@ -35,6 +35,8 @@ if ("kmerQ" %in% colnames(indels)) {
     annotate("text", x = 93, y = Inf, label = "Q93 threshold",
              vjust = 2, hjust = -0.1, color = "red", size = 3)
   print(p1)
+} else {
+  message("Skipping kmerQ plot: 'kmerQ' column not found")
 }
 
 # ---------- Plot 2: InDel spectrum (context counts) ----------
@@ -53,6 +55,8 @@ if ("indel_string" %in% colnames(indels) && "indel_type" %in% colnames(indels)) 
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
   print(p2)
+} else {
+  message("Skipping InDel spectrum plot: 'indel_string' or 'indel_type' column not found")
 }
 
 # ---------- Plot 3: Distance to read end ----------
@@ -66,6 +70,8 @@ if ("ToreadEnd" %in% colnames(indels)) {
     annotate("text", x = 100, y = Inf, label = "100bp threshold",
              vjust = 2, hjust = -0.1, color = "red", size = 3)
   print(p3)
+} else {
+  message("Skipping distance-to-read-end plot: 'ToreadEnd' column not found")
 }
 
 # ---------- Plot 4: Unique vs non-unique indels ----------
@@ -76,6 +82,8 @@ if ("unique" %in% colnames(indels)) {
          x = "Uniqueness", y = "Count", fill = "InDel Type") +
     theme_minimal()
   print(p4)
+} else {
+  message("Skipping uniqueness plot: 'unique' column not found")
 }
 
 # ---------- Plot 5: Haploid check results ----------
@@ -86,6 +94,8 @@ if ("haploid_check" %in% colnames(indels)) {
          x = "Haploid Check (True = concordant)", y = "Count", fill = "InDel Type") +
     theme_minimal()
   print(p5)
+} else {
+  message("Skipping haploid check plot: 'haploid_check' column not found")
 }
 
 # ---------- Plot 6: Tissue distribution ----------
@@ -103,6 +113,8 @@ if ("tissue" %in% colnames(indels)) {
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
     print(p6)
   }
+} else {
+  message("Skipping tissue plot: 'tissue' column not found")
 }
 
 # ---------- Plot 7: kmerQ vs haploid distance (if available) ----------
@@ -115,6 +127,8 @@ if ("kmerQ" %in% colnames(indels) && "distance_to_indel_in_hap" %in% colnames(in
     theme_minimal() +
     geom_vline(xintercept = 93, linetype = "dashed", color = "red")
   print(p7)
+} else {
+  message("Skipping kmerQ vs haploid distance plot: required columns not found")
 }
 
 # ---------- Plot 8: Subread coverage (sa tag) distribution ----------
@@ -129,6 +143,8 @@ if ("sa" %in% colnames(indels)) {
       theme_minimal()
     print(p8)
   }
+} else {
+  message("Skipping subread coverage plot: 'sa' column not found")
 }
 
 dev.off()
