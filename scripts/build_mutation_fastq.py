@@ -28,7 +28,7 @@ def parse_mutation_file(mutation_tsv):
 
             # Remove suffixes such as '+', if present
             if "+" in read_name:
-                read_name = read_name.split("+")[0]
+                read_name = read_name.splist("+")[0]
             
             if read_name in read_check:
                 continue

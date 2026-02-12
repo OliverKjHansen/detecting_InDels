@@ -6,7 +6,7 @@ def load_file(filepath):
     """Load TSV file with proper type handling"""
     try:
         df = pd.read_csv(filepath, sep='\t', low_memory=False,
-                        on_bad_lines='warn')
+                        on_bad_lines='skip')
         print(f"Loaded {len(df.columns)} columns: {list(df.columns)}", file=sys.stderr)
         return df
     except FileNotFoundError:
@@ -56,48 +56,18 @@ def filter_opportunities(df, **filters):
     
     return filtered_df
 
-def apply_filters_with_report(df, filter_steps):
-    """
-    Apply filters sequentially and report how many rows each step removes.
-    
-    Parameters:
-        df: DataFrame
-        filter_steps: list of (filter_name, column, condition) tuples
-    
-    Returns:
-        filtered_df: DataFrame after all filters
-        report: list of (filter_name, rows_before, rows_after, rows_removed) tuples
-    """
-    report = []
-    current_df = df.copy()
-    
-    for filter_name, column, condition in filter_steps:
-        rows_before = len(current_df)
-        if column not in current_df.columns:
-            print(f"Warning: Column '{column}' not found, skipping filter '{filter_name}'", file=sys.stderr)
-            report.append((filter_name, rows_before, rows_before, 0))
-            continue
-        
-        current_df = filter_opportunities(current_df, **{column: condition})
-        rows_after = len(current_df)
-        rows_removed = rows_before - rows_after
-        report.append((filter_name, rows_before, rows_after, rows_removed))
-        print(f"  {filter_name}: {rows_before} -> {rows_after} ({rows_removed} removed)", file=sys.stderr)
-    
-    return current_df, report
-
 def main():
     parser = argparse.ArgumentParser(
         description='Filter opportunity file based on mapQ and kmerQ thresholds'
     )
     parser.add_argument('opportunity_file', help='Opportunity TSV file')
     parser.add_argument('-o', '--output', required=True, help='Output filtered file')
-    parser.add_argument('--min-mapq', type=int,
-                        help='Minimum mapQ score')
+    parser.add_argument('--min-mapq', type=int, default=0,
+                        help='Minimum mapQ score (default: 0)')
     parser.add_argument('--max-mapq', type=int,
                         help='Maximum mapQ score')
-    parser.add_argument('--min-kmerq', type=int,
-                        help='Minimum kmerQ score')
+    parser.add_argument('--min-kmerq', type=int, default=0,
+                        help='Minimum kmerQ score (default: 0)')
     parser.add_argument('--max-kmerq', type=int,
                         help='Maximum kmerQ score')
     parser.add_argument('--tissue', 
@@ -106,8 +76,6 @@ def main():
                         help='Filter by context (comma-separated for multiple)')
     parser.add_argument('--min-count', type=int,
                         help='Minimum count threshold')
-    parser.add_argument('--report',
-                        help='Output filter report TSV file showing rows removed per step')
     
     args = parser.parse_args()
     
@@ -116,46 +84,40 @@ def main():
     df = load_file(args.opportunity_file)
     print(f"Loaded {len(df)} rows", file=sys.stderr)
     
-    # Build filter steps as ordered list for reporting
-    filter_steps = []
+    # Build filters
+    filters = {}
     
     if args.min_mapq is not None:
-        filter_steps.append(('min_mapQ', 'mapQ', ('gte', args.min_mapq)))
+        filters['mapQ'] = ('gte', args.min_mapq)
     
     if args.max_mapq is not None:
-        filter_steps.append(('max_mapQ', 'mapQ', ('lte', args.max_mapq)))
+        filters['mapQ'] = ('lte', args.max_mapq)
     
     if args.min_kmerq is not None:
-        filter_steps.append(('min_kmerQ', 'kmerQ', ('gte', args.min_kmerq)))
+        filters['kmerQ'] = ('gte', args.min_kmerq)
     
     if args.max_kmerq is not None:
-        filter_steps.append(('max_kmerQ', 'kmerQ', ('lte', args.max_kmerq)))
+        filters['kmerQ'] = ('lte', args.max_kmerq)
     
     if args.tissue:
         tissues = [t.strip() for t in args.tissue.split(',')]
-        filter_steps.append(('tissue', 'tissue', ('in', tissues)))
+        filters['tissue'] = ('in', tissues)
     
     if args.context:
         contexts = [c.strip() for c in args.context.split(',')]
-        filter_steps.append(('context', 'context', ('in', contexts)))
+        filters['context'] = ('in', contexts)
     
     if args.min_count:
-        filter_steps.append(('min_count', 'count', ('gte', args.min_count)))
+        filters['count'] = ('gte', args.min_count)
     
-    # Apply filters with reporting
-    print(f"Applying {len(filter_steps)} filters...", file=sys.stderr)
-    filtered_df, report = apply_filters_with_report(df, filter_steps)
+    # Apply filters
+    print(f"Applying {len(filters)} filters...", file=sys.stderr)
+    filtered_df = filter_opportunities(df, **filters)
     print(f"Filtered to {len(filtered_df)} rows", file=sys.stderr)
     
     # Save output
     filtered_df.to_csv(args.output, sep='\t', index=False)
     print(f"Saved to {args.output}", file=sys.stderr)
-    
-    # Save filter report if requested
-    if args.report:
-        report_df = pd.DataFrame(report, columns=['filter', 'rows_before', 'rows_after', 'rows_removed'])
-        report_df.to_csv(args.report, sep='\t', index=False)
-        print(f"Filter report saved to {args.report}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
