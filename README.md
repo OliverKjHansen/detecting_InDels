@@ -4,7 +4,7 @@ Pipeline for detecting small InDels (1-3 bp insertions and deletions) from PacBi
 
 ## Overview
 
-This GWF workflow takes a de novo assembly `.fasta` and a `.bam` file with reads mapped back (diploid alignment) and identifies small InDels using PySAM. A key validation step remaps mutation-supporting reads to a haploid assembly to check concordance between diploid and haploid alignments.
+This GWF workflow takes a de novo assembly `.fasta` and a `.bam` file with reads mapped back (self-alignment) and identifies small InDels using PySAM. 
 
 ## Pipeline Steps
 
@@ -24,7 +24,7 @@ This GWF workflow takes a de novo assembly `.fasta` and a `.bam` file with reads
 - **Homopolymer filter**: InDels in homopolymer runs (≤1 break in base identity) are excluded.
 - **kmerQ quality filter**: Minimum base quality (Phred) at the 4-mer surrounding the InDel.
 - **Haploid concordance**: InDels must be confirmed in the haploid mapping (matching type and size).
-- **Distance to read end**: InDels too close to read ends are unreliable and can be filtered.
+- **Distance to read end**: InDels too close to read ends are unreliable and can be filtered.(not implemented)
 - **Uniqueness**: Whether the InDel is seen on one or multiple reads at that position.
 
 ## Outputs
