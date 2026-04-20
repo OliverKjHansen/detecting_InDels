@@ -23,9 +23,10 @@ This GWF workflow takes a de novo assembly `.fasta` and a `.bam` file with reads
 - **Microsatellite/unresolved region masking**: InDels in tandem repeat or unresolved haplotype regions are excluded.
 - **Homopolymer filter**: InDels in homopolymer runs (≤1 break in base identity) are excluded.
 - **kmerQ quality filter**: Minimum base quality (Phred) at the 4-mer surrounding the InDel.
+- **Only one quality InDel per read**: we only expect one InDel per InDel (not implemented)
 - **Haploid concordance**: InDels must be confirmed in the haploid mapping (matching type and size).
 - **Distance to read end**: InDels too close to read ends are unreliable and can be filtered.(not implemented)
-- **Uniqueness**: Whether the InDel is seen on one or multiple reads at that position.
+- **Uniqueness**: Whether the InDel is seen on one or multiple reads at that position. More reads is most likely an mapping artifact 
 
 ## Outputs
 
@@ -40,3 +41,7 @@ This GWF workflow takes a de novo assembly `.fasta` and a `.bam` file with reads
 - R with `ggplot2`, `dplyr`, `tidyr`
 - `samtools`, `bedtools`, `pbmm2`
 - [GWF](https://gwf.app/) workflow system
+
+
+## run multiple workflows
+gwf -f repetitiveDNA.py run
