@@ -13,39 +13,22 @@ from collections import defaultdict
 # Output: one TSV per model at {output_prefix}_M{0,1}_merged.tsv
 # Columns: contig, start, end, canonical_motif, k, copies, num_merged, model, species, sample
 #
-# Models:
+# Models in the current framework:
 #
-#   M0 — exact baseline: never merge. Each mreps tract is reported as-is.
+#   M0 — exact baseline (this script): mreps pure/exact repeats, never merged.
+#         One tract per mreps hit. This is the strictest possible annotation.
 #
-#   M1 — 1-bp fission/fusion: merge two adjacent same-motif tracts when d = 1.
-#         Two biologically distinct events both produce a 1-bp gap:
+#   M1 — TRF standard (separate pipeline): Tandem Repeat Finder with standard
+#         parameters (2 7 7 80 10 50 k), run per period k. Handled by the
+#         trf_k{k} GWF targets and a dedicated parse step (not this script).
 #
-#         Condition 1 — point mutation (substitution):
-#           A single base in the gap is a mismatch to the expected motif continuation.
-#           Example: ATATATATCTATATATATA
-#             Tract 1: (0,  8, AT)   Tract 2: (9, 19, AT)   gap = 'C' (expected 'A')
-#           A→C substitution split what was one uninterrupted AT-repeat into two.
-#
-#         Condition 2 — 1-bp indel (phase-shifting insertion or deletion):
-#           The gap base matches the expected motif but creates a phase offset in the
-#           following tract, indicating one base was inserted into (or deleted from)
-#           the repeat interior. We cannot distinguish insertion from deletion from
-#           the reference sequence alone.
-#           Example: ATATATATTATATAT
-#             Tract 1: (0, 8, AT)   Tract 2: (9, 15, AT)   gap = 'T' (matches AT[0])
-#           The extra T (or deleted A) causes a fission of one AT-repeat into two.
-#
-#         For d = 0 (abutting tracts): always merge — no gap to evaluate.
-#
-# Future model M2 (not yet implemented):
-#   Multi-bp indels: merge when d > 1 based on % identity of the gap sequence
-#   to the expected motif continuation.
-#
-# Phase note:
-#   The expected base at gap position j is canonical_motif[(end(Ri) + j) % k],
-#   which is computed explicitly in compute_mismatches.
+# Preserved future model — M_fission (not yet active in the workflow):
+#   Merge two adjacent same-motif mreps tracts when d = 1, under either:
+#     - Condition 1: point mutation (substitution) — gap base is a mismatch
+#     - Condition 2: 1-bp indel — gap base matches motif but causes phase offset
+#   See merge_tracts() below for the full implementation.
 
-models = [0, 1]
+models = [0]  # only M0 is produced from this script; M1 = TRF (separate pipeline)
 header = ("contig", "start", "end", "canonical_motif", "k",
           "copies", "num_merged", "model", "species", "sample")
 
@@ -120,7 +103,8 @@ def merge_tracts(tracts, k, get_gap_fn, canonical_motif, model, all_starts_sorte
             # M0: exact baseline — never merge across any gap.
             pass
 
-        elif model == 1:
+        elif model == "M_fission":  # future model — not active in workflow
+            # 1-bp fission/fusion: merge when d == 0 (abutting) or d == 1 (one-base gap).
             if d == 0:
                 # Abutting tracts: always merge — no gap to be occupied.
                 can_merge = True

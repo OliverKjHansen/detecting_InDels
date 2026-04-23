@@ -11,7 +11,8 @@ periods = [1, 2, 3, 4, 5, 6] #maybe move to config file later
 assembly_type = "diploid"
 inpath_fa = expanduser("~/mutationalscanning/DerivedData/fasta/HiFi")
 scripts = expanduser("~/mutationalscanning/Workspaces/oliver/endjoining/scripts")
-mreps = expanduser("~/mutationalscanning/Workspaces/oliver/microsatellites/development/mreps/mreps") #change placement of this later
+mreps = expanduser("~/mutationalscanning/Workspaces/oliver/microsatellites/development/mreps/mreps")
+trf = expanduser("~/mutationalscanning/Workspaces/oliver/microsatellites/development/TRF/src/trf")
 
 
 gwf = Workflow(
@@ -79,18 +80,37 @@ for species, samples in sample_dict.items():
                         > output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trs_raw.tsv
                         """
 
-                    # Step 2: apply impurity models M0–M3 to produce merged tract annotations
-                    # M0 = exact baseline (no merging), M1–M3 progressively relax gap/mismatch thresholds
-                    # Output: one TSV per model containing merged tract coordinates and copy counts
+                    # Step 1c: produce M0 annotation from mreps raw TSV
+                    # impurity_models.py with models=[0] writes the exact mreps tracts as-is
+                    # (no merging). This is the strict pure-repeat baseline.
                     gwf.target(
                         f"impurity_k{k}_{contig}_{sample}_diploid",
                         inputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trs_raw.tsv",
                                 assembly],
-                        outputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_M{m}_merged.tsv"
-                                 for m in range(4)]
+                        outputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_M0_merged.tsv"]
                         ) << f"""
                         python {scripts}/impurity_models.py \
                         output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trs_raw.tsv \
                         {contig} {k} {assembly} \
                         output/tandem_repeats/{species}/{sample}/{contig}_k{k}
                         """
+
+                    # ----------------------------------------------------------------
+                    # M1: TRF — standard impurity-tolerant repeat detection
+                    # ----------------------------------------------------------------
+                    # TRF has no -minperiod flag; run with maxperiod=k and post-filter
+                    # (awk) to keep only rows where period column (col 3) equals k.
+                    # Parameters: match=2 mismatch=7 indel=7 PM=80 PI=10 minscore=50
+                    # -ngs  → machine-readable stdout (no HTML/dat side files)
+                    # -h    → suppress HTML output
+                    gwf.target(
+                        f"trf_k{k}_{contig}_{sample}_diploid",
+                        inputs=[contig_fa],
+                        outputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trf.txt"]
+                    ) << f"""
+                    mkdir -p output/tandem_repeats/{species}/{sample}
+                    {trf} {contig_fa} 2 7 7 80 10 50 {k} -ngs -h \
+                    | awk '/^@/{{print}} !/^@/{{if ($3 == {k}) print}}' \
+                    > output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trf.txt
+                    """
+
