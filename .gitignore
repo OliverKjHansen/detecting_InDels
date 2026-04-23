@@ -16,3 +16,7 @@ test
 
 ### Output ###
 output/
+fasplit/
+old_output/
+
+unit_tests/
