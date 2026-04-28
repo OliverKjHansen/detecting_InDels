@@ -2,7 +2,7 @@ from os.path import expanduser
 from gwf import *
 
 sample_dict = {
-            'marmoset':['lambiek',#'marmoset'
+            "marmoset":["marmoset","lambiek"
             ]
                 }
 
@@ -12,7 +12,7 @@ assembly_type = "diploid"
 inpath_fa = expanduser("~/mutationalscanning/DerivedData/fasta/HiFi")
 scripts = expanduser("~/mutationalscanning/Workspaces/oliver/endjoining/scripts")
 mreps = expanduser("~/mutationalscanning/Workspaces/oliver/microsatellites/development/mreps/mreps")
-trf = expanduser("~/mutationalscanning/Workspaces/oliver/microsatellites/development/TRF/src/trf")
+trf = expanduser("~/mutationalscanning/Workspaces/oliver/microsatellites/development/TRF/build/src/trf")
 
 
 gwf = Workflow(
@@ -44,73 +44,86 @@ for species, samples in sample_dict.items():
         faSplit byname {assembly} fasplit/{species}/{sample}/
         """
 
-        for contig, length in contig_dict.items():
-            if int(length) > 10**6: # we only want to run on contigs >1Mb.)
-                contig_fa = f"fasplit/{species}/{sample}/{contig}.fa"
+        # One GWF target per contig handles all k for both M0 (mreps) and M1 (TRF).
+        # The k-loop runs inside bash; per-k intermediates live in a TMPDIR and are
+        # deleted on exit. Only {contig}_M0.bed and {contig}_M1.bed land on disk.
+        periods_str = " ".join(str(k) for k in periods)
+        m0_k_files  = " ".join(f"$WORK/{k}_M0.bed" for k in periods)
+        m1_k_files  = " ".join(f"$WORK/{k}_M1.bed" for k in periods)
+        large_contigs = [c for c, l in contig_dict.items() if int(l) > 10**6]
 
-                for k in periods:
-                    # Step 1a: run mreps in period-constrained exact mode
-                    # -exp 2      → minimum exponent ≥ 2 (exponent = length/period = copies)
-                    #               i.e. at least 2 full copies of the motif; min tract = 2k bp
-                    #               Note: -exp must be > 1.0 per mreps source (ARG_FLOAT check)
-                    # -allowsmall → allow tracts shorter than the default random-occurrence threshold
-                    # -minperiod k -maxperiod k → single-period detection per run
-                    #add a remove step to not have to many file laying around
-                    # might be smarter to loop over the k in the bash script to avoid having submit to many targets in the workflow.
-                    gwf.target(
-                        f"mreps_k{k}_{contig}_{sample}_diploid",
-                        inputs=[contig_fa],
-                        outputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_mreps.txt"]
-                        ) << f"""
-                        mkdir -p output/tandem_repeats/{species}/{sample}
-                        {mreps} -minperiod {k} -maxperiod {k} -exp 2 -allowsmall -fasta {contig_fa} \
-                        > output/tandem_repeats/{species}/{sample}/{contig}_k{k}_mreps.txt
-                        """
+        for contig in large_contigs:
+            contig_fa = f"fasplit/{species}/{sample}/{contig}.fa"
+            out_dir   = f"output/tandem_repeats/{species}/{sample}"
 
-                    # Step 1b: parse mreps output, canonicalise motifs, add phase
-                    # Output TSV: contig, start, end, canonical_motif, k, copies, phase, raw_motif, species, sample
-                    gwf.target(
-                        f"parse_k{k}_{contig}_{sample}_diploid",
-                        inputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_mreps.txt"],
-                        outputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trs_raw.tsv"]
-                        ) << f"""
-                        python {scripts}/parse_mreps_canonical.py \
-                        output/tandem_repeats/{species}/{sample}/{contig}_k{k}_mreps.txt \
-                        {contig} {k} {species} {sample} \
-                        > output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trs_raw.tsv
-                        """
+            gwf.target(
+                f"tandem_repeats_{contig}_{sample}_diploid",
+                inputs=[contig_fa, assembly],
+                outputs=[f"{out_dir}/{contig}_M0.bed",
+                         f"{out_dir}/{contig}_M1.bed"]
+            ) << f"""
+            mkdir -p {out_dir}
+            WORK=$(mktemp -d)
+            trap 'rm -rf "$WORK"' EXIT
 
-                    # Step 1c: produce M0 annotation from mreps raw TSV
-                    # impurity_models.py with models=[0] writes the exact mreps tracts as-is
-                    # (no merging). This is the strict pure-repeat baseline.
-                    gwf.target(
-                        f"impurity_k{k}_{contig}_{sample}_diploid",
-                        inputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trs_raw.tsv",
-                                assembly],
-                        outputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_M0_merged.tsv"]
-                        ) << f"""
-                        python {scripts}/impurity_models.py \
-                        output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trs_raw.tsv \
-                        {contig} {k} {assembly} \
-                        output/tandem_repeats/{species}/{sample}/{contig}_k{k}
-                        """
+            for k in {periods_str}; do
 
-                    # ----------------------------------------------------------------
-                    # M1: TRF — standard impurity-tolerant repeat detection
-                    # ----------------------------------------------------------------
-                    # TRF has no -minperiod flag; run with maxperiod=k and post-filter
-                    # (awk) to keep only rows where period column (col 3) equals k.
-                    # Parameters: match=2 mismatch=7 indel=7 PM=80 PI=10 minscore=50
-                    # -ngs  → machine-readable stdout (no HTML/dat side files)
-                    # -h    → suppress HTML output
-                    gwf.target(
-                        f"trf_k{k}_{contig}_{sample}_diploid",
-                        inputs=[contig_fa],
-                        outputs=[f"output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trf.txt"]
-                    ) << f"""
-                    mkdir -p output/tandem_repeats/{species}/{sample}
-                    {trf} {contig_fa} 2 7 7 80 10 50 {k} -ngs -h \
-                    | awk '/^@/{{print}} !/^@/{{if ($3 == {k}) print}}' \
-                    > output/tandem_repeats/{species}/{sample}/{contig}_k{k}_trf.txt
-                    """
+                # ---- M0: mreps exact/pure repeats ----
+                # -exp 2:      at least 2 full copies (exponent = length/period)
+                # -allowsmall: allow tracts shorter than random-occurrence threshold
+                {mreps} -minperiod $k -maxperiod $k -exp 2 -allowsmall -fasta {contig_fa} \
+                    > $WORK/${{k}}_mreps.txt
+                python {scripts}/parse_mreps_canonical.py \
+                    $WORK/${{k}}_mreps.txt {contig} $k {species} {sample} \
+                    > $WORK/${{k}}_trs_raw.tsv
+                python {scripts}/impurity_models.py \
+                    $WORK/${{k}}_trs_raw.tsv {contig} $k {assembly} $WORK/$k
+
+                # ---- M1: TRF standard impurity-tolerant detection ----
+                # Parameters: match=2 mismatch=7 indel=7 PM=80 PI=10 minscore=50
+                # -ngs → machine-readable stdout, -h → suppress HTML
+                # awk -v passes bash $k into awk as a numeric variable
+                {trf} {contig_fa} 2 7 7 80 10 50 $k -ngs -h \
+                    | awk -v k=$k '/^@/{{print}} !/^@/{{if ($3==k) print}}' \
+                    > $WORK/${{k}}_trf.txt
+                python {scripts}/parse_trf.py \
+                    $WORK/${{k}}_trf.txt $k {species} {sample} \
+                    > $WORK/${{k}}_M1.bed
+
+            done
+
+            # Concatenate all k — header retained from the first file only
+            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' \
+                {m0_k_files} > {out_dir}/{contig}_M0.bed
+            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' \
+                {m1_k_files} > {out_dir}/{contig}_M1.bed
+
+            rm -rf $WORK
+            """
+
+        # ----------------------------------------------------------------
+        # Concatenate all per-contig BED files into one per model per sample
+        # ----------------------------------------------------------------
+        m0_inputs = [f"output/tandem_repeats/{species}/{sample}/{c}_M0.bed" for c in large_contigs]
+        m1_inputs = [f"output/tandem_repeats/{species}/{sample}/{c}_M1.bed" for c in large_contigs]
+
+        gwf.target(
+            f"cat_M0_{sample}_diploid",
+            inputs=m0_inputs,
+            outputs=[f"output/tandem_repeats/{species}/{sample}/{sample}_M0.bed"]
+        ) << f"""
+        awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' \
+        {" ".join(m0_inputs)} \
+        > output/tandem_repeats/{species}/{sample}/{sample}_M0.bed
+        """
+
+        gwf.target(
+            f"cat_M1_{sample}_diploid",
+            inputs=m1_inputs,
+            outputs=[f"output/tandem_repeats/{species}/{sample}/{sample}_M1.bed"]
+        ) << f"""
+        awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' \
+        {" ".join(m1_inputs)} \
+        > output/tandem_repeats/{species}/{sample}/{sample}_M1.bed
+        """
 

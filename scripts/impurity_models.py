@@ -10,8 +10,13 @@ from collections import defaultdict
 # two biologically-grounded impurity models (M0, M1) that decide whether adjacent repeat
 # tracts sharing the same canonical motif should be merged.
 #
-# Output: one TSV per model at {output_prefix}_M{0,1}_merged.tsv
-# Columns: contig, start, end, canonical_motif, k, copies, num_merged, model, species, sample
+# Output: one TSV per model at {output_prefix}_M0_merged.tsv
+# Columns (unified format shared with parse_trf.py / M1):
+#   contig, start, end, canonical_motif, k, copies,
+#   trf_purity, model_purity, model, species, sample
+#
+# M0 purity values: trf_purity=100.0, model_purity=100.0
+#   mreps reports only exact (pure) repeats by definition — no mismatches.
 #
 # Models in the current framework:
 #
@@ -29,8 +34,10 @@ from collections import defaultdict
 #   See merge_tracts() below for the full implementation.
 
 models = [0]  # only M0 is produced from this script; M1 = TRF (separate pipeline)
-header = ("contig", "start", "end", "canonical_motif", "k",
-          "copies", "num_merged", "model", "species", "sample")
+header = (
+    "contig", "start", "end", "canonical_motif", "k", "copies",
+    "trf_purity", "model_purity", "model", "species", "sample"
+)
 
 
 def compute_mismatches(gap_seq, gap_start_pos, canonical_motif, k):
@@ -182,7 +189,7 @@ def main():
 
     out_files = {}
     for m in models:
-        path = f"{out_prefix}_M{m}_merged.tsv"
+        path = f"{out_prefix}_M{m}.bed"
         out_files[m] = open(path, "w")
         out_files[m].write("\t".join(header) + "\n")
 
@@ -205,7 +212,8 @@ def main():
             for t in merge_tracts(tracts, k, get_gap_fn, canonical_motif, m, all_starts_sorted):
                 results[m].append((t["contig"], t["start"], t["end"],
                                    canonical_motif, k, t["copies"],
-                                   t["num_merged"], m, species, sample))
+                                   100.0, 100.0,  # M0: mreps exact repeats by definition
+                                   f"M{m}", species, sample))
 
     for m in models:
         for row in sorted(results[m], key=lambda r: r[1]):  # sort by start
