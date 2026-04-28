@@ -17,9 +17,9 @@ trf = expanduser("~/mutationalscanning/Workspaces/oliver/microsatellites/develop
 
 gwf = Workflow(
     defaults={
-        'cores': 1,
-        'memory': '10g',
-        'walltime': '4:00:00',
+        'cores': 4,
+        'memory': '40g',
+        'walltime': '12:00:00',
         'account': 'mutationalscanning'})
 
 
