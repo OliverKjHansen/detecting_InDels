@@ -43,9 +43,15 @@ for species, samples in sample_dict.items():
         index_assembly = f"{inpath_fa}/{species}/{sample}/diploid_assembly/{sample}_diploid.fa.fai"
         assembly = f"{inpath_fa}/{species}/{sample}/diploid_assembly/{sample}_diploid.fa"
         contig_dict = {}
+<<<<<<< HEAD:workflow.py
         alignemt = f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_diploid.bam" # new version
         avg_coverage_file = expanduser(f"~/mutationalscanning/Workspaces/oliver/microsatellites/ratemicrosat/coverage/{sample}_avg_coverage.txt")
         tissue_file = f"/faststorage/project/mutationalscanning/Workspaces/oliver/microsatellites/marmosetanalysis/{species}/{sample}_sorted_tissue_classification.tsv"
+=======
+        alignment = f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_diploid.bam"
+        avg_coverage_file = expanduser(f"~/mutationalscanning/Workspaces/oliver/microsatellites/ratemicrosat/coverage/{sample}_avg_coverage.txt") #should change location of this file
+        tissue_file = f"/faststorage/project/mutationalscanning/Workspaces/oliver/microsatellites/marmosetanalysis/{species}/{sample}_sorted_tissue_classification.tsv" #should change location of this file
+>>>>>>> development:indel_mutation_call.py
 
         with open(index_assembly) as contigs:
             for line in contigs:
@@ -166,7 +172,16 @@ for species, samples in sample_dict.items():
                 inputs=[f"output/small_indels/{species}/{sample}/{contig}_small_indels_haploid_filtered.tsv" for contig, length in contig_dict.items() if (int(length) > 10**6)] +
                        [f"output/opportunities/{species}/{sample}/{contig}_opportunities.tsv" for contig, length in contig_dict.items() if (int(length) > 10**6)],
                 outputs=[f"output/final/{sample}_haploid_combined.tsv",
+<<<<<<< HEAD:workflow.py
                          f"output/final/{sample}_opportunities_combined.tsv"]
+=======
+                         f"output/final/{sample}_opportunities_combined.tsv",
+                         f"output/plots/{sample}_indel_plots.pdf"],
+                cores=8,
+                memory="100g",
+                walltime='24:00:00',
+                account="mutationalscanning"
+>>>>>>> development:indel_mutation_call.py
                 ) << f"""
                 mkdir -p output/
                 mkdir -p output/final/

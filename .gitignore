@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### AL ###
 #Template for AL projects for Dynamics 365 Business Central
 #launch.json folder
@@ -20,3 +21,28 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+=======
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+### others ###
+.gwf
+old/
+test
+.DS_Store
+._.DS_Store
+.*
+
+### Output ###
+output/
+fasplit/
+old_output/
+
+unit_tests/
+>>>>>>> development

@@ -905,3 +905,287 @@ def haploid_check():
     Placeholder for haploid check function.
     """
     pass
+
+
+# ---------------------------------------------------------------------------
+# Tandem-repeat InDel pipeline helpers
+# ---------------------------------------------------------------------------
+
+def load_tr_bed_with_tree(bedfile):
+    """
+    Load an M0 or M1 BED file (11-column, with header) into an IntervalTree.
+
+    Each interval's data payload is a dict with keys:
+        canonical_motif, k, copies, trf_purity, model_purity, model
+
+    The first line (header) is skipped automatically.
+    Intervals where end <= start are silently skipped.
+    """
+    tree = IntervalTree()
+    with open(bedfile, 'r') as f:
+        for i, line in enumerate(f):
+            if i == 0:
+                continue  # skip header
+            cols = line.strip().split('\t')
+            if len(cols) < 9:
+                continue
+            start, end = int(cols[1]), int(cols[2])
+            if end <= start:
+                continue
+            tree[start:end] = {
+                'canonical_motif': cols[3],
+                'k':               int(cols[4]),
+                'copies':          float(cols[5]),
+                'trf_purity':      float(cols[6]),
+                'model_purity':    float(cols[7]),
+                'model':           cols[8],
+            }
+    return tree
+
+
+def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
+                         average_coverage_file, tissue_file):
+    """
+    Call InDels whose size is a multiple of the repeat period, scanning only
+    positions *inside* tandem repeat regions defined by an M0 or M1 BED file.
+
+    Mirrors small_indels() but:
+    - Uses TR BED as an *inclusion* filter (positions must be inside a TR interval).
+    - InDel size filter: abs(indel) % k == 0 (any size, not just 1-3 bp).
+    - Homopolymer filter is NOT applied (k=1 homopolymer InDels are the signal).
+    - Extra output columns: canonical_motif, k, copies, trf_purity, model_purity, model.
+    - When a position overlaps multiple TR intervals matching the InDel size,
+      the interval with the largest k is used (most specific period).
+    """
+    with open(average_coverage_file, 'r') as f:
+        average_coverage_of_species = float(f.read().strip())
+
+    fasta = pysam.FastaFile(fastafile)
+    interval_tree = load_tr_bed_with_tree(tr_bedfile)
+
+    with open(tissue_file, "r") as f:
+        tissue_classification = csv.reader(f, delimiter="\t")
+        d = dict(tissue_classification)
+
+    min_mapping_qual = 0
+    min_base_qual = 0
+
+    print("#contig", "start", "end", "ref", "alt",
+          "indel_type", "unique", "indel_string", "tissue", "read_length",
+          "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
+          "position", "readID", "diploid_direction",
+          "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
+          sep="\t", file=sys.stdout)
+
+    with pysam.AlignmentFile(bamfile, "rb") as bam:
+        for pileupcolumn in bam.pileup(contig=contig,
+                                       start=None, stop=None,
+                                       region=None, end=None,
+                                       fastafile=fasta, truncate=True,
+                                       stepper="nofilter",
+                                       min_base_quality=min_base_qual,
+                                       min_mapping_quality=min_mapping_qual):
+
+            if not (average_coverage_of_species / 2
+                    <= pileupcolumn.nsegments
+                    <= average_coverage_of_species * 2):
+                continue
+
+            position = pileupcolumn.reference_pos
+
+            # Only process positions INSIDE a TR interval
+            hits = interval_tree[position]
+            if not hits:
+                continue
+
+            indel_count = sum(
+                1 for pr in pileupcolumn.pileups
+                if (pr.indel != 0) or pr.is_del
+            )
+            seen = "unique" if indel_count <= 1 else "non-unique"
+
+            for pileupread in pileupcolumn.pileups:
+                if pileupread.query_position is None:
+                    continue
+
+                indel = pileupread.indel
+                if indel == 0:
+                    continue
+
+                indel_length = abs(indel)
+
+                # Pick the matching interval with the largest k
+                # (most specific period for this InDel size)
+                matching = [iv for iv in hits
+                            if indel_length % iv.data['k'] == 0]
+                if not matching:
+                    continue
+                best_iv = max(matching, key=lambda iv: iv.data['k'])
+                tr = best_iv.data
+
+                np = ec = sm = sx = sa = sm_pre = sx_pre = "NA"
+                read_pos      = pileupread.query_position
+                read_pos_after = pileupread.query_position_or_next
+                readstart     = pileupread.alignment.reference_start
+                readend       = pileupread.alignment.reference_end
+                ToreadEnd     = min(position - readstart, readend - position)
+
+                read_seq       = pileupread.alignment.query_sequence
+                base_qualities = pileupread.alignment.query_qualities
+
+                if pileupread.alignment.has_tag("np"):
+                    np = pileupread.alignment.get_tag("np")
+                    ec = pileupread.alignment.get_tag("ec")
+                if pileupread.alignment.has_tag("sa"):
+                    sm     = pileupread.alignment.get_tag("sm")[read_pos + 1]
+                    sx     = pileupread.alignment.get_tag("sx")[read_pos + 1]
+                    sa     = subread_array(pileupread.alignment.get_tag("sa"), read_pos)
+                    sm_pre = pileupread.alignment.get_tag("sm")[read_pos]
+                    sx_pre = pileupread.alignment.get_tag("sx")[read_pos]
+
+                upstream, downstream = closest_indel(
+                    pileupread.alignment.cigartuples, read_pos, indel_length
+                )
+                diploid_strand = "-" if pileupread.alignment.is_reverse else "+"
+                tissue_type = d.get(pileupread.alignment.query_name, "NA")
+
+                if indel < 0:
+                    # DELETION
+                    hcheck = fasta.fetch(contig, position,
+                                         position + indel_length + 2)
+                    deletion_context = hcheck[1:-1]
+                    lexi = lexicographically(deletion_context)
+                    del_q = (base_qualities[max(0, read_pos - 1):read_pos + 1]
+                             + base_qualities[read_pos_after + 1:read_pos_after + 3])
+                    kmerQ = min(del_q) if del_q else 0
+
+                    print(contig,
+                          read_pos + 1, read_pos + 1,
+                          hcheck[0:-1], hcheck[0],
+                          "deletion", seen, lexi, tissue_type, len(read_seq),
+                          np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
+                          position + 1, pileupread.alignment.query_name, diploid_strand,
+                          tr['canonical_motif'], tr['k'], tr['copies'],
+                          tr['trf_purity'], tr['model_purity'], tr['model'],
+                          sep="\t", file=sys.stdout)
+
+                if indel > 0:
+                    # INSERTION
+                    insertion_context = read_seq[read_pos + 1:read_pos + indel_length + 1]
+                    lexi = lexicographically(insertion_context)
+                    ins_q = (base_qualities[max(0, read_pos):read_pos + 2]
+                             + base_qualities[max(0, read_pos) + indel_length:
+                                              read_pos + indel_length + 2])
+                    kmerQ = min(ins_q) if ins_q else 0
+
+                    print(contig,
+                          read_pos + 1, read_pos + indel_length + 1,
+                          read_seq[read_pos],
+                          read_seq[read_pos:read_pos + indel_length + 1],
+                          "insertion", seen, lexi, tissue_type, len(read_seq),
+                          np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
+                          position + 1, pileupread.alignment.query_name, diploid_strand,
+                          tr['canonical_motif'], tr['k'], tr['copies'],
+                          tr['trf_purity'], tr['model_purity'], tr['model'],
+                          sep="\t", file=sys.stdout)
+
+    fasta.close()
+    return
+
+
+def tandem_repeat_opportunities(tr_bedfile, contig, bamfile, fastafile,
+                                 average_coverage_file, tissue_file):
+    """
+    Count opportunities (non-InDel read positions) inside tandem repeat regions.
+
+    For each position inside a TR interval, counts reads that pass quality filters,
+    stratified by (canonical_motif, k, tissue, mapQ, kmerQ).
+    The kmerQ window uses the period k as the InDel length proxy.
+    When a position overlaps multiple TR intervals, the one with the smallest k is used.
+
+    Mirrors indel_opportunities() but uses TR BED as an inclusion filter.
+    """
+    with open(average_coverage_file, 'r') as f:
+        average_coverage_of_species = float(f.read().strip())
+
+    fasta = pysam.FastaFile(fastafile)
+    interval_tree = load_tr_bed_with_tree(tr_bedfile)
+
+    with open(tissue_file, "r") as f:
+        tissue_classification = csv.reader(f, delimiter="\t")
+        d = dict(tissue_classification)
+
+    min_mapping_qual = 0
+    min_base_qual = 0
+
+    def counts_dict():
+        return {str(i): 0 for i in range(94)}
+
+    # data[canonical_motif][k][tissue][mapQ][kmerQ] = count
+    data = defaultdict(
+        lambda: defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(counts_dict)
+            )
+        )
+    )
+
+    with pysam.AlignmentFile(bamfile, "rb") as bam:
+        for pileupcolumn in bam.pileup(contig=contig,
+                                       start=None, stop=None,
+                                       region=None, end=None,
+                                       fastafile=fasta, truncate=True,
+                                       stepper="nofilter",
+                                       min_base_quality=min_base_qual,
+                                       min_mapping_quality=min_mapping_qual):
+
+            if not (average_coverage_of_species / 2
+                    <= pileupcolumn.nsegments
+                    <= average_coverage_of_species * 2):
+                continue
+
+            position = pileupcolumn.reference_pos
+
+            # Only process positions INSIDE a TR interval
+            hits = interval_tree[position]
+            if not hits:
+                continue
+
+            # Use the interval with the smallest k at this position
+            tr = min(hits, key=lambda iv: iv.data['k']).data
+            canonical_motif = tr['canonical_motif']
+            k = tr['k']
+
+            for pileupread in pileupcolumn.pileups:
+                if pileupread.query_position is None:
+                    continue
+
+                read_pos       = pileupread.query_position
+                read_seq       = pileupread.alignment.query_sequence
+                base_qualities = pileupread.alignment.query_qualities
+                mapQ           = pileupread.alignment.mapping_quality
+
+                if (read_pos < 1) or (read_pos > (len(read_seq)) - 2):
+                    continue
+
+                # kmerQ window: 2 bases flanking a k-length window
+                kmerq = (base_qualities[read_pos - 1:read_pos + 1]
+                         + base_qualities[read_pos + k - 1:read_pos + k + 1])
+                if not kmerq:
+                    continue
+
+                tissue_type = d.get(pileupread.alignment.query_name, "NA")
+                data[canonical_motif][k][tissue_type][str(mapQ)][str(min(kmerq))] += 1
+
+    print("contig", "canonical_motif", "k", "tissue", "mapQ", "kmerQ", "count",
+          sep="\t", file=sys.stdout)
+    for motif, ks in data.items():
+        for period, tissues in ks.items():
+            for tissue, mapQs in tissues.items():
+                for mapQ, kmerQs in mapQs.items():
+                    for kmerQ, count in kmerQs.items():
+                        print(contig, motif, period, tissue, mapQ, kmerQ, count,
+                              sep="\t", file=sys.stdout)
+
+    fasta.close()
+    return
