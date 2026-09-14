@@ -17,12 +17,17 @@ with open("config.yaml") as handle:
     config = yaml.safe_load(handle)
 
 sample_dict       = config["samples"]
+tissue_dict       = config["tissue_samples"]
 assembly_type     = config["assembly_type"]
 min_contig_length = config["min_contig_length"]
 inpath_fa         = expanduser(config["paths"]["fasta"])
 inpath_bam        = expanduser(config["paths"]["bam"])
+inpath_labels     = expanduser(config["paths"]["read_labels"])
 output            = os.path.abspath(config["paths"]["output"])
 scripts           = os.path.abspath("scripts")
+
+# should properly go to config 
+chunk_size = 40_000_000
 
 
 # Resource requests.
@@ -73,19 +78,65 @@ for species, samples in sample_dict.items():
         awk -v min={min_contig_length} 'BEGIN {{OFS="\\t"}} $2 > min {{print $1, 0, $2}}' {assembly}.fai > {long_contigs_bed}
         samtools depth -b {long_contigs_bed} {alignment} | awk '{{sum += $3; count++}} END {{print sum / count}}' > {coverage}
         """
-        # for contig, length in contig_dict.items():
-        #     if int(length) > 10**6:
-                
-        # Step 3 — unresolved haplotypes, per contig.
-        # Commented out while debugging steps 1 and 2.
-        # for contig in contigs:
-        #     unresolved = f"{outdir}/unresolved_haplotypes/{contig}.bed"
+
+        # Step 3 — unresolved haplotypes, per contig, split into windows.
         #
-        #     gwf.target(
-        #         f"unresolved_haplotype_{sample}_{contig}_{assembly_type}",
-        #         inputs=[assembly, alignment, coverage],
-        #         outputs=[unresolved],
-        #     ) << f"""
-        #     mkdir -p {outdir}/unresolved_haplotypes
-        #     python {scripts}/resolve_haplotypes.py {contig} {alignment} {assembly} {coverage} > {unresolved}
-        #     """
+        # The windows [0, chunk_size), [chunk_size, 2*chunk_size), ... tile the
+        # contig, so every position is scanned by exactly one job. A region is
+        # built from the full span of its reads, so it can reach past its
+        # window; the pieces from neighbouring windows then overlap, and
+        # bedtools merge joins them back into one region.
+        chunk_dir = f"{outdir}/unresolved_haplotypes/chunks"
+
+        for contig, length in contig_dict.items():
+            length = int(length)
+            if length <= min_contig_length:
+                continue
+
+            unresolved = f"{outdir}/unresolved_haplotypes/{contig}.bed"
+            chunk_beds = []
+
+            # Step 3a — one job per window.
+            for start in range(0, length, chunk_size):
+                end = min(start + chunk_size, length)
+                chunk_bed = f"{chunk_dir}/{contig}_{start}_{end}.bed"
+                chunk_beds.append(chunk_bed)
+
+                gwf.target(
+                    f"unresolved_haplotype_{sample}_{contig}_{start}_{assembly_type}",
+                    inputs=[assembly, alignment, coverage],
+                    outputs=[chunk_bed],
+                ) << f"""
+                mkdir -p {chunk_dir}
+                python {scripts}/resolve_haplotypes.py {contig} {start} {end} {alignment} {assembly} {coverage} > {chunk_bed}
+                """
+
+            # Step 3b — join the windows back into one BED per contig.
+            chunk_list = " ".join(chunk_beds)
+
+            gwf.target(
+                f"merge_unresolved_{sample}_{contig}_{assembly_type}",
+                inputs=chunk_beds,
+                outputs=[unresolved],
+                cores=1,
+                memory="4g",
+                walltime="00:30:00",
+            ) << f"""
+            cat {chunk_list} | sort -k1,1 -k2,2n | bedtools merge -i - > {unresolved}
+            """
+
+        # Step 4 — read -> tissue table, sorted by read ID. Only samples listed
+        # under tissue_samples in config.yaml have read labels.
+        if sample in tissue_dict.get(species, []):
+            read_labels = f"{inpath_labels}/{species}/{sample}/{sample}_read_labels.txt"
+            tissue      = f"{outdir}/sorted_tissue_classification.tsv"
+
+            gwf.target(
+                f"sorting_tissue_classification_{sample}_{assembly_type}",
+                inputs=[read_labels],
+                outputs=[tissue],
+            ) << f"""
+            mkdir -p {outdir}
+            printf "readID\\ttissue\\n" > {tissue}
+            awk -v OFS="\\t" '{{gsub(/[ \\t]+/, "\\t"); print $1, $2}}' {read_labels} | sort -k1,1 >> {tissue}
+            """

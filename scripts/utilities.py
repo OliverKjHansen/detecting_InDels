@@ -1190,7 +1190,10 @@ def tandem_repeat_opportunities(tr_bedfile, contig, bamfile, fastafile,
     fasta.close()
     return
 
-def resolve_haplotypes(contig, bamfile, fastafile, average_coverage_file):
+def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, average_coverage_file):
+    # Only positions in [window_start, window_end) are scanned. Regions are
+    # reported with the full span of their reads, so they can reach outside
+    # the window; the workflow merges regions from neighbouring windows.
     fasta = pysam.FastaFile(fastafile)
     #average_coverage_of_species = extract_avg_cov(average_coverage_file)
     #print("works?")
@@ -1202,10 +1205,8 @@ def resolve_haplotypes(contig, bamfile, fastafile, average_coverage_file):
         #print("contig","start","end", sep= "\t")
 
         for pileupcolumn in bam.pileup(contig=contig,
-                                       start=None,
-                                       stop=None,
-                                       region=None,
-                                       end=None,
+                                       start=window_start,
+                                       stop=window_end,
                                        fastafile=fasta,
                                        truncate=True,
                                        stepper="nofilter",
