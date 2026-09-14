@@ -1,9 +1,9 @@
 import sys
 
-# Usage: parse_trf.py <trf_ngs_txt> <k> <species> <sample>
+# Usage: parse_trf.py <trf_ngs_txt> <k> <species> <sample> <model>
 #
 # Parses TRF -ngs output for a single period k and emits the unified repeat
-# annotation TSV (M1 model).
+# annotation TSV, tagged with the TRF model it came from (M1, M2).
 #
 # Two impurity measures are reported:
 #
@@ -84,6 +84,7 @@ def main():
     k          = int(sys.argv[2])
     species    = sys.argv[3]
     sample     = sys.argv[4]
+    model      = sys.argv[5]
 
     out_header = (
         "contig", "start", "end", "canonical_motif", "k", "copies",
@@ -126,7 +127,7 @@ def main():
             model_purity  = hamming_pct_matches(repeat_seq, motif_seq)
 
             print(current_contig, start, end, canonical, k, copies,
-                  f"{trf_purity:.2f}", f"{model_purity:.2f}", "M1",
+                  f"{trf_purity:.2f}", f"{model_purity:.2f}", model,
                   species, sample, sep="\t")
 
 

@@ -1189,3 +1189,76 @@ def tandem_repeat_opportunities(tr_bedfile, contig, bamfile, fastafile,
 
     fasta.close()
     return
+
+def resolve_haplotypes(contig, bamfile, fastafile, average_coverage_file):
+    fasta = pysam.FastaFile(fastafile)
+    #average_coverage_of_species = extract_avg_cov(average_coverage_file)
+    #print("works?")
+    min_mapping_qual = 0
+    min_base_qual = 0
+    previous_start = 0
+    previous_end = 0
+    with pysam.AlignmentFile(bamfile, "rb") as bam:
+        #print("contig","start","end", sep= "\t")
+
+        for pileupcolumn in bam.pileup(contig=contig,
+                                       start=None,
+                                       stop=None,
+                                       region=None,
+                                       end=None,
+                                       fastafile=fasta,
+                                       truncate=True,
+                                       stepper="nofilter",
+                                       min_base_quality=min_base_qual,#quite light
+                                       min_mapping_quality=min_mapping_qual#conservative
+        ):
+
+            position = pileupcolumn.reference_pos
+            #reference_base = fasta.fetch(contig, position, position + 1).upper()
+            #print(position+1)
+            # if not (average_coverage_of_species/2 <= pileupcolumn.nsegments <= average_coverage_of_species*2): #tjek on avergae depth of position
+            #     continue
+            bases = pileupcolumn.get_query_sequences(mark_matches=True, mark_ends=True,add_indels=False)
+            bases = [base.upper() for base in bases]
+            #print(bases)
+            if len(set(bases)) != 1:
+                reference_base = fasta.fetch(contig, position, position + 1).upper()
+                #print(bases, reference_base, position, sep= "\t") 
+                mismatch_positions = {}
+                for pileupread in pileupcolumn.pileups:
+                    query_position = pileupread.query_position
+                    if query_position is None:
+                        continue  # Skip if query position is None #potentiel indel
+                    
+                    read_base = pileupread.alignment.query_sequence[query_position].upper()
+                    baseq = pileupread.alignment.query_qualities[query_position]
+                    if baseq < 40:
+                        continue
+
+                    if read_base != reference_base: # if the read base is not the same as the reference base
+                        readstart = pileupread.alignment.reference_start # keep zero indexing
+                        readend = pileupread.alignment.reference_end
+                        if read_base not in mismatch_positions:
+                            mismatch_positions[read_base] = [[],[]]
+                        mismatch_positions[read_base][0].append(readstart)
+                        mismatch_positions[read_base][1].append(readend)
+                        #print(bases, reference_base, position+1, sep= "\t") 
+                # if position+1 == 172309:
+                #     print(mismatch_positions)
+                for base, intervals in mismatch_positions.items():
+                    if len(intervals[0]) > 1: # number of identical bases i need to see to say there is a unresolved haplotype
+                        #print(intervals)
+                        start = min(intervals[0])
+                        end = max(intervals[1])
+                        #print(intervals,position+1,start,end)
+                        if (previous_start == 0) and (previous_end==0):
+                            previous_start = start
+                            previous_end = end
+                        elif start < previous_end: # extending region
+                            previous_end = end
+                        elif start > previous_end: # new region
+                            print(contig, previous_start, previous_end, sep="\t")
+                            previous_start = start
+                            previous_end = end
+    if previous_start != 0 and previous_end != 0:
+        print(contig, previous_start, previous_end, sep="\t")

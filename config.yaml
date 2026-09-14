@@ -1,0 +1,59 @@
+
+samples:
+  human:   [ob006, ob007, ob008, ob009, da1, la4, tsaed, ob2v, ob003h, aa_sperm, chk, la, ph, tr]
+  chimp:    [yoran, stephan, carl, martin, marlock, mongo]
+  gorilla: [kipenzi]   # mbewe, samson: empty kinetics assembly
+  baboon:  [sethi]     # bs5v: contaminated
+  gibbon:  [tarzan]
+  macaque:  [jako, lenny]
+  marmoset: [marmoset, lambiek]
+
+assembly_type: diploid
+
+min_contig_length: 1000000
+
+# ---------------------------------------------------------------------------
+# Cluster
+# ---------------------------------------------------------------------------
+
+paths:
+  fasta:    "~/mutationalscanning/DerivedData/fasta/HiFi"
+  bam:      "~/mutationalscanning/DerivedData/bam/HiFi"
+  tissue:   "/faststorage/project/mutationalscanning/Workspaces/oliver/microsatellites/marmosetanalysis"
+  microsat: "/faststorage/project/mutationalscanning/Workspaces/oliver/microsatellites/ratemicrosat"
+  # Not used yet: methylation-based classification of germline reads.
+  # methylation_classification: "~/mutationalscanning/Workspaces/vinod/AllDatasets_germFracDynamics_vs_ll_HiFiReadsLL_UpdateAgreed_testLowRAM_update2_final/ToOliver_germReads"
+  # Everything the pipeline writes goes under here, in two trees:
+  #   output/results/{species}/{sample}/...  small, fetched, kept
+  #   output/work/{species}/{sample}/...     large, regenerable, deletable
+  output:   "output"
+
+tools:
+  mreps: "~/mutationalscanning/Workspaces/oliver/microsatellites/development/mreps/mreps"
+  trf:   "~/mutationalscanning/Workspaces/oliver/microsatellites/development/TRF/build/src/trf"
+
+# ---------------------------------------------------------------------------
+# File layout. These templates are the single source of truth for where data
+# lives; workflows never build paths by hand. Placeholders are filled from
+# `paths` and `assembly_type` above, plus species/sample/contig/model.
+# ---------------------------------------------------------------------------
+layout:
+  # Raw inputs.
+  assembly:     "{fasta}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
+  assembly_fai: "{fasta}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa.fai"
+  haploid:      "{fasta}/{species}/{sample}/haploid_assembly/{sample}_haploid.fa"
+  alignment:    "{bam}/{species}/{sample}/kinetics/{sample}_kinetics_{assembly_type}.bam"
+
+  # Written by precompute.py.
+  contig_fasta: "{output}/precomute/{species}/{sample}/contigs/{contig}.fa"
+  coverage:     "{output}/precomute/{species}/{sample}/avg_coverage.txt"
+  unresolved:   "{output}/precomute/{species}/{sample}/unresolved_haplotypes/{contig}.bed"
+
+  # Still read from earlier projects.
+  tissue:       "{tissue}/{species}/{sample}_sorted_tissue_classification.tsv"
+  # The old microsatellite mask, still used by indel_mutation_call.py.
+  microsat:     "{microsat}/{species}/{sample}/{contig}_trs_tidy.tsv"
+
+  # Written by repetitive_dna.py: one BED per contig per model, and per sample.
+  tandem_repeats:        "{output_root}/work/{species}/{sample}/tandem_repeats/{contig}_{model}.bed"
+  tandem_repeats_sample: "{output_root}/work/{species}/{sample}/tandem_repeats/{model}.bed"
