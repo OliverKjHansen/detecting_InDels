@@ -61,5 +61,5 @@ layout:
   microsat:     "{microsat}/{species}/{sample}/{contig}_trs_tidy.tsv"
 
   # Written by repetitive_dna.py: one BED per contig per model, and per sample.
-  tandem_repeats:        "{output_root}/work/{species}/{sample}/tandem_repeats/{contig}_{model}.bed"
-  tandem_repeats_sample: "{output_root}/work/{species}/{sample}/tandem_repeats/{model}.bed"
+  tandem_repeats:        "{output}/repetitive_dna/{species}/{sample}/tandem_repeats/{contig}_{model}.bed"
+  tandem_repeats_sample: "{output}/repetitive_dna/{species}/{sample}/tandem_repeats/{model}.bed"
