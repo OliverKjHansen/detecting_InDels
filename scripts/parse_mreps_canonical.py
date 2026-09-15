@@ -1,76 +1,94 @@
+import re
 import sys
+from collections import Counter
 
-# Usage: parse_mreps_canonical.py <mreps_txt> <contig> <k> <species> <sample>
+from parse_trf import canonicalise, hamming_pct_matches
+
+# Usage: parse_mreps_canonical.py <mreps_txt> <contig> <k> <species> <sample> <model>
 #
-# Parses mreps -fasta output for a single period k and emits the M0 repeat
-# annotation in the unified 11-column format shared with parse_trf.py (M1):
+# Parses mreps output for a single period k and emits the unified 11-column
+# repeat BED shared with parse_trf.py:
 #   contig, start, end, canonical_motif, k, copies,
 #   trf_purity, model_purity, model, species, sample
 #
-# mreps reports only exact repeats, so both purity columns are 100.0.
+# Works for exact runs (M0, no -res) and runs with -res (M2): mreps prints the
+# same table for both. Each repeat is one line:
+#       19  ->        26 :     8   <2>   [4.00]   0.167     AC AT AC AC
+#   from -> to : size <period> [exponent] err-rate copies
 #
-# Coordinate convention (matching kolpakov.py):
-#   mreps output is 1-based inclusive → shift start to 0-based, leave end as-is (exclusive).
+# Purity:
+#   trf_purity   — mreps' own measure, (1 - err-rate) * 100. err-rate is
+#                  mismatches / (length - period), where a single odd base
+#                  between two matching copies counts once. 100.00 when exact.
+#   model_purity — the Hamming measure parse_trf.py uses: the repeat compared
+#                  base by base with its consensus motif tiled from the start.
 #
-# Canonical motif: lexicographic minimum over all rotations of the motif itself.
-# Reverse complement is NOT included: AAAAA and TTTTT are distinct genomic tracts and
-# must not be collapsed into the same motif group.
+# Motif: mreps prints the repeat split into copies, and in an impure repeat any
+# copy can carry the mismatch. The motif is therefore the consensus of the full
+# copies: the most common base at each position, ties going to the first copy.
+#
+# Coordinates: mreps is 1-based inclusive (201 -> 220 is 20 bp). The BED is
+# 0-based half-open, so start = from - 1 and end = to.
+#
+# Canonical motif: lexicographic minimum over rotations only, no reverse
+# complement, so e.g. AC and GT repeats stay distinct.
 
-def canonicalise(motif):
-    """Return the lexicographically smallest rotation of the motif (rotations only, no RC)."""
-    motif = motif.upper()
-    k = len(motif)
-    return min(motif[i:] + motif[:i] for i in range(k))
+REPEAT_LINE = re.compile(
+    r"^\s*(\d+)\s*->\s*(\d+)\s*:"   # from -> to :
+    r"\s*(\d+)"                     # size
+    r"\s*<(\d+)>"                   # <period>
+    r"\s*\[([\d.]+)\]"              # [exponent]
+    r"\s*([\d.]+)"                  # err-rate
+    r"\s*(.*)$"                     # copies
+)
 
 
-input_file = sys.argv[1]
-contig      = sys.argv[2]
-k           = int(sys.argv[3])
-species     = sys.argv[4]
-sample      = sys.argv[5]
+def consensus(copies, k):
+    """Most common base at each of the k positions across the full copies."""
+    full = [copy.upper() for copy in copies if len(copy) == k]
+    motif = ""
+    for j in range(k):
+        counts = Counter(copy[j] for copy in full)
+        motif += max(counts, key=lambda base: (counts[base], base == full[0][j]))
+    return motif
 
-with open(input_file) as f:
-    lines = f.readlines()
 
-# mreps -fasta output: skip the 15-line header and last 3 footer lines
-# (same convention as kolpakov.py)
-body = lines[15:-3]
+def main():
+    input_file = sys.argv[1]
+    contig     = sys.argv[2]
+    k          = int(sys.argv[3])
+    species    = sys.argv[4]
+    sample     = sys.argv[5]
+    model      = sys.argv[6]
 
-print("contig", "start", "end", "canonical_motif", "k", "copies",
-      "trf_purity", "model_purity", "model", "species", "sample", sep="\t")
+    print("contig", "start", "end", "canonical_motif", "k", "copies",
+          "trf_purity", "model_purity", "model", "species", "sample", sep="\t")
 
-for line in body:
-    line = line.strip()
-    if not line:
-        continue
+    with open(input_file) as handle:
+        for line in handle:
+            match = REPEAT_LINE.match(line)
+            if not match:
+                continue
 
-    fields = line.split("\t")
-    if len(fields) < 4:
-        continue
+            from_pos, to_pos, _size, period, exponent, err_rate, sequence = match.groups()
+            copies = sequence.split()
 
-    try:
-        start_raw, end_raw = fields[0].replace(" ", "").replace(":", "").split("->")
-        start_1based = int(start_raw)
-        end_1based   = int(end_raw)
+            # -minperiod/-maxperiod should guarantee the period; a repeat
+            # without its sequence (-noprint) cannot be given a motif.
+            if int(period) != k or not any(len(copy) == k for copy in copies):
+                continue
 
-        copies   = fields[3].strip(" [] ")
-        raw_motif = fields[-1].split()[0]  # first token after the sequence body
-    except (ValueError, IndexError):
-        continue
+            start = int(from_pos) - 1
+            end   = int(to_pos)
 
-    # Safety net for malformed lines: -exp 2 guarantees ≥ 2 copies (exponent = length/period).
-    try:
-        if float(copies) < 2.0:
-            continue
-    except ValueError:
-        continue
+            motif = consensus(copies, k)
+            mreps_purity = (1 - float(err_rate)) * 100
+            model_purity = hamming_pct_matches("".join(copies), motif)
 
-    # 0-based half-open coordinates #check this!!!!!!
-    start = start_1based - 1
-    end   = end_1based        # already exclusive
+            print(contig, start, end, canonicalise(motif), k, exponent,
+                  f"{mreps_purity:.2f}", f"{model_purity:.2f}", model,
+                  species, sample, sep="\t")
 
-    canonical = canonicalise(raw_motif)
 
-    # Exact repeats: both purity measures are 100% by definition.
-    print(contig, start, end, canonical, k, copies,
-          "100.0", "100.0", "M0", species, sample, sep="\t")
+if __name__ == "__main__":
+    main()

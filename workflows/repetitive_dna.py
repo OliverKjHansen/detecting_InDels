@@ -10,7 +10,7 @@ from gwf import Workflow
 #
 #   M0 — mreps, exact/pure repeats
 #   M1 — TRF, standard scoring from RepeatMasker
-#   M2 — mreps, custom parameters (not implemented yet)
+#   M2 — mreps, resolution 1: one substitution allowed between adjacent copies
 #
 # Configuration is read from config.yaml. Run gwf from the repository root,
 # after precompute.py has split the assemblies into contigs:
@@ -34,18 +34,21 @@ scripts           = os.path.abspath("scripts")
 mreps             = expanduser(config["tools"]["mreps"])
 trf               = expanduser(config["tools"]["trf"])
 
-# Tandem repeat periods to scan.
-periods = [1, 2, 3, 4, 5, 6]
+# Tandem repeat periods to scan. Homopolymers (k=1) are not annotated.
+periods = [2, 3, 4, 5, 6]
 periods_str = " ".join(str(k) for k in periods)
 
-# M0 — mreps minimum exponent, i.e. at least this many full copies.
+# M0 and M2 — mreps minimum exponent, i.e. at least this many full copies.
 mreps_exp = 3
+
+# M2 — mreps resolution: substitutions allowed between adjacent copies.
+m2_res = 1
 
 # M1 — TRF parameters: match mismatch indel PM PI minscore.
 # With match weight 2 a perfect tract needs >= minscore/2 bp: ~25 bp.
 trf_params = "2 7 7 80 10 50"
 
-models = ["M0", "M1"]
+models = ["M0", "M1", "M2"]
 
 # Resource requests.
 gwf = Workflow(
@@ -76,6 +79,7 @@ for species, samples in sample_dict.items():
             contig_fa = f"{contigs_dir}/{contig}.fa"
             m0_k_beds = " ".join(f"$WORK/{k}_M0.bed" for k in periods)
             m1_k_beds = " ".join(f"$WORK/{k}_M1.bed" for k in periods)
+            m2_k_beds = " ".join(f"$WORK/{k}_M2.bed" for k in periods)
 
             # Step 1a — M0: mreps exact/pure repeats.
             gwf.target(
@@ -92,9 +96,8 @@ for species, samples in sample_dict.items():
                 # -allowsmall: allow tracts shorter than the random-occurrence threshold
                 {mreps} -minperiod $k -maxperiod $k -exp {mreps_exp} -allowsmall -fasta {contig_fa} \
                     > $WORK/${{k}}_mreps.txt
-                # parse_mreps_canonical.py writes the 11-column M0 BED directly
                 python {scripts}/parse_mreps_canonical.py \
-                    $WORK/${{k}}_mreps.txt {contig} $k {species} {sample} \
+                    $WORK/${{k}}_mreps.txt {contig} $k {species} {sample} M0 \
                     > $WORK/${{k}}_M0.bed
             done
 
@@ -131,6 +134,32 @@ for species, samples in sample_dict.items():
 
             # Overlapping tracts: keep the smallest k, drop the others.
             python {scripts}/resolve_repeat_overlaps.py $WORK/all_M1.bed > {outdir}/{contig}_M1.bed
+            """
+
+            # Step 1c — M2: mreps with resolution m2_res.
+            gwf.target(
+                f"M2_mreps_{contig}_{sample}_{assembly_type}",
+                inputs=[contig_fa],
+                outputs=[f"{outdir}/{contig}_M2.bed"],
+            ) << f"""
+            mkdir -p {outdir}
+            WORK=$(mktemp -d)
+            trap 'rm -rf "$WORK"' EXIT
+
+            for k in {periods_str}; do
+                # -res N: allow up to N substitutions between adjacent copies
+                {mreps} -minperiod $k -maxperiod $k -exp {mreps_exp} -res {m2_res} -allowsmall -fasta {contig_fa} \
+                    > $WORK/${{k}}_mreps.txt
+                python {scripts}/parse_mreps_canonical.py \
+                    $WORK/${{k}}_mreps.txt {contig} $k {species} {sample} M2 \
+                    > $WORK/${{k}}_M2.bed
+            done
+
+            # Concatenate all k - header retained from the first file only.
+            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {m2_k_beds} > $WORK/all_M2.bed
+
+            # Overlapping tracts: keep the smallest k, drop the others.
+            python {scripts}/resolve_repeat_overlaps.py $WORK/all_M2.bed > {outdir}/{contig}_M2.bed
             """
 
         # Step 2 — concatenate the per-contig BEDs into one file per model per sample.
