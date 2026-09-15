@@ -2,17 +2,19 @@ import sys
 
 # Usage: parse_mreps_canonical.py <mreps_txt> <contig> <k> <species> <sample>
 #
-# Parses mreps -fasta output for a single period k.
-# Emits TSV: contig, start, end, canonical_motif, k, copies, phase, raw_motif, species, sample
+# Parses mreps -fasta output for a single period k and emits the M0 repeat
+# annotation in the unified 11-column format shared with parse_trf.py (M1):
+#   contig, start, end, canonical_motif, k, copies,
+#   trf_purity, model_purity, model, species, sample
+#
+# mreps reports only exact repeats, so both purity columns are 100.0.
 #
 # Coordinate convention (matching kolpakov.py):
 #   mreps output is 1-based inclusive → shift start to 0-based, leave end as-is (exclusive).
 #
 # Canonical motif: lexicographic minimum over all rotations of the motif itself.
 # Reverse complement is NOT included: AAAAA and TTTTT are distinct genomic tracts and
-# must not be collapsed into the same motif group at this stage. Collapsing across strands
-# would incorrectly merge tracts and break the adjacency-graph / impurity-model logic.
-# Phase: start % k (0-based start), representing where in the motif cycle the tract begins.
+# must not be collapsed into the same motif group.
 
 def canonicalise(motif):
     """Return the lexicographically smallest rotation of the motif (rotations only, no RC)."""
@@ -34,8 +36,8 @@ with open(input_file) as f:
 # (same convention as kolpakov.py)
 body = lines[15:-3]
 
-print("contig", "start", "end", "canonical_motif", "k", "copies", "phase",
-      "raw_motif", "species", "sample", sep="\t")
+print("contig", "start", "end", "canonical_motif", "k", "copies",
+      "trf_purity", "model_purity", "model", "species", "sample", sep="\t")
 
 for line in body:
     line = line.strip()
@@ -68,7 +70,7 @@ for line in body:
     end   = end_1based        # already exclusive
 
     canonical = canonicalise(raw_motif)
-    phase      = start % k
 
-    print(contig, start, end, canonical, k, copies, phase,
-          raw_motif, species, sample, sep="\t")
+    # Exact repeats: both purity measures are 100% by definition.
+    print(contig, start, end, canonical, k, copies,
+          "100.0", "100.0", "M0", species, sample, sep="\t")
