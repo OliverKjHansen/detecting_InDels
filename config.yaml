@@ -32,6 +32,8 @@ paths:
   microsat:    "/faststorage/project/mutationalscanning/Workspaces/oliver/microsatellites/ratemicrosat"
 
   output:   "output"
+  results:   "results"
+  plots:   "plots"
 
 tools:
   mreps: "~/mutationalscanning/Workspaces/oliver/microsatellites/development/mreps/mreps"

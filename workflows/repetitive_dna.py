@@ -30,6 +30,7 @@ assembly_type     = config["assembly_type"]
 min_contig_length = config["min_contig_length"]
 inpath_fa         = expanduser(config["paths"]["fasta"])
 output            = os.path.abspath(config["paths"]["output"])
+results           = os.path.abspath(config["paths"]["results"])
 scripts           = os.path.abspath("scripts")
 mreps             = expanduser(config["tools"]["mreps"])
 trf               = expanduser(config["tools"]["trf"])
@@ -64,6 +65,7 @@ for species, samples in sample_dict.items():
         assembly    = f"{inpath_fa}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
         contigs_dir = f"{output}/precomute/{species}/{sample}/contigs"
         outdir      = f"{output}/repetitive_dna/{species}/{sample}"
+        resultsdir  = f"{results}/repetitive_dna/{species}/{sample}"
         contig_dict = {}
 
         with open(f"{assembly}.fai") as contigs:
@@ -162,16 +164,27 @@ for species, samples in sample_dict.items():
             python {scripts}/resolve_repeat_overlaps.py $WORK/all_M2.bed > {outdir}/{contig}_M2.bed
             """
 
-        # Step 2 — concatenate the per-contig BEDs into one file per model per sample.
+        # Step 2 — per model: concatenate the per-contig BEDs into one BED for the
+        # sample, and summarise it into a small table to plot locally. The summary
+        # counts tracts per (canonical_motif, k, copies, trf_purity, model_purity,
+        # model, species, sample), i.e. BED columns 4-11, and goes to the results
+        # path; the full BED stays under output.
         for model in models:
             model_beds = [f"{outdir}/{contig}_{model}.bed" for contig in long_contigs]
             bed_list = " ".join(model_beds)
+            sample_bed = f"{outdir}/{model}.bed"
+            summary = f"{resultsdir}/{model}_summary.tsv"
 
             gwf.target(
                 f"cat_{model}_{sample}_{assembly_type}",
                 inputs=model_beds,
-                outputs=[f"{outdir}/{model}.bed"],
+                outputs=[sample_bed, summary],
             ) << f"""
-            mkdir -p {outdir}
-            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {bed_list} > {outdir}/{model}.bed
+            mkdir -p {outdir} {resultsdir}
+            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {bed_list} > {sample_bed}
+
+            printf "canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n" > {summary}
+            awk -F'\\t' -v OFS='\\t' 'NR>1 {{n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}}
+                END {{for (key in n) print key, n[key]}}' {sample_bed} \\
+                | sort -k2,2n -k1,1 -k3,3g >> {summary}
             """
