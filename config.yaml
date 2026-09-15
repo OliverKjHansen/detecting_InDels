@@ -1,7 +1,8 @@
 
 samples:
-  human:   [chk]
+  human:   [chk, la, ph, tr]
   marmoset: [lambiek]
+  chimp: [yoran]
   # human:   [ob006, ob007, ob008, ob009, da1, la4, tsaed, ob2v, ob003h, aa_sperm, chk, la, ph, tr]
   # chimp:    [yoran, stephan, carl, martin, marlock, mongo]
   # gorilla: [kipenzi]   # mbewe, samson: empty kinetics assembly
