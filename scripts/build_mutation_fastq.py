@@ -39,11 +39,12 @@ def parse_mutation_file(mutation_tsv):
     return mutation_dict
 
 
-def extract_mutation_reads(bam_path, contig, mutation_dict):
+def extract_mutation_reads(bam_path, contig, mutation_dict, window_start=None, window_end=None):
     """
     Given a BAM file, a contig name, and a mapping from position
     to mutation-supporting read names, extract FASTQ entries
-    for those reads.
+    for those reads. With window_start/window_end only positions in
+    [window_start, window_end) are visited.
 
     Returns:
         fastq_dict: dict mapping read_name -> FASTQ entry (list of 4 strings)
@@ -55,8 +56,8 @@ def extract_mutation_reads(bam_path, contig, mutation_dict):
     bam = pysam.AlignmentFile(bam_path, "rb")
 
     for pileupcolumn in bam.pileup(contig=contig, #pileup 
-                                       start=None,
-                                       stop=None,
+                                       start=window_start,
+                                       stop=window_end,
                                        region=None,
                                        end=None,
                                        truncate=True,
@@ -99,20 +100,21 @@ def write_fastq(fastq_dict, outfile):
 
 
 def main():
-    if len(sys.argv) != 5:
+    if len(sys.argv) not in (5, 7):
         sys.exit(
             "Usage: build_mutation_fastq.py "
-            "<small_indels.tsv> <contig> <bam> <output.fastq>"
+            "<small_indels.tsv> <bam> <contig> <output.fastq> [<start> <end>]"
         )
 
     mutation_tsv = sys.argv[1]
     bam_path = sys.argv[2]
     contig = sys.argv[3]
     outfile = sys.argv[4]
+    window_start, window_end = (int(sys.argv[5]), int(sys.argv[6])) if len(sys.argv) == 7 else (None, None)
 
     mutation_dict = parse_mutation_file(mutation_tsv)
     #print(mutation_dict)
-    fastq_dict = extract_mutation_reads(bam_path, contig, mutation_dict)
+    fastq_dict = extract_mutation_reads(bam_path, contig, mutation_dict, window_start, window_end)
     write_fastq(fastq_dict, outfile)
 
 

@@ -24,6 +24,18 @@ def load_filters_with_tree(bedfile): #for intervals interval trees are quicker t
     return tree
 
 
+def load_tissue_classification(tissue_file):
+    """
+    readID -> tissue, from a two-column TSV.
+
+    Samples without read labels pass "NA" instead of a file; they get an empty
+    table, so every read is reported with tissue NA.
+    """
+    if tissue_file == "NA":
+        return {}
+    with open(tissue_file, "r") as f:
+        return dict(csv.reader(f, delimiter="\t"))
+
 
 def small_indels_dict(microsatfile, contig, bamfile, fastafile, average_coverage_file,tissue_file):
 
@@ -34,9 +46,7 @@ def small_indels_dict(microsatfile, contig, bamfile, fastafile, average_coverage
     intervals, metadata = load_intervals(microsatfile) # artifact from microsat script, but might be useful later
     
     #####
-    with open(tissue_file, "r") as f:
-        tissue_classification = csv.reader(f, delimiter="\t")
-        d = dict(tissue_classification)
+    d = load_tissue_classification(tissue_file)
     #print(d)
 
     #####
@@ -336,9 +346,7 @@ def large_indels(contig, bamfile, fastafile, average_coverage_file,tissue_file, 
     intervals, metadata = load_intervals(microsatfile) # artifact from microsat script, but might be useful later
     
     #####
-    with open(tissue_file, "r") as f:
-        tissue_classification = csv.reader(f, delimiter="\t")
-        d = dict(tissue_classification)
+    d = load_tissue_classification(tissue_file)
     #print(d)
     ### ADD mircosat filter in this analysis and in tmotif flag
     print("contig","position","ref","alt",
@@ -513,9 +521,7 @@ def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_fi
     #intervals, metadata = load_intervals(microsatfile) # artifact from microsat script, but might be useful later
     interval_tree = load_filters_with_tree(filters) # IntervalTree
     #####
-    with open(tissue_file, "r") as f:
-        tissue_classification = csv.reader(f, delimiter="\t")
-        d = dict(tissue_classification)
+    d = load_tissue_classification(tissue_file)
     #print(d)
 
     #####
@@ -663,9 +669,7 @@ def small_indels(filters, contig, bamfile, fastafile, average_coverage_file,tiss
     interval_tree = load_filters_with_tree(filters) # IntervalTree
     
     #####
-    with open(tissue_file, "r") as f:
-        tissue_classification = csv.reader(f, delimiter="\t")
-        d = dict(tissue_classification)
+    d = load_tissue_classification(tissue_file)
     #print(d)
 
     #####
@@ -944,7 +948,8 @@ def load_tr_bed_with_tree(bedfile):
 
 
 def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
-                         average_coverage_file, tissue_file):
+                         average_coverage_file, tissue_file,
+                         window_start=None, window_end=None):
     """
     Call InDels whose size is a multiple of the repeat period, scanning only
     positions *inside* tandem repeat regions defined by an M0 or M1 BED file.
@@ -956,6 +961,9 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
     - Extra output columns: canonical_motif, k, copies, trf_purity, model_purity, model.
     - When a position overlaps multiple TR intervals matching the InDel size,
       the interval with the largest k is used (most specific period).
+    - With window_start/window_end, only positions in [window_start, window_end)
+      are scanned; each position belongs to one window, so windows never
+      report the same call twice. Without them the whole contig is scanned.
     """
     with open(average_coverage_file, 'r') as f:
         average_coverage_of_species = float(f.read().strip())
@@ -963,9 +971,7 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
     fasta = pysam.FastaFile(fastafile)
     interval_tree = load_tr_bed_with_tree(tr_bedfile)
 
-    with open(tissue_file, "r") as f:
-        tissue_classification = csv.reader(f, delimiter="\t")
-        d = dict(tissue_classification)
+    d = load_tissue_classification(tissue_file)
 
     min_mapping_qual = 0
     min_base_qual = 0
@@ -979,7 +985,7 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
 
     with pysam.AlignmentFile(bamfile, "rb") as bam:
         for pileupcolumn in bam.pileup(contig=contig,
-                                       start=None, stop=None,
+                                       start=window_start, stop=window_end,
                                        region=None, end=None,
                                        fastafile=fasta, truncate=True,
                                        stepper="nofilter",
@@ -1094,9 +1100,13 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
 
 
 def tandem_repeat_opportunities(tr_bedfile, contig, bamfile, fastafile,
-                                 average_coverage_file, tissue_file):
+                                 average_coverage_file, tissue_file,
+                                 window_start=None, window_end=None):
     """
     Count opportunities (non-InDel read positions) inside tandem repeat regions.
+
+    With window_start/window_end, only positions in [window_start, window_end)
+    are counted; counts from neighbouring windows add up to the whole contig.
 
     For each position inside a TR interval, counts reads that pass quality filters,
     stratified by (canonical_motif, k, tissue, mapQ, kmerQ).
@@ -1111,9 +1121,7 @@ def tandem_repeat_opportunities(tr_bedfile, contig, bamfile, fastafile,
     fasta = pysam.FastaFile(fastafile)
     interval_tree = load_tr_bed_with_tree(tr_bedfile)
 
-    with open(tissue_file, "r") as f:
-        tissue_classification = csv.reader(f, delimiter="\t")
-        d = dict(tissue_classification)
+    d = load_tissue_classification(tissue_file)
 
     min_mapping_qual = 0
     min_base_qual = 0
@@ -1132,7 +1140,7 @@ def tandem_repeat_opportunities(tr_bedfile, contig, bamfile, fastafile,
 
     with pysam.AlignmentFile(bamfile, "rb") as bam:
         for pileupcolumn in bam.pileup(contig=contig,
-                                       start=None, stop=None,
+                                       start=window_start, stop=window_end,
                                        region=None, end=None,
                                        fastafile=fasta, truncate=True,
                                        stepper="nofilter",

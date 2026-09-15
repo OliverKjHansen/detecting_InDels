@@ -37,7 +37,6 @@ trf               = expanduser(config["tools"]["trf"])
 
 # Tandem repeat periods to scan. Homopolymers (k=1) are not annotated.
 periods = [2, 3, 4, 5, 6]
-periods_str = " ".join(str(k) for k in periods)
 
 # M0 and M2 — mreps minimum exponent, i.e. at least this many full copies.
 mreps_exp = 3
@@ -51,10 +50,10 @@ trf_params = "2 7 7 80 10 50"
 
 models = ["M0", "M1", "M2"]
 
-# Resource requests.
+# Resource requests. mreps and TRF are single-threaded, so one core per job.
 gwf = Workflow(
     defaults={
-        'cores': 4,
+        'cores': 1,
         'memory': '40g',
         'walltime': '12:00:00',
         'account': 'mutationalscanning'})
@@ -65,6 +64,7 @@ for species, samples in sample_dict.items():
         assembly    = f"{inpath_fa}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
         contigs_dir = f"{output}/precomute/{species}/{sample}/contigs"
         outdir      = f"{output}/repetitive_dna/{species}/{sample}"
+        per_k_dir   = f"{outdir}/per_k"
         resultsdir  = f"{results}/repetitive_dna/{species}/{sample}"
         contig_dict = {}
 
@@ -74,95 +74,92 @@ for species, samples in sample_dict.items():
 
         long_contigs = [contig for contig, length in contig_dict.items() if int(length) > min_contig_length]
 
-        # Step 1 — one job per model per contig. Each job loops over every k in
-        # bash; per-k intermediates live in a scratch dir removed on exit, so
-        # only the per-contig BED reaches disk.
         for contig in long_contigs:
             contig_fa = f"{contigs_dir}/{contig}.fa"
-            m0_k_beds = " ".join(f"$WORK/{k}_M0.bed" for k in periods)
-            m1_k_beds = " ".join(f"$WORK/{k}_M1.bed" for k in periods)
-            m2_k_beds = " ".join(f"$WORK/{k}_M2.bed" for k in periods)
 
-            # Step 1a — M0: mreps exact/pure repeats.
-            gwf.target(
-                f"M0_mreps_{contig}_{sample}_{assembly_type}",
-                inputs=[contig_fa],
-                outputs=[f"{outdir}/{contig}_M0.bed"],
-            ) << f"""
-            mkdir -p {outdir}
-            WORK=$(mktemp -d)
-            trap 'rm -rf "$WORK"' EXIT
+            # Step 1a — one job per model per period k. Each job writes its BED
+            # to a .tmp file and renames it only when every command succeeded, so
+            # a failed job never leaves a finished-looking output behind.
+            for k in periods:
 
-            for k in {periods_str}; do
+                # M0: mreps exact/pure repeats.
                 # -exp N:      at least N full copies (exponent = length/period)
                 # -allowsmall: allow tracts shorter than the random-occurrence threshold
-                {mreps} -minperiod $k -maxperiod $k -exp {mreps_exp} -allowsmall -fasta {contig_fa} \
-                    > $WORK/${{k}}_mreps.txt
-                python {scripts}/parse_mreps_canonical.py \
-                    $WORK/${{k}}_mreps.txt {contig} $k {species} {sample} M0 \
-                    > $WORK/${{k}}_M0.bed
-            done
+                m0_bed = f"{per_k_dir}/{contig}_M0_k{k}.bed"
+                gwf.target(
+                    f"M0_mreps_k{k}_{contig}_{sample}_{assembly_type}",
+                    inputs=[contig_fa],
+                    outputs=[m0_bed],
+                ) << f"""
+                set -e
+                mkdir -p {per_k_dir}
+                WORK=$(mktemp -d)
+                trap 'rm -rf "$WORK"' EXIT
+                {mreps} -minperiod {k} -maxperiod {k} -exp {mreps_exp} -allowsmall -fasta {contig_fa} > $WORK/mreps.txt
+                python {scripts}/parse_mreps_canonical.py $WORK/mreps.txt {contig} {k} {species} {sample} M0 > {m0_bed}.tmp
+                mv {m0_bed}.tmp {m0_bed}
+                """
 
-            # Concatenate all k - header retained from the first file only.
-            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {m0_k_beds} > $WORK/all_M0.bed
-
-            # Overlapping tracts: keep the smallest k, drop the others.
-            python {scripts}/resolve_repeat_overlaps.py $WORK/all_M0.bed > {outdir}/{contig}_M0.bed
-            """
-
-            # Step 1b — M1: TRF standard parameters.
-            gwf.target(
-                f"M1_trf_{contig}_{sample}_{assembly_type}",
-                inputs=[contig_fa],
-                outputs=[f"{outdir}/{contig}_M1.bed"],
-            ) << f"""
-            mkdir -p {outdir}
-            WORK=$(mktemp -d)
-            trap 'rm -rf "$WORK"' EXIT
-
-            for k in {periods_str}; do
+                # M1: TRF standard parameters.
                 # -ngs -> machine-readable stdout, -h -> suppress HTML
-                # TRF has no -minperiod, so awk keeps only rows with period == k
-                {trf} {contig_fa} {trf_params} $k -ngs -h \
-                    | awk -v k=$k '/^@/{{print}} !/^@/{{if ($3==k) print}}' \
-                    > $WORK/${{k}}_trf.txt
-                python {scripts}/parse_trf.py \
-                    $WORK/${{k}}_trf.txt $k {species} {sample} M1 \
-                    > $WORK/${{k}}_M1.bed
-            done
+                # TRF has no -minperiod, so awk keeps only rows with period == k.
+                # set -e only sees awk's exit status in the pipe, so TRF's own
+                # exit code (non-zero on success in some versions) cannot fail it.
+                m1_bed = f"{per_k_dir}/{contig}_M1_k{k}.bed"
+                gwf.target(
+                    f"M1_trf_k{k}_{contig}_{sample}_{assembly_type}",
+                    inputs=[contig_fa],
+                    outputs=[m1_bed],
+                ) << f"""
+                set -e
+                mkdir -p {per_k_dir}
+                WORK=$(mktemp -d)
+                trap 'rm -rf "$WORK"' EXIT
+                {trf} {contig_fa} {trf_params} {k} -ngs -h | awk -v k={k} '/^@/{{print}} !/^@/{{if ($3==k) print}}' > $WORK/trf.txt
+                python {scripts}/parse_trf.py $WORK/trf.txt {k} {species} {sample} M1 > {m1_bed}.tmp
+                mv {m1_bed}.tmp {m1_bed}
+                """
 
-            # Concatenate all k - header retained from the first file only.
-            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {m1_k_beds} > $WORK/all_M1.bed
-
-            # Overlapping tracts: keep the smallest k, drop the others.
-            python {scripts}/resolve_repeat_overlaps.py $WORK/all_M1.bed > {outdir}/{contig}_M1.bed
-            """
-
-            # Step 1c — M2: mreps with resolution m2_res.
-            gwf.target(
-                f"M2_mreps_{contig}_{sample}_{assembly_type}",
-                inputs=[contig_fa],
-                outputs=[f"{outdir}/{contig}_M2.bed"],
-            ) << f"""
-            mkdir -p {outdir}
-            WORK=$(mktemp -d)
-            trap 'rm -rf "$WORK"' EXIT
-
-            for k in {periods_str}; do
+                # M2: mreps with resolution m2_res.
                 # -res N: allow up to N substitutions between adjacent copies
-                {mreps} -minperiod $k -maxperiod $k -exp {mreps_exp} -res {m2_res} -allowsmall -fasta {contig_fa} \
-                    > $WORK/${{k}}_mreps.txt
-                python {scripts}/parse_mreps_canonical.py \
-                    $WORK/${{k}}_mreps.txt {contig} $k {species} {sample} M2 \
-                    > $WORK/${{k}}_M2.bed
-            done
+                m2_bed = f"{per_k_dir}/{contig}_M2_k{k}.bed"
+                gwf.target(
+                    f"M2_mreps_k{k}_{contig}_{sample}_{assembly_type}",
+                    inputs=[contig_fa],
+                    outputs=[m2_bed],
+                ) << f"""
+                set -e
+                mkdir -p {per_k_dir}
+                WORK=$(mktemp -d)
+                trap 'rm -rf "$WORK"' EXIT
+                {mreps} -minperiod {k} -maxperiod {k} -exp {mreps_exp} -res {m2_res} -allowsmall -fasta {contig_fa} > $WORK/mreps.txt
+                python {scripts}/parse_mreps_canonical.py $WORK/mreps.txt {contig} {k} {species} {sample} M2 > {m2_bed}.tmp
+                mv {m2_bed}.tmp {m2_bed}
+                """
 
-            # Concatenate all k - header retained from the first file only.
-            awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {m2_k_beds} > $WORK/all_M2.bed
+            # Step 1b — per model: join the per-k BEDs of the contig (header kept
+            # from the first file only) and resolve overlapping tracts, keeping
+            # the smallest k.
+            for model in models:
+                k_beds = [f"{per_k_dir}/{contig}_{model}_k{k}.bed" for k in periods]
+                k_bed_list = " ".join(k_beds)
+                contig_bed = f"{outdir}/{contig}_{model}.bed"
 
-            # Overlapping tracts: keep the smallest k, drop the others.
-            python {scripts}/resolve_repeat_overlaps.py $WORK/all_M2.bed > {outdir}/{contig}_M2.bed
-            """
+                gwf.target(
+                    f"{model}_merge_k_{contig}_{sample}_{assembly_type}",
+                    inputs=k_beds,
+                    outputs=[contig_bed],
+                    memory="16g",
+                    walltime="02:00:00",
+                ) << f"""
+                set -e
+                mkdir -p {outdir}
+                WORK=$(mktemp -d)
+                trap 'rm -rf "$WORK"' EXIT
+                awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {k_bed_list} > $WORK/all.bed
+                python {scripts}/resolve_repeat_overlaps.py $WORK/all.bed > {contig_bed}.tmp
+                mv {contig_bed}.tmp {contig_bed}
+                """
 
         # Step 2 — per model: concatenate the per-contig BEDs into one BED for the
         # sample, and summarise it into a small table to plot locally. The summary
