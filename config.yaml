@@ -1,12 +1,14 @@
 
 samples:
-  human:   [ob006, ob007, ob008, ob009, da1, la4, tsaed, ob2v, ob003h, aa_sperm, chk, la, ph, tr]
-  chimp:    [yoran, stephan, carl, martin, marlock, mongo]
-  gorilla: [kipenzi]   # mbewe, samson: empty kinetics assembly
-  baboon:  [sethi]     # bs5v: contaminated
-  gibbon:  [tarzan]
-  macaque:  [jako, lenny]
-  marmoset: [marmoset, lambiek]
+  human:   [chk]
+  marmoset: [lambiek]
+  # human:   [ob006, ob007, ob008, ob009, da1, la4, tsaed, ob2v, ob003h, aa_sperm, chk, la, ph, tr]
+  # chimp:    [yoran, stephan, carl, martin, marlock, mongo]
+  # gorilla: [kipenzi]   # mbewe, samson: empty kinetics assembly
+  # baboon:  [sethi]     # bs5v: contaminated
+  # gibbon:  [tarzan]
+  # macaque:  [jako, lenny]
+  # marmoset: [marmoset, lambiek]
 
 # Samples that have a read -> tissue classification. precompute.py only builds
 # the tissue file for samples listed both here and in `samples`.
