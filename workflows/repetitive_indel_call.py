@@ -245,7 +245,7 @@ for species, samples in sample_dict.items():
                          f"{resultsdir}/opportunities.tsv",
                          f"{resultsdir}/filter_report.tsv"],
                 cores=4,
-                memory="20g",
+                memory="50g",
                 walltime="01:00:00",
             ) << f"""
             mkdir -p {resultsdir}
