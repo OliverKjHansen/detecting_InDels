@@ -225,7 +225,7 @@ for species, samples in sample_dict.items():
                 inputs=calls_haploid_files + opportunities_files,
                 outputs=[merged_indels, merged_opportunities, plots_pdf],
                 cores=8,
-                memory="100g",
+                memory="200g",
                 walltime="24:00:00",
             ) << f"""
             mkdir -p {merged_dir} {plotsdir}
