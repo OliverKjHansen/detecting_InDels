@@ -35,7 +35,7 @@ plots             = os.path.abspath(config["paths"]["plots"])
 scripts           = os.path.abspath("scripts")
 
 # Repeat models written by repetitive_dna.py.
-models = ["M0", "M1", "M2"]
+models = ["M0", "M2"]
 
 # Steps 1-3 split each contig into windows of this many bp, one job per window.
 chunk_size = 40_000_000
@@ -245,7 +245,7 @@ for species, samples in sample_dict.items():
                          f"{resultsdir}/opportunities.tsv",
                          f"{resultsdir}/filter_report.tsv"],
                 cores=4,
-                memory="50g",
+                memory="200g",
                 walltime="01:00:00",
             ) << f"""
             mkdir -p {resultsdir}
