@@ -37,6 +37,8 @@ trf               = expanduser(config["tools"]["trf"])
 
 # Tandem repeat periods to scan. Homopolymers (k=1) are not annotated.
 periods = [2, 3, 4, 5, 6]
+periods_str = " ".join(str(k) for k in periods)
+max_period = max(periods)
 
 # M0 and M2 — mreps minimum exponent, i.e. at least this many full copies.
 mreps_exp = 3
@@ -100,26 +102,6 @@ for species, samples in sample_dict.items():
                 mv {m0_bed}.tmp {m0_bed}
                 """
 
-                # M1: TRF standard parameters.
-                # -ngs -> machine-readable stdout, -h -> suppress HTML
-                # TRF has no -minperiod, so awk keeps only rows with period == k.
-                # set -e only sees awk's exit status in the pipe, so TRF's own
-                # exit code (non-zero on success in some versions) cannot fail it.
-                m1_bed = f"{per_k_dir}/{contig}_M1_k{k}.bed"
-                gwf.target(
-                    f"M1_trf_k{k}_{contig}_{sample}_{assembly_type}",
-                    inputs=[contig_fa],
-                    outputs=[m1_bed],
-                ) << f"""
-                set -e
-                mkdir -p {per_k_dir}
-                WORK=$(mktemp -d)
-                trap 'rm -rf "$WORK"' EXIT
-                {trf} {contig_fa} {trf_params} {k} -ngs -h | awk -v k={k} '/^@/{{print}} !/^@/{{if ($3==k) print}}' > $WORK/trf.txt
-                python {scripts}/parse_trf.py $WORK/trf.txt {k} {species} {sample} M1 > {m1_bed}.tmp
-                mv {m1_bed}.tmp {m1_bed}
-                """
-
                 # M2: mreps with resolution m2_res.
                 # -res N: allow up to N substitutions between adjacent copies
                 m2_bed = f"{per_k_dir}/{contig}_M2_k{k}.bed"
@@ -136,6 +118,31 @@ for species, samples in sample_dict.items():
                 python {scripts}/parse_mreps_canonical.py $WORK/mreps.txt {contig} {k} {species} {sample} M2 > {m2_bed}.tmp
                 mv {m2_bed}.tmp {m2_bed}
                 """
+
+            # Step 1a (M1) — one TRF run per contig, not one per k. TRF reports
+            # every period up to its maximum, so its rows are split by period
+            # afterwards; five runs with maxperiod=k gave identical rows and
+            # took five times as long.
+            m1_beds = [f"{per_k_dir}/{contig}_M1_k{k}.bed" for k in periods]
+
+            gwf.target(
+                f"M1_trf_{contig}_{sample}_{assembly_type}",
+                inputs=[contig_fa],
+                outputs=m1_beds,
+                walltime="24:00:00",
+            ) << f"""
+            set -e
+            mkdir -p {per_k_dir}
+            WORK=$(mktemp -d)
+            trap 'rm -rf "$WORK"' EXIT
+            # -ngs -> machine-readable stdout, -h -> suppress HTML
+            {trf} {contig_fa} {trf_params} {max_period} -ngs -h > $WORK/trf.txt
+            for k in {periods_str}; do
+                awk -v k=$k '/^@/{{print}} !/^@/{{if ($3==k) print}}' $WORK/trf.txt > $WORK/trf_${{k}}.txt
+                python {scripts}/parse_trf.py $WORK/trf_${{k}}.txt $k {species} {sample} M1 > {per_k_dir}/{contig}_M1_k${{k}}.bed.tmp
+                mv {per_k_dir}/{contig}_M1_k${{k}}.bed.tmp {per_k_dir}/{contig}_M1_k${{k}}.bed
+            done
+            """
 
             # Step 1b — per model: join the per-k BEDs of the contig (header kept
             # from the first file only) and resolve overlapping tracts, keeping

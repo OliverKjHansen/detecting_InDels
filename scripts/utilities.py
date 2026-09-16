@@ -37,7 +37,8 @@ def load_tissue_classification(tissue_file):
         return dict(csv.reader(f, delimiter="\t"))
 
 
-def small_indels_dict(microsatfile, contig, bamfile, fastafile, average_coverage_file,tissue_file):
+def small_indels_dict(microsatfile, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                      window_start=None, window_end=None):
 
     with open(average_coverage_file, 'r') as f: # load in the average coverage smaple
         average_coverage_of_species = float(f.read().strip())
@@ -77,10 +78,8 @@ def small_indels_dict(microsatfile, contig, bamfile, fastafile, average_coverage
 
     with pysam.AlignmentFile(bamfile, "rb") as bam: # print the header
         for pileupcolumn in bam.pileup(contig=contig, #pileup 
-                                       start=None,
-                                       stop=None,
-                                       region=None,
-                                       end=None,
+                                       start=window_start,
+                                       stop=window_end,
                                        fastafile=fasta,
                                        truncate=True,
                                        stepper="nofilter",
@@ -337,7 +336,8 @@ def load_filters(bedfile):
 
     return sorted(intervals)#, metadata
 
-def large_indels(contig, bamfile, fastafile, average_coverage_file,tissue_file, microsatfile):
+def large_indels(contig, bamfile, fastafile, average_coverage_file, tissue_file, microsatfile,
+                 window_start=None, window_end=None):
 
     with open(average_coverage_file, 'r') as f: # load in the average coverage smaple
         average_coverage_of_species = float(f.read().strip())
@@ -366,10 +366,8 @@ def large_indels(contig, bamfile, fastafile, average_coverage_file,tissue_file, 
 
     with pysam.AlignmentFile(bamfile, "rb") as bam: # print the header
         for pileupcolumn in bam.pileup(contig=contig, #pileup 
-                                       start=None,
-                                       stop=None,
-                                       region=None,
-                                       end=None,
+                                       start=window_start,
+                                       stop=window_end,
                                        fastafile=fasta,
                                        truncate=True,
                                        stepper="nofilter",
@@ -512,7 +510,10 @@ def homopolymer_check(seq):
 
     return True
 
-def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_file,tissue_file):
+def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                        window_start=None, window_end=None):
+    # With window_start/window_end only positions in [window_start, window_end)
+    # are counted; counts from neighbouring windows add up to the whole contig.
 
     with open(average_coverage_file, 'r') as f: # load in the average coverage smaple
         average_coverage_of_species = float(f.read().strip())
@@ -542,10 +543,8 @@ def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_fi
 
     with pysam.AlignmentFile(bamfile, "rb") as bam: # print the header
         for pileupcolumn in bam.pileup(contig=contig, #pileup 
-                                       start=None,
-                                       stop=None,
-                                       region=None,
-                                       end=None,
+                                       start=window_start,
+                                       stop=window_end,
                                        fastafile=fasta,
                                        truncate=True,
                                        stepper="nofilter",
@@ -656,7 +655,11 @@ def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_fi
                     
     return
  
-def small_indels(filters, contig, bamfile, fastafile, average_coverage_file,tissue_file):
+def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                 window_start=None, window_end=None):
+    # With window_start/window_end only positions in [window_start, window_end)
+    # are scanned; each position belongs to one window, so windows never report
+    # the same call twice. Without them the whole contig is scanned.
 
     with open(average_coverage_file, 'r') as f: # load in the average coverage smaple
         average_coverage_of_species = float(f.read().strip())
@@ -693,10 +696,8 @@ def small_indels(filters, contig, bamfile, fastafile, average_coverage_file,tiss
     #
     with pysam.AlignmentFile(bamfile, "rb") as bam: # print the header
         for pileupcolumn in bam.pileup(contig=contig, #pileup 
-                                       start=None,
-                                       stop=None,
-                                       region=None,
-                                       end=None,
+                                       start=window_start,
+                                       stop=window_end,
                                        fastafile=fasta,
                                        truncate=True,
                                        stepper="nofilter",

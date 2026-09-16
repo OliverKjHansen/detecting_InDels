@@ -35,7 +35,7 @@ plots             = os.path.abspath(config["paths"]["plots"])
 scripts           = os.path.abspath("scripts")
 
 # Repeat models written by repetitive_dna.py.
-models = ["M0", "M2"]
+models = ["M0", "M1", "M2"]
 
 # Steps 1-3 split each contig into windows of this many bp, one job per window.
 chunk_size = 40_000_000
