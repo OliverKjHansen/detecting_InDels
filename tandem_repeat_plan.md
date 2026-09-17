@@ -187,7 +187,10 @@ New script: `endjoining/scripts/plot_drl.R`
 
 - One BED per model (M0, M1), not a single canonical BED
 - `phase = start % k` using 0-based coordinates (intermediate only — not in final BED)
-- Reverse complement excluded from canonicalisation — `A` and `T` homopolymers remain distinct
+- ~~Reverse complement excluded from canonicalisation — `A` and `T` homopolymers remain distinct~~
+  Superseded: periods now start at 2, so homopolymers are never annotated and the reason for
+  keeping strands apart is gone. `canonicalise()` takes the smallest rotation of the motif or
+  its reverse complement, so `AC` and `GT` are one motif.
 - k=1 minimum tract length ≥ 2 bp (met automatically by `-exp 2`)
 - Per-k intermediates written to `mktemp -d` scratch dir; `trap 'rm -rf "$WORK"' EXIT` ensures cleanup even on job failure
 - InDel calling integration is **out of scope** for this milestone
@@ -210,7 +213,10 @@ New script: `endjoining/scripts/plot_drl.R`
 - **[ ] Find convincing way to determine lower bound on TRF tracts.**  
   minscore=50 with match weight 2 implies a hard minimum of ~25 bp for a perfect tract, but the right biological/statistical floor may differ. Candidate approaches: (1) observed vs. expected tract count under a null model as a function of (k, copies), finding where observed ≫ expected; (2) HiFi copy-number resolution — minimum tract length where per-read copy-count σ < 0.5; (3) slippage literature lower bound (~3–4 copies). Revisit after running M0/M1 on real data.
 
-- **[ ] Verify that excluding reverse complement from canonical motif is correct.**  
+- **[x] Verify that excluding reverse complement from canonical motif is correct.**
+  Resolved: strands are now collapsed. `scripts/recanonicalise_motifs.py` converts BEDs and
+  summaries written before the change, without re-running mreps or TRF. Original note:
+  
   Currently `canonicalize()` uses rotation-only (`min(motif[i:]+motif[:i] for i in range(k))`), so e.g. `AC` and `GT` (reverse complement of `AC`) are treated as distinct motifs. This was chosen to keep `A` and `T` homopolymers distinct. But for motifs with k≥2 it is not obvious this is right: a polymerase stalling on an `AC`-repeat on one strand sees a `GT`-repeat on the other — these are the same locus. Check whether downstream InDel calling or DRL analysis requires strand-collapsed (RC-inclusive) canonical forms, and update `canonicalize()` in both `parse_mreps_canonical.py` and `parse_trf.py` if so.
 
 ---

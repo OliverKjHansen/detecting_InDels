@@ -30,8 +30,9 @@ from parse_trf import canonicalise, hamming_pct_matches
 # Coordinates: mreps is 1-based inclusive (201 -> 220 is 20 bp). The BED is
 # 0-based half-open, so start = from - 1 and end = to.
 #
-# Canonical motif: lexicographic minimum over rotations only, no reverse
-# complement, so e.g. AC and GT repeats stay distinct.
+# Canonical motif: lexicographic minimum over the rotations of the motif and of
+# its reverse complement, so a repeat and the same repeat read from the other
+# strand share one motif (AC and GT both become AC).
 
 REPEAT_LINE = re.compile(
     r"^\s*(\d+)\s*->\s*(\d+)\s*:"   # from -> to :

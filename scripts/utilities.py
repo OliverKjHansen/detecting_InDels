@@ -249,6 +249,18 @@ def lexicographically(pattern: str) -> str:
     all_strings = [pattern,complement]
     return min(all_strings)
 
+def canonical_context(sequence):
+    """
+    Group a context with the same context read from the other strand: the
+    smaller of the sequence and its reverse complement.
+
+    A GT deletion on one strand is an AC deletion on the other, so both are
+    reported as AC. lexicographically() above complements without reversing,
+    which pairs GT with CA instead; it is left as it is because only the
+    disabled code paths still call it.
+    """
+    return min(sequence, reverse_complement(sequence))
+
 def subread_array(array,readposition):
     """
     takes the array for subreads coverage and find the position of the read in the array
@@ -633,7 +645,7 @@ def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_fi
 
                         tissue_type = d.get(pileupread.alignment.query_name, "NA")
 
-                        lexi = lexicographically(run[1:-1]) #context of kmer without the flanking bases
+                        lexi = canonical_context(run[1:-1]) #context of kmer without the flanking bases, grouped with the other strand
 
                         homopolymer = homopolymer_check(run)
                         if homopolymer == True: # filter out homopolymers
@@ -682,7 +694,7 @@ def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tis
     # def counts_dict():
     #     return {"filter": 0, "nofilter": 0, "3mer_del":0}
     print("#contig", "start", "end", "ref", "alt",
-    "indel_type","unique","indel_string","tissue","read_length",
+    "indel_type","unique","indel_string","canonical_indel","tissue","read_length",
     "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
     "position","readID", "diploid_direction",
     sep= "\t", file=sys.stdout) #header for output
@@ -796,9 +808,8 @@ def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tis
                     # CASE 1: DELETIONS
                     # -------------------
                         hcheck = fasta.fetch(contig, position, position + indel_length+2) #for homopolymer check
-                        deletion_context = hcheck[1:-1] #the deletion context
+                        deletion_context = hcheck[1:-1] #the deletion context, as observed
                         #deletion_context = fasta.fetch(contig, position+1, position + 1 + indel_length)
-                        lexi = lexicographically(deletion_context)
 
                         #homopolymer_check
 
@@ -830,7 +841,7 @@ def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tis
 
                         #data["deletion"][seen][lexi][tissue_type]["filter"] += 1
                         print(contig, read_pos+1,read_pos+1,hcheck[0:-1],hcheck[0], #start and end are the same for delettion, becaus its is in the read
-                        "deletion", seen, lexi, tissue_type, len(read_seq),
+                        "deletion", seen, deletion_context, canonical_context(deletion_context), tissue_type, len(read_seq),
                         np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
                         position+1,pileupread.alignment.query_name, diploid_strand,
                         sep="\t", file=sys.stdout)
@@ -845,8 +856,7 @@ def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tis
                     # -------------------
                     # CASE 2: INSERTION
                     # -------------------
-                        insertion_context = read_seq[read_pos+1:read_pos + indel_length +1] 
-                        lexi = lexicographically(insertion_context)
+                        insertion_context = read_seq[read_pos+1:read_pos + indel_length +1] # as observed
 
                         #homopolymer check
                         homopolymer = homopolymer_check(read_seq[read_pos:read_pos + indel_length +2])
@@ -871,10 +881,8 @@ def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tis
                             diploid_strand = "+"                        
                         #data["insertion"][seen][lexi][tissue_type]["filter"] += 1
 
-                        lexi = lexicographically(insertion_context) 
-
                         print(contig, read_pos+1,read_pos + indel_length +1,read_seq[read_pos],read_seq[read_pos:read_pos + indel_length +1], #start and end are the same for delettion, becaus its is in the read
-                        "insertion", seen, lexi, tissue_type, len(read_seq),
+                        "insertion", seen, insertion_context, canonical_context(insertion_context), tissue_type, len(read_seq),
                         np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
                         position+1,pileupread.alignment.query_name, diploid_strand,
                         sep="\t", file=sys.stdout)
@@ -978,7 +986,7 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
     min_base_qual = 0
 
     print("#contig", "start", "end", "ref", "alt",
-          "indel_type", "unique", "indel_string", "tissue", "read_length",
+          "indel_type", "unique", "indel_string", "canonical_indel", "tissue", "read_length",
           "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
           "position", "readID", "diploid_direction",
           "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
@@ -1061,7 +1069,6 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
                     hcheck = fasta.fetch(contig, position,
                                          position + indel_length + 2)
                     deletion_context = hcheck[1:-1]
-                    lexi = lexicographically(deletion_context)
                     del_q = (base_qualities[max(0, read_pos - 1):read_pos + 1]
                              + base_qualities[read_pos_after + 1:read_pos_after + 3])
                     kmerQ = min(del_q) if del_q else 0
@@ -1069,7 +1076,8 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
                     print(contig,
                           read_pos + 1, read_pos + 1,
                           hcheck[0:-1], hcheck[0],
-                          "deletion", seen, lexi, tissue_type, len(read_seq),
+                          "deletion", seen, deletion_context, canonical_context(deletion_context),
+                          tissue_type, len(read_seq),
                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
                           position + 1, pileupread.alignment.query_name, diploid_strand,
                           tr['canonical_motif'], tr['k'], tr['copies'],
@@ -1079,7 +1087,6 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
                 if indel > 0:
                     # INSERTION
                     insertion_context = read_seq[read_pos + 1:read_pos + indel_length + 1]
-                    lexi = lexicographically(insertion_context)
                     ins_q = (base_qualities[max(0, read_pos):read_pos + 2]
                              + base_qualities[max(0, read_pos) + indel_length:
                                               read_pos + indel_length + 2])
@@ -1089,7 +1096,8 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
                           read_pos + 1, read_pos + indel_length + 1,
                           read_seq[read_pos],
                           read_seq[read_pos:read_pos + indel_length + 1],
-                          "insertion", seen, lexi, tissue_type, len(read_seq),
+                          "insertion", seen, insertion_context, canonical_context(insertion_context),
+                          tissue_type, len(read_seq),
                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
                           position + 1, pileupread.alignment.query_name, diploid_strand,
                           tr['canonical_motif'], tr['k'], tr['copies'],

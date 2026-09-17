@@ -28,10 +28,19 @@ import sys
 
 
 def canonicalise(motif):
-    """Return the lexicographically smallest rotation of the motif (rotations only, no RC)."""
+    """
+    Return the lexicographically smallest rotation of the motif or of its
+    reverse complement.
+
+    A repeat read from the other strand is the same locus, so AG and CT (and
+    AC and GT) are one motif. Periods start at 2, so the older rotation-only
+    form, which kept the A and T homopolymers apart, no longer applies.
+    """
     motif = motif.upper()
-    k = len(motif)
-    return min(motif[i:] + motif[:i] for i in range(k))
+    complement = motif.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+    return min(strand[i:] + strand[:i]
+               for strand in (motif, complement)
+               for i in range(len(strand)))
 
 
 def hamming_pct_matches(repeat_seq, motif):
