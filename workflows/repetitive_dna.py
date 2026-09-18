@@ -129,7 +129,7 @@ for species, samples in sample_dict.items():
                 f"M1_trf_{contig}_{sample}_{assembly_type}",
                 inputs=[contig_fa],
                 outputs=m1_beds,
-                walltime="24:00:00",
+                walltime="72:00:00",
             ) << f"""
             set -e
             mkdir -p {per_k_dir}
