@@ -1,9 +1,18 @@
 import sys
 
 # Usage: parse_trf.py <trf_ngs_txt> <k> <species> <sample> <model>
+#                     [<contig> <offset> <core_start> <core_end>]
 #
 # Parses TRF -ngs output for a single period k and emits the unified repeat
 # annotation TSV, tagged with the TRF model it came from (M1, M2).
+#
+# The four optional arguments are for runs on a slice of a contig, where TRF
+# sees a window rather than the whole sequence:
+#   contig      name to report, since the FASTA header is "contig:start-end"
+#   offset      0-based start of the slice, added to every coordinate
+#   core_start  half-open range of contig positions this window owns; a tract
+#   core_end    is kept only if its start falls inside it, so windows that
+#               overlap do not report the same tract twice
 #
 # Two impurity measures are reported:
 #
@@ -95,6 +104,12 @@ def main():
     sample     = sys.argv[4]
     model      = sys.argv[5]
 
+    # Window arguments; without them the whole contig was scanned.
+    contig_name = sys.argv[6] if len(sys.argv) > 6 else None
+    offset      = int(sys.argv[7]) if len(sys.argv) > 7 else 0
+    core_start  = int(sys.argv[8]) if len(sys.argv) > 8 else None
+    core_end    = int(sys.argv[9]) if len(sys.argv) > 9 else None
+
     out_header = (
         "contig", "start", "end", "canonical_motif", "k", "copies",
         "trf_purity", "model_purity", "model", "species", "sample"
@@ -128,14 +143,18 @@ def main():
             motif_seq    = fields[13]         # TRF consensus motif (used for tiling)
             repeat_seq   = fields[14]         # actual genomic repeat sequence
 
-            # 0-based half-open coordinates
-            start = start_1based - 1
-            end   = end_1based
+            # 0-based half-open coordinates, shifted to contig coordinates
+            start = start_1based - 1 + offset
+            end   = end_1based + offset
+
+            # Tracts starting outside this window's core belong to a neighbour.
+            if core_start is not None and not (core_start <= start < core_end):
+                continue
 
             canonical     = canonicalise(motif_seq)
             model_purity  = hamming_pct_matches(repeat_seq, motif_seq)
 
-            print(current_contig, start, end, canonical, k, copies,
+            print(contig_name or current_contig, start, end, canonical, k, copies,
                   f"{trf_purity:.2f}", f"{model_purity:.2f}", model,
                   species, sample, sep="\t")
 

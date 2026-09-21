@@ -50,6 +50,13 @@ m2_res = 1
 # With match weight 2 a perfect tract needs >= minscore/2 bp: ~25 bp.
 trf_params = "2 7 7 80 10 50"
 
+# M1 — TRF runs on windows of a contig, one job per window, because its runtime
+# explodes in long satellite arrays and a whole chromosome can run for days.
+# Windows overlap by trf_overlap so a tract crossing a boundary is still seen
+# whole; a tract longer than the overlap can be cut in two.
+trf_window  = 10_000_000
+trf_overlap = 1_000_000
+
 models = ["M0", "M1", "M2"]
 
 # Resource requests. mreps and TRF are single-threaded, so one core per job.
@@ -74,9 +81,9 @@ for species, samples in sample_dict.items():
             for line in contigs:
                 contig_dict[line.split()[0]] = line.split()[1]
 
-        long_contigs = [contig for contig, length in contig_dict.items() if int(length) > min_contig_length]
+        long_contigs = {contig: int(length) for contig, length in contig_dict.items() if int(length) > min_contig_length}
 
-        for contig in long_contigs:
+        for contig, length in long_contigs.items():
             contig_fa = f"{contigs_dir}/{contig}.fa"
 
             # Step 1a — one job per model per period k. Each job writes its BED
@@ -119,36 +126,56 @@ for species, samples in sample_dict.items():
                 mv {m2_bed}.tmp {m2_bed}
                 """
 
-            # Step 1a (M1) — one TRF run per contig, not one per k. TRF reports
-            # every period up to its maximum, so its rows are split by period
-            # afterwards; five runs with maxperiod=k gave identical rows and
-            # took five times as long.
-            m1_beds = [f"{per_k_dir}/{contig}_M1_k{k}.bed" for k in periods]
+            # Step 1a (M1) — TRF, one job per window of the contig. One run
+            # covers every period, so the k-loop below only splits its output.
+            #
+            # Windows are cut with an overlap on both sides, and a window keeps
+            # only the tracts whose start lies in its own core [core_start,
+            # core_end), so neighbouring windows never report the same tract.
+            # The overlap is what lets a tract crossing a boundary still be
+            # found whole by the window that owns it.
+            m1_window_beds = []
 
-            gwf.target(
-                f"M1_trf_{contig}_{sample}_{assembly_type}",
-                inputs=[contig_fa],
-                outputs=m1_beds,
-                walltime="72:00:00",
-            ) << f"""
-            set -e
-            mkdir -p {per_k_dir}
-            WORK=$(mktemp -d)
-            trap 'rm -rf "$WORK"' EXIT
-            # -ngs -> machine-readable stdout, -h -> suppress HTML
-            {trf} {contig_fa} {trf_params} {max_period} -ngs -h > $WORK/trf.txt
-            for k in {periods_str}; do
-                awk -v k=$k '/^@/{{print}} !/^@/{{if ($3==k) print}}' $WORK/trf.txt > $WORK/trf_${{k}}.txt
-                python {scripts}/parse_trf.py $WORK/trf_${{k}}.txt $k {species} {sample} M1 > {per_k_dir}/{contig}_M1_k${{k}}.bed.tmp
-                mv {per_k_dir}/{contig}_M1_k${{k}}.bed.tmp {per_k_dir}/{contig}_M1_k${{k}}.bed
-            done
-            """
+            for core_start in range(0, length, trf_window):
+                core_end    = min(core_start + trf_window, length)
+                fetch_start = max(0, core_start - trf_overlap)
+                fetch_end   = min(length, core_end + trf_overlap)
+                window_beds = [f"{per_k_dir}/{contig}_M1_k{k}_{core_start}.bed" for k in periods]
+                m1_window_beds += window_beds
+
+                gwf.target(
+                    f"M1_trf_{contig}_{core_start}_{sample}_{assembly_type}",
+                    inputs=[assembly, f"{assembly}.fai"],
+                    outputs=window_beds,
+                    walltime="24:00:00",
+                ) << f"""
+                set -e
+                mkdir -p {per_k_dir}
+                WORK=$(mktemp -d)
+                trap 'rm -rf "$WORK"' EXIT
+                samtools faidx {assembly} {contig}:{fetch_start + 1}-{fetch_end} > $WORK/window.fa
+                # -ngs -> machine-readable stdout, -h -> suppress HTML
+                {trf} $WORK/window.fa {trf_params} {max_period} -ngs -h > $WORK/trf.txt
+                for k in {periods_str}; do
+                    awk -v k=$k '/^@/{{print}} !/^@/{{if ($3==k) print}}' $WORK/trf.txt > $WORK/trf_${{k}}.txt
+                    python {scripts}/parse_trf.py $WORK/trf_${{k}}.txt $k {species} {sample} M1 \
+                        {contig} {fetch_start} {core_start} {core_end} \
+                        > {per_k_dir}/{contig}_M1_k${{k}}_{core_start}.bed.tmp
+                    mv {per_k_dir}/{contig}_M1_k${{k}}_{core_start}.bed.tmp {per_k_dir}/{contig}_M1_k${{k}}_{core_start}.bed
+                done
+                """
 
             # Step 1b — per model: join the per-k BEDs of the contig (header kept
             # from the first file only) and resolve overlapping tracts, keeping
-            # the smallest k.
+            # the smallest k. M1 also has one set of BEDs per window.
+            k_beds_by_model = {
+                "M0": [f"{per_k_dir}/{contig}_M0_k{k}.bed" for k in periods],
+                "M1": m1_window_beds,
+                "M2": [f"{per_k_dir}/{contig}_M2_k{k}.bed" for k in periods],
+            }
+
             for model in models:
-                k_beds = [f"{per_k_dir}/{contig}_{model}_k{k}.bed" for k in periods]
+                k_beds = k_beds_by_model[model]
                 k_bed_list = " ".join(k_beds)
                 contig_bed = f"{outdir}/{contig}_{model}.bed"
 
