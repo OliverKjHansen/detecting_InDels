@@ -4,20 +4,27 @@ import csv
 from collections import defaultdict
 from intervaltree import IntervalTree, Interval
 
-def load_filters_with_tree(bedfile): #for intervals interval trees are quicker then the previous sweep-line approach Ol(og(n)) = O(n)
+def load_filters_with_tree(bedfile, window_start=None, window_end=None): #for intervals interval trees are quicker then the previous sweep-line approach Ol(og(n)) = O(n)
     """
     Reads bed file and creates an IntervalTree for O(log n) lookups.
     Much faster than sweep-line when checking if a position is in any interval.
-    
+    With window_start/window_end only the intervals overlapping
+    [window_start, window_end) are kept, which are all the intervals a position
+    in that window can fall in.
+
     Returns:
         IntervalTree: Tree for fast interval overlap queries
     """
     tree = IntervalTree()
-    
+
     with open(bedfile, 'r') as file:
         for line in file:
             columns = line.strip().split('\t')
             start, end = int(columns[1]), int(columns[2])
+            if window_start is not None and end <= window_start:
+                continue
+            if window_end is not None and start >= window_end:
+                continue
             # Create interval [start, end) - end is exclusive
             tree[start:end] = True
     
@@ -522,39 +529,77 @@ def homopolymer_check(seq):
 
     return True
 
-def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
-                        window_start=None, window_end=None):
-    # With window_start/window_end only positions in [window_start, window_end)
-    # are counted; counts from neighbouring windows add up to the whole contig.
+def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                       window_start=None, window_end=None,
+                       calls_out=None, opportunities_out=None, fastq_out=None):
+    """
+    Call 1-3 bp InDels and count opportunities outside the mask in one pass
+    over the BAM, and write the reads carrying a call as FASTQ.
 
+    calls_out, opportunities_out and fastq_out are open files; whichever is
+    None is not produced. small_indels() and indel_opportunities() are this
+    function with only calls_out or only opportunities_out, on stdout.
+
+    Calls: 1-3 bp InDels at positions outside the mask (the filters BED),
+    except those whose sequence plus one flanking base on each side is a
+    homopolymer (changes base at most once).
+
+    Opportunities: every read position outside the mask, counted once per
+    InDel size 1, 2 and 3 under the canonical k-mer of that size (the smaller
+    of the k-mer and its reverse complement), per tissue, mapQ and kmerQ, with
+    the same homopolymer rule applied to the k-mer and its flanking bases.
+
+    fastq_out gets every read carrying a call, once, as forward-strand FASTQ
+    for haploid remapping.
+
+    With window_start/window_end only positions in [window_start, window_end)
+    are scanned; each position belongs to one window, so windows never report
+    the same call twice and their opportunity counts add up to the whole
+    contig. Without them the whole contig is scanned.
+    """
     with open(average_coverage_file, 'r') as f: # load in the average coverage smaple
         average_coverage_of_species = float(f.read().strip())
 
     fasta = pysam.FastaFile(fastafile)
-    #intervals, metadata = load_intervals(microsatfile) # artifact from microsat script, but might be useful later
-    interval_tree = load_filters_with_tree(filters) # IntervalTree
-    #####
+    interval_tree = load_filters_with_tree(filters, window_start, window_end) # IntervalTree
     d = load_tissue_classification(tissue_file)
-    #print(d)
 
-    #####
     min_mapping_qual = 0 # to have more contorl over pysam
     min_base_qual = 0 #--||---
 
     def counts_dict():
         return {str(i): 0 for i in range(94)}
 
+    # data[context][tissue][mapQ][kmerQ] = count
     data = defaultdict(
     lambda: defaultdict(
         lambda: defaultdict(counts_dict)
         )
     )
 
-    #next_iv = 0                              # CHANGED: index of next interval to activate
-    #active = []                              # CHANGED: list of (start,end) intervals currently covering position
+    if calls_out is not None:
+        print("#contig", "start", "end", "ref", "alt",
+        "indel_type","unique","indel_string","canonical_indel","tissue","read_length",
+        "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
+        "position","readID", "diploid_direction",
+        sep= "\t", file=calls_out) #header for output
+
+    # Sequence and base qualities of each read, fetched once rather than at
+    # every position it covers: copying a whole HiFi read at each position is
+    # most of the cost of counting opportunities. Keyed by read, start and
+    # flag, with the read's end so reads the scan has passed can be dropped
+    # every 10 kb.
+    reads = {}
+    next_eviction = 0
+
+    # Canonical k-mer and homopolymer check of a run (k-mer plus its flanking
+    # bases), computed once per distinct run.
+    runs = {}
+
+    fastq_reads = set()
 
     with pysam.AlignmentFile(bamfile, "rb") as bam: # print the header
-        for pileupcolumn in bam.pileup(contig=contig, #pileup 
+        for pileupcolumn in bam.pileup(contig=contig, #pileup
                                        start=window_start,
                                        stop=window_end,
                                        fastafile=fasta,
@@ -564,7 +609,7 @@ def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_fi
                                        min_mapping_quality=min_mapping_qual,#conservative
                                        ):
 
-            # quality fitler on reference position before determining indel type 
+            # quality fitler on reference position before determining indel type
             if not (average_coverage_of_species/2 <= pileupcolumn.nsegments <= average_coverage_of_species*2):
                 continue
 
@@ -573,329 +618,181 @@ def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_fi
             if interval_tree[position]: #saved me many lines of code
                 continue
 
-            ##skipping position filters
-            # activate any intervals that start at/before this position
-            # while next_iv < len(intervals) and intervals[next_iv][0] - 2 <= position:
-            #     active.append(intervals[next_iv])
-            #     next_iv += 1
+            if position >= next_eviction:
+                reads = {key: value for key, value in reads.items() if value[0] > position}
+                next_eviction = position + 10_000
 
-            # # drop intervals that ended before/at this position (end is exclusive)
-            # if active:
-            #     active = [(s, e) for (s, e) in active if e > position]
-            #     #print(f"DEBUG position {position+1}, active intervals: {active}")
-            # if active:
-            #     continue
-            # # do nothing if we are in  microsat intervals
-            # # if active[0][0] <= position <= active[0][1]:
-            # #     continue
-            
-            # fitler on positions on reads
-            for pileupread in pileupcolumn.pileups: # looking for reads without indels and have the tags we are interested i
-                    if pileupread.query_position is None: # we are in an indel and the position is none
-                        continue
+            pileups = pileupcolumn.pileups
 
-                    #non indel or point mutation positions
+            if calls_out is not None:
+                indel_count = sum(1 for pileupread in pileups if (pileupread.indel != 0) or (pileupread.is_del == True))
 
-                    #np = ec = sm = sx = sa = sm_pre = sx_pre = "NA" # initialise tags
-                    read_pos = pileupread.query_position
-                    readstart = pileupread.alignment.reference_start
-                    readend = pileupread.alignment.reference_end
-                    #ToreadEnd = min([(position-readstart),(readend-position)]) #tjek
+                seen = "unique"
+                if indel_count > 1:
+                    seen = "non-unique"
 
-                    # if ToreadEnd < 1000: # if we are too close to the end of the read
-                    #     continue
+            for pileupread in pileups:
+                if pileupread.query_position is None: # we are in an indel and the position is none
+                    continue
 
-                    read_seq = pileupread.alignment.query_sequence
-                    base_qualities = pileupread.alignment.query_qualities
-                    mapQ = pileupread.alignment.mapping_quality
+                read_pos   = pileupread.query_position
+                alignment  = pileupread.alignment
+                query_name = alignment.query_name
 
-                    #readoverlap = min(start - readstart, readend - end)
+                # ---- opportunities ----
+                # we need at least one base on each side of the kmer
+                if opportunities_out is not None and 1 <= read_pos <= alignment.query_length - 2:
+                    key = (query_name, alignment.reference_start, alignment.flag)
+                    cached = reads.get(key)
+                    if cached is None:
+                        cached = reads[key] = (alignment.reference_end, alignment.query_sequence, alignment.query_qualities)
+                    _, read_seq, base_qualities = cached
+                    mapQ = str(alignment.mapping_quality)
+                    tissue_type = d.get(query_name, "NA")
 
-                    # if pileupread.alignment.has_tag("np"):
-                    #     np = pileupread.alignment.get_tag("np") # full read
-                    #     ec = pileupread.alignment.get_tag("ec")
-                    # if pileupread.alignment.has_tag("sa"): # er et tjek nok?
-                    #     sm = pileupread.alignment.get_tag("sm")[read_pos+1] # first base in the insertion
-                    #     sx = pileupread.alignment.get_tag("sx")[read_pos+1]
-                    #     sa = pileupread.alignment.get_tag("sa")#[pileupread.query_position_or_next] # this is an array so I index later in the function subread_array()
-                    #     sa = subread_array(sa,read_pos)
-                    #     sm_pre = pileupread.alignment.get_tag("sm")[read_pos] #base just before the insertion                                
-                    #     sx_pre = pileupread.alignment.get_tag("sx")[read_pos]
-
-                    
-                    #check if we are close to the end of read
-                    if (read_pos < 1) or (read_pos > (len(read_seq))-2): # we need at least one base on each side of the kmer
-                        continue
-                    #make kmer quality check 
-                    for indel_length in [1,2,3]: #indel lengths here means kmer length
+                    for indel_length in (1, 2, 3): #indel lengths here means kmer length
                         run = read_seq[read_pos-1:read_pos+indel_length+1]   #run dependent on indel length # includes kmer + flanking bases
                         kmerq = base_qualities[read_pos-1:read_pos+1]+base_qualities[read_pos+indel_length-1:read_pos+indel_length+1] #look weird but it makes sure that the 3 indel does not inlude the central base to insure a 4merQ
 
-                    #quality 3size
-                    #NT|ACT|CN
-                    #x0|0x0|0x
-                    
-                    #quality 2size
-                    #NTA|CT|CN
-                    #xx0|00|0x
-
-                    #quality 1size
-                    #TA|C|TC
-                    #x0|0|0x
-
-                        tissue_type = d.get(pileupread.alignment.query_name, "NA")
-
-                        lexi = canonical_context(run[1:-1]) #context of kmer without the flanking bases, grouped with the other strand
-
-                        homopolymer = homopolymer_check(run)
-                        if homopolymer == True: # filter out homopolymers
-                            continue
-
-                        data[lexi][tissue_type][str(mapQ)][str(min(kmerq))] += 1
-
-                        # if min(kmerq) < 93: 
-                        #     continue
-                    
-                        # data[lexi][tissue_type]["filter"] += 1
-
-    print("contig","context","tissue","mapQ","kmerQ","count", sep= "\t", file=sys.stdout) #header for output
-    for context, tissues in data.items():
-        for tissue, mapQs in tissues.items():
-            for mapQ, kmerQs in mapQs.items():
-                for kmerQ, count in kmerQs.items():
-                    print(contig,context,tissue,mapQ,kmerQ,count, sep="\t", file=sys.stdout)
-                    
-    return
- 
-def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
-                 window_start=None, window_end=None):
-    # With window_start/window_end only positions in [window_start, window_end)
-    # are scanned; each position belongs to one window, so windows never report
-    # the same call twice. Without them the whole contig is scanned.
-
-    with open(average_coverage_file, 'r') as f: # load in the average coverage smaple
-        average_coverage_of_species = float(f.read().strip())
-
-    fasta = pysam.FastaFile(fastafile)
-    # intervals = load_filters(filters)  #sweep-line approach
-    # next_iv = 0                           
-    # active = []    
-
-    interval_tree = load_filters_with_tree(filters) # IntervalTree
-    
-    #####
-    d = load_tissue_classification(tissue_file)
-    #print(d)
-
-    #####
-    min_mapping_qual = 0 # to have more contorl over pysam
-    min_base_qual = 0 #--||---
-
-    # def counts_dict():
-    #     return {"filter": 0, "nofilter": 0, "3mer_del":0}
-    print("#contig", "start", "end", "ref", "alt",
-    "indel_type","unique","indel_string","canonical_indel","tissue","read_length",
-    "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
-    "position","readID", "diploid_direction",
-    sep= "\t", file=sys.stdout) #header for output
-
-    # print("contig","indel_type","unique","indel_string","tissue","read_position","read_length",
-    # "np","ec","sm","sx","sa","sm_pre","sx_pre", 
-    # "position","readID", "diploid_direction",
-    # sep= "\t", file=sys.stdout) #header for output
-    #
-    # multiple reads small indels
-    #
-    with pysam.AlignmentFile(bamfile, "rb") as bam: # print the header
-        for pileupcolumn in bam.pileup(contig=contig, #pileup 
-                                       start=window_start,
-                                       stop=window_end,
-                                       fastafile=fasta,
-                                       truncate=True,
-                                       stepper="nofilter",
-                                       min_base_quality=min_base_qual,#quite light
-                                       min_mapping_quality=min_mapping_qual,#conservative
-                                       ):
-
-            # quality fitler on reference position before determining indel type 
-            if not (average_coverage_of_species/2 <= pileupcolumn.nsegments <= average_coverage_of_species*2):
-                continue
-
-            position = pileupcolumn.reference_pos # right. the position in the reference
-
-            if interval_tree[position]: #saved me many lines of code
-                continue
-
-            ##skipping position filters
-            # activate any intervals that start at/before this position
-            # while next_iv < len(intervals) and intervals[next_iv][0] - 2 <= position:
-            #     active.append(intervals[next_iv])
-            #     next_iv += 1
-
-            # # drop intervals that ended before/at this position (end is exclusive)
-            # if active:
-            #     active = [(s, e) for (s, e) in active if e > position]
-            #     #print(f"DEBUG position {position+1}, active intervals: {active}")
-            # if active:
-            #     continue
-            # do nothing if we are in  microsat intervals
-            # if active[0][0] <= position <= active[0][1]:
-            #     continue
-
-            indel_count = sum(1 for pileupread in pileupcolumn.pileups if (pileupread.indel != 0) or (pileupread.is_del == True))
-
-            seen = "unique"
-            if indel_count > 1:
-                seen = "non-unique"
-            
-            # fitler on positions on reads
-            for pileupread in pileupcolumn.pileups: # looking for reads without indels and have the tags we are interested i
-                    if pileupread.query_position is None: # we are in an indel and the position is none
-                        continue
-
-                    indel = pileupread.indel
-
-                    if (abs(indel) > 3) or (abs(indel) == 0): # only interested in 1,2,3 sizes
-                        continue
-
-                    np = ec = sm = sx = sa = sm_pre = sx_pre = "NA" # initialise tags
-                    read_pos = pileupread.query_position
-                    read_pos_after = pileupread.query_position_or_next
-                    readstart = pileupread.alignment.reference_start
-                    readend = pileupread.alignment.reference_end
-                    ToreadEnd = min([(position-readstart),(readend-position)]) #tjek
-
-                    # if ToreadEnd < 1000: # if we are too close to the end of the read
-                    #     continue
-
-                    # for (start, end) in active: # dont think i need this ????
-                    #     #print(f"DEBUG loop start-end {start+1}-{end}, position {position+1}, read {pileupread.alignment.query_name}")# shift for left-alignment
-                    #     if not ((start-2) <= position < end): # because indels are left aligned
-                    #         continue
-                    #     if position >= end:
-                    #         continue
-
-                    # microsat_buffer = 2 #artifact ?!?!?
-
-                    # read fully spans interval with buffer?
-                    # if not ((readstart < (start - microsat_buffer)) and (end < (readend - microsat_buffer))):
-                    #     continue
-                        # make easier
-
-                    read_seq = pileupread.alignment.query_sequence
-                    base_qualities = pileupread.alignment.query_qualities
-
-                    #readoverlap = min(start - readstart, readend - end)
-                    #print("working?", position, active, read_pos, len(base_qualities),pileupread.alignment.query_name,pileupread.indel)
-                    if pileupread.alignment.has_tag("np"):
-                        np = pileupread.alignment.get_tag("np") # full read
-                        ec = pileupread.alignment.get_tag("ec")
-                    if pileupread.alignment.has_tag("sa"): # er et tjek nok?
-                        sm = pileupread.alignment.get_tag("sm")[read_pos+1] # first base in the insertion
-                        sx = pileupread.alignment.get_tag("sx")[read_pos+1]
-                        sa = pileupread.alignment.get_tag("sa")#[pileupread.query_position_or_next] # this is an array so I index later in the function subread_array()
-                        sa = subread_array(sa,read_pos)
-                        sm_pre = pileupread.alignment.get_tag("sm")[read_pos] #base just before the insertion                                
-                        sx_pre = pileupread.alignment.get_tag("sx")[read_pos]
-
-                    indel_length = abs(indel)
-                    upstream,downstream = closest_indel(pileupread.alignment.cigartuples,read_pos,indel_length)
-
-                    #Make a tjek that sees if the indel is unique or not
-                    
-                    if indel < 0:
-                    # -------------------
-                    # CASE 1: DELETIONS
-                    # -------------------
-                        hcheck = fasta.fetch(contig, position, position + indel_length+2) #for homopolymer check
-                        deletion_context = hcheck[1:-1] #the deletion context, as observed
-                        #deletion_context = fasta.fetch(contig, position+1, position + 1 + indel_length)
-
-                        #homopolymer_check
-
-                        homopolymer = homopolymer_check(hcheck)
-                        if homopolymer == True: # filter out homopolymers
-                            continue
-
-                        tissue_type = d.get(pileupread.alignment.query_name, "NA")
-                        #data["deletion"][seen][lexi][tissue_type]["nofilter"] += 1
-
-                        #quality check
-                        #AA|ACG|TT
-                        #00|xxx|00
-                        #print(read_pos,read_pos_after+1)
-                        deletion_qualities_4mer = base_qualities[max(0, read_pos-1):read_pos+1]+base_qualities[read_pos_after+1:read_pos_after+3] # need to dobblet check this 
-                        #print(deletion_qualities_4mer)
-                        kmerQ = min(deletion_qualities_4mer)
-
-                        # if (len(deletion_context) == 1) and (min(deletion_qualities_4mer[0:3])) == 93:
-                        #     data["deletion"][seen][lexi][tissue_type]["3mer_del"] += 1
-
-                        # if kmerQ < 93:
-                        #     continue
-                        
-                        if pileupread.alignment.is_reverse == True:
-                            diploid_strand = "-"
-                        else:
-                            diploid_strand = "+"
-
-                        #data["deletion"][seen][lexi][tissue_type]["filter"] += 1
-                        print(contig, read_pos+1,read_pos+1,hcheck[0:-1],hcheck[0], #start and end are the same for delettion, becaus its is in the read
-                        "deletion", seen, deletion_context, canonical_context(deletion_context), tissue_type, len(read_seq),
-                        np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
-                        position+1,pileupread.alignment.query_name, diploid_strand,
-                        sep="\t", file=sys.stdout)
-
-                        # print("contig", "start", "end", "ref", "alt",
-                        # "indel_type","unique","indel_string","tissue","read_length",
-                        # "np","ec","sm","sx","sa","sm_pre","sx_pre",
-                        # "position","readID", "diploid_direction",
-                        # sep= "\t", file=sys.stdout)
-
-                    if indel > 0:
-                    # -------------------
-                    # CASE 2: INSERTION
-                    # -------------------
-                        insertion_context = read_seq[read_pos+1:read_pos + indel_length +1] # as observed
-
-                        #homopolymer check
-                        homopolymer = homopolymer_check(read_seq[read_pos:read_pos + indel_length +2])
-                        if homopolymer == True: # filter out homopolymers
-                            continue
-
-                        tissue_type = d.get(pileupread.alignment.query_name, "NA")
-                        #data["insertion"][seen][lexi][tissue_type]["nofilter"] += 1
-
-                        #quality check
-                        #AA|ACG|TT
+                        #quality 3size
+                        #NT|ACT|CN
                         #x0|0x0|0x
-                        insertion_qualities_4mer = base_qualities[max(0, read_pos):read_pos+2]+base_qualities[max(0, read_pos)+indel_length:read_pos+indel_length+2] # will count the middle base twice in 1 bp, but it doesnt matter
-                        kmerQ = min(insertion_qualities_4mer)
 
-                        # if kmerQ < 93:
-                        #     continue
+                        #quality 2size
+                        #NTA|CT|CN
+                        #xx0|00|0x
 
-                        if pileupread.alignment.is_reverse == True:
-                            diploid_strand = "-"
-                        else:
-                            diploid_strand = "+"                        
-                        #data["insertion"][seen][lexi][tissue_type]["filter"] += 1
+                        #quality 1size
+                        #TA|C|TC
+                        #x0|0|0x
 
-                        print(contig, read_pos+1,read_pos + indel_length +1,read_seq[read_pos],read_seq[read_pos:read_pos + indel_length +1], #start and end are the same for delettion, becaus its is in the read
-                        "insertion", seen, insertion_context, canonical_context(insertion_context), tissue_type, len(read_seq),
-                        np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
-                        position+1,pileupread.alignment.query_name, diploid_strand,
-                        sep="\t", file=sys.stdout)
+                        info = runs.get(run)
+                        if info is None:
+                            #context of kmer without the flanking bases, grouped with the other strand
+                            info = runs[run] = (canonical_context(run[1:-1]), homopolymer_check(run))
+                        lexi, homopolymer = info
+                        if homopolymer == True: # filter out homopolymers
+                            continue
+
+                        data[lexi][tissue_type][mapQ][str(min(kmerq))] += 1
+
+                # ---- calls ----
+                if calls_out is None:
+                    continue
+
+                indel = pileupread.indel
+
+                if (abs(indel) > 3) or (abs(indel) == 0): # only interested in 1,2,3 sizes
+                    continue
+
+                np = ec = sm = sx = sa = sm_pre = sx_pre = "NA" # initialise tags
+                read_pos_after = pileupread.query_position_or_next
+                readstart = alignment.reference_start
+                readend = alignment.reference_end
+                ToreadEnd = min([(position-readstart),(readend-position)]) #tjek
+
+                read_seq = alignment.query_sequence
+                base_qualities = alignment.query_qualities
+
+                if alignment.has_tag("np"):
+                    np = alignment.get_tag("np") # full read
+                    ec = alignment.get_tag("ec")
+                if alignment.has_tag("sa"): # er et tjek nok?
+                    sm = alignment.get_tag("sm")[read_pos+1] # first base in the insertion
+                    sx = alignment.get_tag("sx")[read_pos+1]
+                    sa = alignment.get_tag("sa") # this is an array so I index later in the function subread_array()
+                    sa = subread_array(sa,read_pos)
+                    sm_pre = alignment.get_tag("sm")[read_pos] #base just before the insertion
+                    sx_pre = alignment.get_tag("sx")[read_pos]
+
+                indel_length = abs(indel)
+                diploid_strand = "-" if alignment.is_reverse == True else "+"
+
+                if indel < 0:
+                # -------------------
+                # CASE 1: DELETIONS
+                # -------------------
+                    hcheck = fasta.fetch(contig, position, position + indel_length+2) #for homopolymer check
+                    deletion_context = hcheck[1:-1] #the deletion context, as observed
+
+                    homopolymer = homopolymer_check(hcheck)
+                    if homopolymer == True: # filter out homopolymers
+                        continue
+
+                    tissue_type = d.get(query_name, "NA")
+
+                    #quality check
+                    #AA|ACG|TT
+                    #00|xxx|00
+                    deletion_qualities_4mer = base_qualities[max(0, read_pos-1):read_pos+1]+base_qualities[read_pos_after+1:read_pos_after+3] # need to dobblet check this
+                    kmerQ = min(deletion_qualities_4mer)
+
+                    row = (contig, read_pos+1,read_pos+1,hcheck[0:-1],hcheck[0], #start and end are the same for delettion, becaus its is in the read
+                           "deletion", seen, deletion_context, canonical_context(deletion_context), tissue_type, len(read_seq),
+                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
+                           position+1,query_name, diploid_strand)
+                else:
+                # -------------------
+                # CASE 2: INSERTION
+                # -------------------
+                    insertion_context = read_seq[read_pos+1:read_pos + indel_length +1] # as observed
+
+                    #homopolymer check
+                    homopolymer = homopolymer_check(read_seq[read_pos:read_pos + indel_length +2])
+                    if homopolymer == True: # filter out homopolymers
+                        continue
+
+                    tissue_type = d.get(query_name, "NA")
+
+                    #quality check
+                    #AA|ACG|TT
+                    #x0|0x0|0x
+                    insertion_qualities_4mer = base_qualities[max(0, read_pos):read_pos+2]+base_qualities[max(0, read_pos)+indel_length:read_pos+indel_length+2] # will count the middle base twice in 1 bp, but it doesnt matter
+                    kmerQ = min(insertion_qualities_4mer)
+
+                    row = (contig, read_pos+1,read_pos + indel_length +1,read_seq[read_pos],read_seq[read_pos:read_pos + indel_length +1],
+                           "insertion", seen, insertion_context, canonical_context(insertion_context), tissue_type, len(read_seq),
+                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
+                           position+1,query_name, diploid_strand)
+
+                print(*row, sep="\t", file=calls_out)
+
+                # The read, for remapping to the haploid assembly
+                if fastq_out is not None and query_name not in fastq_reads:
+                    fastq_reads.add(query_name)
+                    qual = ''.join(chr(x + 33) for x in alignment.get_forward_qualities())
+                    fastq_out.write(f"@{query_name}\n{alignment.get_forward_sequence()}\n+\n{qual}\n")
+
     fasta.close()
 
-    # print the data
-    # print("contig","indel_type","unique","indel_string","tissue","nofilter","3mer","filter", sep= "\t", file=sys.stdout) #header for output
-    # for indel_type, uniques in data.items():
-    #     for unique, indel_strings in uniques.items():
-    #         for indel_string, tissue in indel_strings.items():
-    #             for tissue, counts in tissue.items():
-    #                 print(contig,indel_type,unique,indel_string,tissue,counts['nofilter'],counts["3mer_del"],counts['filter'], sep="\t", file=sys.stdout)
+    if opportunities_out is not None:
+        print("contig","context","tissue","mapQ","kmerQ","count", sep= "\t", file=opportunities_out) #header for output
+        for context, tissues in data.items():
+            for tissue, mapQs in tissues.items():
+                for mapQ, kmerQs in mapQs.items():
+                    for kmerQ, count in kmerQs.items():
+                        print(contig,context,tissue,mapQ,kmerQ,count, sep="\t", file=opportunities_out)
     return
+
+
+def indel_opportunities(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                        window_start=None, window_end=None):
+    """
+    Count opportunities outside the mask and print them to stdout.
+    nonrepetitive_scan() without the calls.
+    """
+    nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                       window_start, window_end, opportunities_out=sys.stdout)
+
+
+def small_indels(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                 window_start=None, window_end=None):
+    """
+    Call 1-3 bp InDels outside the mask and print them to stdout.
+    nonrepetitive_scan() without the opportunities.
+    """
+    nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
+                       window_start, window_end, calls_out=sys.stdout)
 
 def find_lowest_substring(pattern: str) -> str:
     """Find the lexicographically smallest substring or its reverse complement
