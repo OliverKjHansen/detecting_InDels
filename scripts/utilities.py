@@ -924,7 +924,7 @@ def haploid_check():
 # Tandem-repeat InDel pipeline helpers
 # ---------------------------------------------------------------------------
 
-def load_tr_bed_with_tree(bedfile):
+def load_tr_bed_with_tree(bedfile, window_start=None, window_end=None):
     """
     Load an M0 or M1 BED file (11-column, with header) into an IntervalTree.
 
@@ -933,6 +933,9 @@ def load_tr_bed_with_tree(bedfile):
 
     The first line (header) is skipped automatically.
     Intervals where end <= start are silently skipped.
+    With window_start/window_end only the intervals overlapping
+    [window_start, window_end) are kept, which are all the intervals a position
+    in that window can fall in.
     """
     tree = IntervalTree()
     with open(bedfile, 'r') as f:
@@ -945,6 +948,10 @@ def load_tr_bed_with_tree(bedfile):
             start, end = int(cols[1]), int(cols[2])
             if end <= start:
                 continue
+            if window_start is not None and end <= window_start:
+                continue
+            if window_end is not None and start >= window_end:
+                continue
             tree[start:end] = {
                 'canonical_motif': cols[3],
                 'k':               int(cols[4]),
@@ -956,41 +963,91 @@ def load_tr_bed_with_tree(bedfile):
     return tree
 
 
-def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
-                         average_coverage_file, tissue_file,
-                         window_start=None, window_end=None):
+def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
+                       average_coverage_file, tissue_file,
+                       window_start=None, window_end=None,
+                       calls_out=None, opportunities_out=None, fastq_out=None):
     """
-    Call InDels whose size is a multiple of the repeat period, scanning only
-    positions *inside* tandem repeat regions defined by an M0 or M1 BED file.
+    Call InDels and count opportunities inside tandem repeat tracts for several
+    repeat models (M0, M1, M2) in one pass over the BAM.
 
-    Mirrors small_indels() but:
-    - Uses TR BED as an *inclusion* filter (positions must be inside a TR interval).
+    tr_beds maps a model name to its BED file. calls_out and opportunities_out
+    map a model name to an open file for its calls and for its opportunity
+    counts; a model left out of one gets no such output. fastq_out, when given,
+    gets every read carrying a call in any model, once, as forward-strand FASTQ
+    for haploid remapping.
+
+    For each model the output is exactly what that model gives on its own
+    (tandem_repeat_indels() and tandem_repeat_opportunities() are this function
+    with one model); the pileup, the coverage filter and the work per read are
+    shared between the models.
+
+    Calls mirror small_indels() but:
+    - Use the TR BED as an *inclusion* filter (positions must be inside a TR interval).
     - InDel size filter: abs(indel) % k == 0 (any size, not just 1-3 bp).
     - Homopolymer filter is NOT applied (k=1 homopolymer InDels are the signal).
     - Extra output columns: canonical_motif, k, copies, trf_purity, model_purity, model.
     - When a position overlaps multiple TR intervals matching the InDel size,
       the interval with the largest k is used (most specific period).
-    - With window_start/window_end, only positions in [window_start, window_end)
-      are scanned; each position belongs to one window, so windows never
-      report the same call twice. Without them the whole contig is scanned.
+
+    Opportunities mirror indel_opportunities(): reads passing the quality
+    filters at each position inside a TR interval, counted per (canonical_motif,
+    k, tissue, mapQ, kmerQ). The kmerQ window uses the period k as the InDel
+    length proxy. When a position overlaps multiple TR intervals, the one with
+    the smallest k is used.
+
+    With window_start/window_end, only positions in [window_start, window_end)
+    are scanned; each position belongs to one window, so windows never report
+    the same call twice and their opportunity counts add up to the whole
+    contig. Without them the whole contig is scanned.
     """
+    calls_out = calls_out or {}
+    opportunities_out = opportunities_out or {}
+
     with open(average_coverage_file, 'r') as f:
         average_coverage_of_species = float(f.read().strip())
 
     fasta = pysam.FastaFile(fastafile)
-    interval_tree = load_tr_bed_with_tree(tr_bedfile)
+    trees = {model: load_tr_bed_with_tree(bedfile, window_start, window_end)
+             for model, bedfile in tr_beds.items()}
 
     d = load_tissue_classification(tissue_file)
 
     min_mapping_qual = 0
     min_base_qual = 0
 
-    print("#contig", "start", "end", "ref", "alt",
-          "indel_type", "unique", "indel_string", "canonical_indel", "tissue", "read_length",
-          "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
-          "position", "readID", "diploid_direction",
-          "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
-          sep="\t", file=sys.stdout)
+    def counts_dict():
+        return {str(i): 0 for i in range(94)}
+
+    # counts[model][canonical_motif][k][tissue][mapQ][kmerQ] = count
+    counts = {
+        model: defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(
+                    lambda: defaultdict(counts_dict)
+                )
+            )
+        )
+        for model in opportunities_out
+    }
+
+    for out in calls_out.values():
+        print("#contig", "start", "end", "ref", "alt",
+              "indel_type", "unique", "indel_string", "canonical_indel", "tissue", "read_length",
+              "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
+              "position", "readID", "diploid_direction",
+              "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
+              sep="\t", file=out)
+
+    # Base qualities of each read, fetched once rather than at every tract
+    # position it covers: copying a whole HiFi read's qualities at each
+    # position is most of the cost of counting opportunities. Keyed by read,
+    # start and flag, with the read's end so reads the scan has passed can be
+    # dropped every 10 kb.
+    qualities = {}
+    next_eviction = 0
+
+    fastq_reads = set()
 
     with pysam.AlignmentFile(bamfile, "rb") as bam:
         for pileupcolumn in bam.pileup(contig=contig,
@@ -1008,19 +1065,62 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
 
             position = pileupcolumn.reference_pos
 
-            # Only process positions INSIDE a TR interval
-            hits = interval_tree[position]
+            # Only process positions INSIDE a TR interval, per model
+            hits = {}
+            for model, tree in trees.items():
+                model_hits = tree[position]
+                if model_hits:
+                    hits[model] = model_hits
             if not hits:
                 continue
 
-            indel_count = sum(
-                1 for pr in pileupcolumn.pileups
-                if (pr.indel != 0) or pr.is_del
-            )
-            seen = "unique" if indel_count <= 1 else "non-unique"
+            if position >= next_eviction:
+                qualities = {key: value for key, value in qualities.items() if value[0] > position}
+                next_eviction = position + 10_000
 
-            for pileupread in pileupcolumn.pileups:
+            pileups = pileupcolumn.pileups
+
+            call_models = [model for model in hits if model in calls_out]
+            if call_models:
+                indel_count = sum(
+                    1 for pr in pileups
+                    if (pr.indel != 0) or pr.is_del
+                )
+                seen = "unique" if indel_count <= 1 else "non-unique"
+
+            # Opportunities use the interval with the smallest k at this position
+            opportunity_tracts = [(model, min(hits[model], key=lambda iv: iv.data['k']).data)
+                                  for model in hits if model in opportunities_out]
+
+            for pileupread in pileups:
                 if pileupread.query_position is None:
+                    continue
+
+                read_pos   = pileupread.query_position
+                alignment  = pileupread.alignment
+                query_name = alignment.query_name
+
+                # ---- opportunities ----
+                if opportunity_tracts and 1 <= read_pos <= alignment.query_length - 2:
+                    key = (query_name, alignment.reference_start, alignment.flag)
+                    cached = qualities.get(key)
+                    if cached is None:
+                        cached = qualities[key] = (alignment.reference_end, alignment.query_qualities)
+                    base_qualities = cached[1]
+                    mapQ = alignment.mapping_quality
+                    tissue_type = d.get(query_name, "NA")
+
+                    for model, tr in opportunity_tracts:
+                        k = tr['k']
+                        # kmerQ window: 2 bases flanking a k-length window
+                        kmerq = (base_qualities[read_pos - 1:read_pos + 1]
+                                 + base_qualities[read_pos + k - 1:read_pos + k + 1])
+                        if not kmerq:
+                            continue
+                        counts[model][tr['canonical_motif']][k][tissue_type][str(mapQ)][str(min(kmerq))] += 1
+
+                # ---- calls ----
+                if not call_models:
                     continue
 
                 indel = pileupread.indel
@@ -1029,40 +1129,38 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
 
                 indel_length = abs(indel)
 
-                # Pick the matching interval with the largest k
+                # Per model, pick the matching interval with the largest k
                 # (most specific period for this InDel size)
-                matching = [iv for iv in hits
-                            if indel_length % iv.data['k'] == 0]
-                if not matching:
+                call_tracts = []
+                for model in call_models:
+                    matching = [iv for iv in hits[model]
+                                if indel_length % iv.data['k'] == 0]
+                    if matching:
+                        call_tracts.append((model, max(matching, key=lambda iv: iv.data['k']).data))
+                if not call_tracts:
                     continue
-                best_iv = max(matching, key=lambda iv: iv.data['k'])
-                tr = best_iv.data
 
                 np = ec = sm = sx = sa = sm_pre = sx_pre = "NA"
-                read_pos      = pileupread.query_position
                 read_pos_after = pileupread.query_position_or_next
-                readstart     = pileupread.alignment.reference_start
-                readend       = pileupread.alignment.reference_end
-                ToreadEnd     = min(position - readstart, readend - position)
+                readstart      = alignment.reference_start
+                readend        = alignment.reference_end
+                ToreadEnd      = min(position - readstart, readend - position)
 
-                read_seq       = pileupread.alignment.query_sequence
-                base_qualities = pileupread.alignment.query_qualities
+                read_seq       = alignment.query_sequence
+                base_qualities = alignment.query_qualities
 
-                if pileupread.alignment.has_tag("np"):
-                    np = pileupread.alignment.get_tag("np")
-                    ec = pileupread.alignment.get_tag("ec")
-                if pileupread.alignment.has_tag("sa"):
-                    sm     = pileupread.alignment.get_tag("sm")[read_pos + 1]
-                    sx     = pileupread.alignment.get_tag("sx")[read_pos + 1]
-                    sa     = subread_array(pileupread.alignment.get_tag("sa"), read_pos)
-                    sm_pre = pileupread.alignment.get_tag("sm")[read_pos]
-                    sx_pre = pileupread.alignment.get_tag("sx")[read_pos]
+                if alignment.has_tag("np"):
+                    np = alignment.get_tag("np")
+                    ec = alignment.get_tag("ec")
+                if alignment.has_tag("sa"):
+                    sm     = alignment.get_tag("sm")[read_pos + 1]
+                    sx     = alignment.get_tag("sx")[read_pos + 1]
+                    sa     = subread_array(alignment.get_tag("sa"), read_pos)
+                    sm_pre = alignment.get_tag("sm")[read_pos]
+                    sx_pre = alignment.get_tag("sx")[read_pos]
 
-                upstream, downstream = closest_indel(
-                    pileupread.alignment.cigartuples, read_pos, indel_length
-                )
-                diploid_strand = "-" if pileupread.alignment.is_reverse else "+"
-                tissue_type = d.get(pileupread.alignment.query_name, "NA")
+                diploid_strand = "-" if alignment.is_reverse else "+"
+                tissue_type = d.get(query_name, "NA")
 
                 if indel < 0:
                     # DELETION
@@ -1073,18 +1171,14 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
                              + base_qualities[read_pos_after + 1:read_pos_after + 3])
                     kmerQ = min(del_q) if del_q else 0
 
-                    print(contig,
-                          read_pos + 1, read_pos + 1,
-                          hcheck[0:-1], hcheck[0],
-                          "deletion", seen, deletion_context, canonical_context(deletion_context),
-                          tissue_type, len(read_seq),
-                          np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
-                          position + 1, pileupread.alignment.query_name, diploid_strand,
-                          tr['canonical_motif'], tr['k'], tr['copies'],
-                          tr['trf_purity'], tr['model_purity'], tr['model'],
-                          sep="\t", file=sys.stdout)
-
-                if indel > 0:
+                    row = (contig,
+                           read_pos + 1, read_pos + 1,
+                           hcheck[0:-1], hcheck[0],
+                           "deletion", seen, deletion_context, canonical_context(deletion_context),
+                           tissue_type, len(read_seq),
+                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
+                           position + 1, query_name, diploid_strand)
+                else:
                     # INSERTION
                     insertion_context = read_seq[read_pos + 1:read_pos + indel_length + 1]
                     ins_q = (base_qualities[max(0, read_pos):read_pos + 2]
@@ -1092,120 +1186,66 @@ def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
                                               read_pos + indel_length + 2])
                     kmerQ = min(ins_q) if ins_q else 0
 
-                    print(contig,
-                          read_pos + 1, read_pos + indel_length + 1,
-                          read_seq[read_pos],
-                          read_seq[read_pos:read_pos + indel_length + 1],
-                          "insertion", seen, insertion_context, canonical_context(insertion_context),
-                          tissue_type, len(read_seq),
-                          np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
-                          position + 1, pileupread.alignment.query_name, diploid_strand,
+                    row = (contig,
+                           read_pos + 1, read_pos + indel_length + 1,
+                           read_seq[read_pos],
+                           read_seq[read_pos:read_pos + indel_length + 1],
+                           "insertion", seen, insertion_context, canonical_context(insertion_context),
+                           tissue_type, len(read_seq),
+                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
+                           position + 1, query_name, diploid_strand)
+
+                for model, tr in call_tracts:
+                    print(*row,
                           tr['canonical_motif'], tr['k'], tr['copies'],
                           tr['trf_purity'], tr['model_purity'], tr['model'],
-                          sep="\t", file=sys.stdout)
+                          sep="\t", file=calls_out[model])
+
+                # The read, for remapping to the haploid assembly
+                if fastq_out is not None and query_name not in fastq_reads:
+                    fastq_reads.add(query_name)
+                    qual = ''.join(chr(x + 33) for x in alignment.get_forward_qualities())
+                    fastq_out.write(f"@{query_name}\n{alignment.get_forward_sequence()}\n+\n{qual}\n")
+
+    for model, out in opportunities_out.items():
+        print("contig", "canonical_motif", "k", "tissue", "mapQ", "kmerQ", "count",
+              sep="\t", file=out)
+        for motif, ks in counts[model].items():
+            for period, tissues in ks.items():
+                for tissue, mapQs in tissues.items():
+                    for mapQ, kmerQs in mapQs.items():
+                        for kmerQ, count in kmerQs.items():
+                            print(contig, motif, period, tissue, mapQ, kmerQ, count,
+                                  sep="\t", file=out)
 
     fasta.close()
     return
+
+
+def tandem_repeat_indels(tr_bedfile, contig, bamfile, fastafile,
+                         average_coverage_file, tissue_file,
+                         window_start=None, window_end=None):
+    """
+    Call InDels whose size is a multiple of the repeat period, scanning only
+    positions *inside* tandem repeat regions defined by an M0, M1 or M2 BED
+    file, and print them to stdout. tandem_repeat_scan() for one model.
+    """
+    tandem_repeat_scan({"model": tr_bedfile}, contig, bamfile, fastafile,
+                       average_coverage_file, tissue_file, window_start, window_end,
+                       calls_out={"model": sys.stdout})
 
 
 def tandem_repeat_opportunities(tr_bedfile, contig, bamfile, fastafile,
                                  average_coverage_file, tissue_file,
                                  window_start=None, window_end=None):
     """
-    Count opportunities (non-InDel read positions) inside tandem repeat regions.
-
-    With window_start/window_end, only positions in [window_start, window_end)
-    are counted; counts from neighbouring windows add up to the whole contig.
-
-    For each position inside a TR interval, counts reads that pass quality filters,
-    stratified by (canonical_motif, k, tissue, mapQ, kmerQ).
-    The kmerQ window uses the period k as the InDel length proxy.
-    When a position overlaps multiple TR intervals, the one with the smallest k is used.
-
-    Mirrors indel_opportunities() but uses TR BED as an inclusion filter.
+    Count opportunities (non-InDel read positions) inside tandem repeat
+    regions and print them to stdout. tandem_repeat_scan() for one model.
     """
-    with open(average_coverage_file, 'r') as f:
-        average_coverage_of_species = float(f.read().strip())
+    tandem_repeat_scan({"model": tr_bedfile}, contig, bamfile, fastafile,
+                       average_coverage_file, tissue_file, window_start, window_end,
+                       opportunities_out={"model": sys.stdout})
 
-    fasta = pysam.FastaFile(fastafile)
-    interval_tree = load_tr_bed_with_tree(tr_bedfile)
-
-    d = load_tissue_classification(tissue_file)
-
-    min_mapping_qual = 0
-    min_base_qual = 0
-
-    def counts_dict():
-        return {str(i): 0 for i in range(94)}
-
-    # data[canonical_motif][k][tissue][mapQ][kmerQ] = count
-    data = defaultdict(
-        lambda: defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(counts_dict)
-            )
-        )
-    )
-
-    with pysam.AlignmentFile(bamfile, "rb") as bam:
-        for pileupcolumn in bam.pileup(contig=contig,
-                                       start=window_start, stop=window_end,
-                                       region=None, end=None,
-                                       fastafile=fasta, truncate=True,
-                                       stepper="nofilter",
-                                       min_base_quality=min_base_qual,
-                                       min_mapping_quality=min_mapping_qual):
-
-            if not (average_coverage_of_species / 2
-                    <= pileupcolumn.nsegments
-                    <= average_coverage_of_species * 2):
-                continue
-
-            position = pileupcolumn.reference_pos
-
-            # Only process positions INSIDE a TR interval
-            hits = interval_tree[position]
-            if not hits:
-                continue
-
-            # Use the interval with the smallest k at this position
-            tr = min(hits, key=lambda iv: iv.data['k']).data
-            canonical_motif = tr['canonical_motif']
-            k = tr['k']
-
-            for pileupread in pileupcolumn.pileups:
-                if pileupread.query_position is None:
-                    continue
-
-                read_pos       = pileupread.query_position
-                read_seq       = pileupread.alignment.query_sequence
-                base_qualities = pileupread.alignment.query_qualities
-                mapQ           = pileupread.alignment.mapping_quality
-
-                if (read_pos < 1) or (read_pos > (len(read_seq)) - 2):
-                    continue
-
-                # kmerQ window: 2 bases flanking a k-length window
-                kmerq = (base_qualities[read_pos - 1:read_pos + 1]
-                         + base_qualities[read_pos + k - 1:read_pos + k + 1])
-                if not kmerq:
-                    continue
-
-                tissue_type = d.get(pileupread.alignment.query_name, "NA")
-                data[canonical_motif][k][tissue_type][str(mapQ)][str(min(kmerq))] += 1
-
-    print("contig", "canonical_motif", "k", "tissue", "mapQ", "kmerQ", "count",
-          sep="\t", file=sys.stdout)
-    for motif, ks in data.items():
-        for period, tissues in ks.items():
-            for tissue, mapQs in tissues.items():
-                for mapQ, kmerQs in mapQs.items():
-                    for kmerQ, count in kmerQs.items():
-                        print(contig, motif, period, tissue, mapQ, kmerQ, count,
-                              sep="\t", file=sys.stdout)
-
-    fasta.close()
-    return
 
 def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, average_coverage_file):
     # Only positions in [window_start, window_end) are scanned. Regions are

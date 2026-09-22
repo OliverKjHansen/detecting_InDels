@@ -148,9 +148,23 @@ def find_indel_position_in_read(cigar, position_in_read, indel_type, indel_strin
         return False, None, softclipped_haploid, others
   
 def main():
-  indels = pandas.read_csv(sys.argv[1], sep='\t')
-  haploid_alignment = pandas.read_csv(sys.argv[2], sep='\t', names=haploid_header)
+  # Usage: python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv>
+  # Several call tables (e.g. one per contig) are checked against the locations,
+  # which are read only once, and written out as one table with one header.
+  if len(sys.argv) < 3:
+    sys.exit("Usage: filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv>")
+  *calls_files, locations_file = sys.argv[1:]
+
+  haploid_alignment = pandas.read_csv(locations_file, sep='\t', names=haploid_header)
   haploid_alignment = haploid_alignment.set_index("readID")
+
+  for file_number, calls_file in enumerate(calls_files):
+    check_calls(calls_file, haploid_alignment, print_header=(file_number == 0))
+
+
+def check_calls(calls_file, haploid_alignment, print_header):
+  """Join one call table to the haploid alignments and print the checked calls."""
+  indels = pandas.read_csv(calls_file, sep='\t')
 
   merged = indels.join(haploid_alignment, on="readID")
   merged = merged.drop_duplicates(subset=["readID","start"]) # filter when a read maps to multiple locations in the haploid assembly
@@ -158,7 +172,8 @@ def main():
 
   new_columns = ["haploid_check","distance_to_indel_in_hap","softclip_haploid", "other_ops"]
   header_cols = [col for col in merged.columns if col != "cigar_hap"] + new_columns
-  print("\t".join(header_cols))
+  if print_header:
+    print("\t".join(header_cols))
 
   for row in merged.itertuples(index=False):
     read_id = row.readID

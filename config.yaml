@@ -22,7 +22,7 @@ tissue_samples:
   gibbon: [pink_eric]
   pig_tailed_macaque: [lenny]
   rhesus_macaque: [R21008, R22013, R15079]
-  long_tailed_macaque':  [J12013, J17017]
+  long_tailed_macaque:  [J12013, J17017]
   marmoset: [marmoset, lambiek, sidonia]
 
 # methylation_samples:

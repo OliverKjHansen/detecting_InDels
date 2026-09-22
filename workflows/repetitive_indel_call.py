@@ -9,6 +9,11 @@ from gwf import Workflow
 # repetitive_dna.py (M0, M1, M2), scans the positions inside that model's
 # repeat tracts and calls InDels whose size is a multiple of the period k.
 #
+# The BAM is read once per window for all three models: one scan job writes the
+# calls and opportunities of every model plus one FASTQ of the reads carrying a
+# call in any of them. Those reads are remapped to the haploid assembly once
+# per sample, and each model's calls are checked against that remapping.
+#
 # Configuration is read from config.yaml. Run gwf from the repository root,
 # after precompute.py and repetitive_dna.py:
 #
@@ -37,8 +42,8 @@ scripts           = os.path.abspath("scripts")
 # Repeat models written by repetitive_dna.py.
 models = ["M0", "M1", "M2"]
 
-# Steps 1-3 split each contig into windows of this many bp, one job per window.
-chunk_size = 40_000_000
+# Step 1 splits each contig into windows of this many bp, one scan job per window.
+chunk_size = 10_000_000
 
 # Final filtering thresholds.
 min_kmerq = 93                 # minimum Phred base quality across the InDel 4-mer
@@ -62,6 +67,7 @@ for species, samples in sample_dict.items():
         precompute  = f"{output}/precomute/{species}/{sample}"
         coverage    = f"{precompute}/avg_coverage.txt"
         repeats_dir = f"{output}/repetitive_dna/{species}/{sample}"
+        sample_dir  = f"{output}/repetitive_indels/{species}/{sample}"
         contig_dict = {}
 
         with open(f"{assembly}.fai") as contigs:
@@ -79,164 +85,161 @@ for species, samples in sample_dict.items():
             tissue        = "NA"
             tissue_inputs = []
 
+        # Shared by the models: the reads carrying calls, and their remapping.
+        fastq_dir   = f"{sample_dir}/fastq"
+        haploid_dir = f"{sample_dir}/haploid"
+
+        # Per model.
+        calls_dir         = {model: f"{sample_dir}/{model}/calls" for model in models}
+        opportunities_dir = {model: f"{sample_dir}/{model}/opportunities" for model in models}
+        merged_dir        = {model: f"{sample_dir}/{model}/merged" for model in models}
+
+        for contig, length in long_contigs.items():
+            repeat_beds   = {model: f"{repeats_dir}/{contig}_{model}.bed" for model in models}
+            calls         = {model: f"{calls_dir[model]}/{contig}.tsv" for model in models}
+            opportunities = {model: f"{opportunities_dir[model]}/{contig}.tsv" for model in models}
+            fastq         = f"{fastq_dir}/{contig}.fastq"
+
+            # Step 1 runs per window. The windows [0, chunk_size),
+            # [chunk_size, 2*chunk_size), ... tile the contig, and every pileup
+            # position belongs to exactly one window, so each call and each
+            # opportunity is counted once.
+            window_calls         = {model: [] for model in models}
+            window_opportunities = {model: [] for model in models}
+            window_fastqs        = []
+
+            for start in range(0, length, chunk_size):
+                end = min(start + chunk_size, length)
+                w_calls         = {model: f"{calls_dir[model]}/chunks/{contig}_{start}_{end}.tsv" for model in models}
+                w_opportunities = {model: f"{opportunities_dir[model]}/chunks/{contig}_{start}_{end}.tsv" for model in models}
+                w_fastq         = f"{fastq_dir}/chunks/{contig}_{start}_{end}.fastq"
+                for model in models:
+                    window_calls[model].append(w_calls[model])
+                    window_opportunities[model].append(w_opportunities[model])
+                window_fastqs.append(w_fastq)
+
+                chunk_dirs = " ".join(sorted({os.path.dirname(path) for path in
+                                              [w_fastq] + list(w_calls.values()) + list(w_opportunities.values())}))
+                model_args = " ".join(f"--model {model} {repeat_beds[model]} {w_calls[model]} {w_opportunities[model]}"
+                                      for model in models)
+
+                # Step 1 — one pass over the window for every model: call InDels
+                # inside the repeat tracts whose size is a multiple of the
+                # period, count the opportunities (the denominator of the rate),
+                # and write the reads carrying a call, for haploid remapping.
+                gwf.target(
+                    f"TRScan_{contig}_{start}_{sample}",
+                    inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs,
+                    outputs=list(w_calls.values()) + list(w_opportunities.values()) + [w_fastq],
+                    cores=1,
+                ) << f"""
+                mkdir -p {chunk_dirs}
+                python {scripts}/tandem_repeat_scan.py {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_fastq} {model_args}
+                """
+
+            # Step 2 — join the windows back into one file per contig.
+            #   calls:         concatenated, header kept from the first window
+            #   opportunities: counts per (contig, motif, k, tissue, mapQ,
+            #                  kmerQ), so they are summed over the windows
+            #   FASTQ:         concatenated, a read carrying calls in two
+            #                  windows is kept once
+            merge_commands = []
+            for model in models:
+                merge_commands.append(
+                    f"awk 'FNR==1 && NR==1 || FNR>1' {' '.join(window_calls[model])} > {calls[model]}")
+                merge_commands.append(
+                    f"awk -F'\\t' -v OFS='\\t' 'FNR==1 {{if (NR==1) print; next}} "
+                    f"{{n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7}} END {{for (key in n) print key, n[key]}}' "
+                    f"{' '.join(window_opportunities[model])} > {opportunities[model]}")
+            merge_commands = "\n                ".join(merge_commands)
+            contig_dirs = " ".join([fastq_dir] + list(calls_dir.values()) + list(opportunities_dir.values()))
+
+            gwf.target(
+                f"TRMergeWindows_{contig}_{sample}",
+                inputs=[path for model in models for path in window_calls[model] + window_opportunities[model]] + window_fastqs,
+                outputs=list(calls.values()) + list(opportunities.values()) + [fastq],
+                cores=1,
+                memory="16g",
+                walltime="02:00:00",
+            ) << f"""
+                mkdir -p {contig_dirs}
+                {merge_commands}
+                cat {' '.join(window_fastqs)} | awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' > {fastq}
+                """
+
+        fastqs            = [f"{fastq_dir}/{contig}.fastq" for contig in long_contigs]
+        fastq_list        = " ".join(fastqs)
+        combined_fastq    = f"{haploid_dir}/all.fastq"
+        remapped_bam      = f"{haploid_dir}/remapped.bam"
+        haploid_locations = f"{haploid_dir}/locations.tsv"
+
+        # Step 3 — remap the reads carrying a call in any model to the haploid
+        # assembly, once for all models. The FASTQs are listed explicitly and
+        # the combined FASTQ is written to haploid/, so a re-run never reads its
+        # own output.
+        gwf.target(
+            f"TRHaploidMapping_{sample}",
+            inputs=fastqs + [haploid],
+            outputs=[combined_fastq, remapped_bam, haploid_locations],
+            cores=16,
+            memory="100g",
+            walltime="24:00:00",
+        ) << f"""
+        mkdir -p {haploid_dir}
+        cat {fastq_list} > {combined_fastq}
+        pbmm2 align {haploid} {combined_fastq} {remapped_bam} --preset HIFI --sort -j 12 -J 4 -m 8G
+        samtools view {remapped_bam} | awk -v OFS='\\t' '{{print $1,$2,$3,$4,$5,$6}}' | sort -k1,1 > {haploid_locations}
+        """
+
         for model in models:
-            workdir    = f"{output}/repetitive_indels/{species}/{sample}/{model}"
             resultsdir = f"{results}/repetitive_indels/{species}/{sample}/{model}"
             plotsdir   = f"{plots}/repetitive_indels/{species}/{sample}/{model}"
 
-            calls_dir         = f"{workdir}/calls"
-            calls_haploid_dir = f"{workdir}/calls_haploid"
-            opportunities_dir = f"{workdir}/opportunities"
-            fastq_dir         = f"{workdir}/fastq"
-            haploid_dir       = f"{workdir}/haploid"
-            merged_dir        = f"{workdir}/merged"
-
-            for contig, length in long_contigs.items():
-                repeat_bed    = f"{repeats_dir}/{contig}_{model}.bed"
-                calls         = f"{calls_dir}/{contig}.tsv"
-                fastq         = f"{fastq_dir}/{contig}.fastq"
-                opportunities = f"{opportunities_dir}/{contig}.tsv"
-
-                # Steps 1-3 run per window. The windows [0, chunk_size),
-                # [chunk_size, 2*chunk_size), ... tile the contig, and every
-                # pileup position belongs to exactly one window, so each call and
-                # each opportunity is counted once.
-                window_calls, window_fastqs, window_opportunities = [], [], []
-
-                for start in range(0, length, chunk_size):
-                    end = min(start + chunk_size, length)
-                    w_calls         = f"{calls_dir}/chunks/{contig}_{start}_{end}.tsv"
-                    w_fastq         = f"{fastq_dir}/chunks/{contig}_{start}_{end}.fastq"
-                    w_opportunities = f"{opportunities_dir}/chunks/{contig}_{start}_{end}.tsv"
-                    window_calls.append(w_calls)
-                    window_fastqs.append(w_fastq)
-                    window_opportunities.append(w_opportunities)
-
-                    # Step 1a — call InDels inside the repeat tracts whose size is
-                    # a multiple of the period.
-                    gwf.target(
-                        f"TRIndels_{contig}_{start}_{sample}_{model}",
-                        inputs=[assembly, alignment, coverage, repeat_bed] + tissue_inputs,
-                        outputs=[w_calls],
-                    ) << f"""
-                    mkdir -p {calls_dir}/chunks
-                    python {scripts}/tandem_repeat_indels.py {repeat_bed} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} > {w_calls}
-                    """
-
-                    # Step 2a — extract the reads carrying a call, for haploid remapping.
-                    gwf.target(
-                        f"TRBuildFastq_{contig}_{start}_{sample}_{model}",
-                        inputs=[w_calls, alignment],
-                        outputs=[w_fastq],
-                    ) << f"""
-                    mkdir -p {fastq_dir}/chunks
-                    python {scripts}/build_mutation_fastq.py {w_calls} {alignment} {contig} {w_fastq} {start} {end}
-                    """
-
-                    # Step 3a — count opportunities inside the repeat tracts (the
-                    # denominator of the rate).
-                    gwf.target(
-                        f"TROpportunities_{contig}_{start}_{sample}_{model}",
-                        inputs=[assembly, alignment, coverage, repeat_bed] + tissue_inputs,
-                        outputs=[w_opportunities],
-                    ) << f"""
-                    mkdir -p {opportunities_dir}/chunks
-                    python {scripts}/tandem_repeat_opportunities.py {repeat_bed} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} > {w_opportunities}
-                    """
-
-                window_calls_list         = " ".join(window_calls)
-                window_fastqs_list        = " ".join(window_fastqs)
-                window_opportunities_list = " ".join(window_opportunities)
-
-                # Step 1b-3b — join the windows back into one file per contig.
-                #   calls:         concatenated, header kept from the first window
-                #   FASTQ:         concatenated, a read carrying calls in two
-                #                  windows is kept once
-                #   opportunities: counts per (contig, motif, k, tissue, mapQ,
-                #                  kmerQ), so they are summed over the windows
-                gwf.target(
-                    f"TRMergeWindows_{contig}_{sample}_{model}",
-                    inputs=window_calls + window_fastqs + window_opportunities,
-                    outputs=[calls, fastq, opportunities],
-                    cores=1,
-                    memory="16g",
-                    walltime="02:00:00",
-                ) << f"""
-                mkdir -p {calls_dir} {fastq_dir} {opportunities_dir}
-                awk 'FNR==1 && NR==1 || FNR>1' {window_calls_list} > {calls}
-                cat {window_fastqs_list} | awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' > {fastq}
-                awk -F'\\t' -v OFS='\\t' 'FNR==1 {{if (NR==1) print; next}} {{n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7}} END {{for (key in n) print key, n[key]}}' \\
-                    {window_opportunities_list} > {opportunities}
-                """
-
-            fastqs            = [f"{fastq_dir}/{contig}.fastq" for contig in long_contigs]
-            fastq_list        = " ".join(fastqs)
-            combined_fastq    = f"{haploid_dir}/all.fastq"
-            remapped_bam      = f"{haploid_dir}/remapped.bam"
-            haploid_locations = f"{haploid_dir}/locations.tsv"
-
-            # Step 4 — remap all call-carrying reads to the haploid assembly. The
-            # FASTQs are listed explicitly and the combined FASTQ is written to
-            # haploid/, so a re-run never reads its own output.
-            gwf.target(
-                f"TRHaploidMapping_{sample}_{model}",
-                inputs=fastqs + [haploid],
-                outputs=[combined_fastq, remapped_bam, haploid_locations],
-                cores=16,
-                memory="100g",
-                walltime="24:00:00",
-            ) << f"""
-            mkdir -p {haploid_dir}
-            cat {fastq_list} > {combined_fastq}
-            pbmm2 align {haploid} {combined_fastq} {remapped_bam} --preset HIFI --sort -j 12 -J 4 -m 8G
-            samtools view {remapped_bam} | awk -v OFS='\\t' '{{print $1,$2,$3,$4,$5,$6}}' | sort -k1,1 > {haploid_locations}
-            """
-
-            # Step 5 — haploid concordance, per contig: is the same InDel also
-            # in the read's alignment to the haploid assembly?
-            for contig in long_contigs:
-                calls         = f"{calls_dir}/{contig}.tsv"
-                calls_haploid = f"{calls_haploid_dir}/{contig}.tsv"
-
-                gwf.target(
-                    f"TRHaploidFilter_{contig}_{sample}_{model}",
-                    inputs=[calls, haploid_locations],
-                    outputs=[calls_haploid],
-                ) << f"""
-                mkdir -p {calls_haploid_dir}
-                python {scripts}/filtering_haploid_mappping.py {calls} {haploid_locations} > {calls_haploid}.tmp
-                awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {calls_haploid}.tmp > {calls_haploid}
-                rm -f {calls_haploid}.tmp
-                """
-
-            calls_haploid_files  = [f"{calls_haploid_dir}/{contig}.tsv" for contig in long_contigs]
-            opportunities_files  = [f"{opportunities_dir}/{contig}.tsv" for contig in long_contigs]
-            calls_haploid_list   = " ".join(calls_haploid_files)
+            calls_files          = [f"{calls_dir[model]}/{contig}.tsv" for contig in long_contigs]
+            opportunities_files  = [f"{opportunities_dir[model]}/{contig}.tsv" for contig in long_contigs]
+            calls_list           = " ".join(calls_files)
             opportunities_list   = " ".join(opportunities_files)
-            merged_indels        = f"{merged_dir}/indels.tsv"
-            merged_opportunities = f"{merged_dir}/opportunities.tsv"
+            merged_indels        = f"{merged_dir[model]}/indels.tsv"
+            merged_opportunities = f"{merged_dir[model]}/opportunities.tsv"
             plots_pdf            = f"{plotsdir}/plots.pdf"
 
-            # Step 6 — merge the contigs (header kept from the first file only)
-            # and draw diagnostics of the unfiltered calls. species/sample are
-            # added to the opportunities; the calls got them in step 5.
+            # Step 4 — haploid concordance for all contigs of the model: is the
+            # same InDel also in the read's alignment to the haploid assembly?
+            # locations.tsv is read once for every contig. The contigs are
+            # merged into one table (header kept once) with species/sample added.
+            gwf.target(
+                f"TRHaploidFilter_{sample}_{model}",
+                inputs=calls_files + [haploid_locations],
+                outputs=[merged_indels],
+                cores=1,
+                memory="20g",
+                walltime="12:00:00",
+            ) << f"""
+            mkdir -p {merged_dir[model]}
+            python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} > {merged_indels}.tmp
+            awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {merged_indels}.tmp > {merged_indels}
+            rm -f {merged_indels}.tmp
+            """
+
+            # Step 5 — merge the contigs' opportunities (header kept from the
+            # first file only, species/sample added) and draw diagnostics of
+            # the unfiltered calls.
             gwf.target(
                 f"TRMergeAndPlot_{sample}_{model}",
-                inputs=calls_haploid_files + opportunities_files,
-                outputs=[merged_indels, merged_opportunities, plots_pdf],
+                inputs=[merged_indels] + opportunities_files,
+                outputs=[merged_opportunities, plots_pdf],
                 cores=8,
                 memory="200g",
                 walltime="24:00:00",
             ) << f"""
-            mkdir -p {merged_dir} {plotsdir}
-            awk 'FNR==1 && NR==1 || FNR>1' {calls_haploid_list} > {merged_indels}
+            mkdir -p {merged_dir[model]} {plotsdir}
             awk 'FNR==1 && NR==1 || FNR>1' {opportunities_list} \\
                 | awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' \\
                 > {merged_opportunities}
             Rscript {scripts}/plot_indels.R {merged_indels} {merged_opportunities} {plots_pdf}
             """
 
-            # Step 7 — final filtering, with a report of rows removed per step.
+            # Step 6 — final filtering, with a report of rows removed per step.
             # These small tables are the results.
             gwf.target(
                 f"TRFinalFiltering_{sample}_{model}",
