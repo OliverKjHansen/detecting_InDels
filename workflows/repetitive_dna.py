@@ -1,3 +1,4 @@
+import math
 import os
 from os.path import expanduser
 
@@ -56,6 +57,13 @@ trf_params = "2 7 7 80 10 50"
 # whole; a tract longer than the overlap can be cut in two.
 trf_window  = 10_000_000
 trf_overlap = 1_000_000
+
+# M1 — TRF aligns a repeat over at most -l million bp (default 2). In a uniform
+# array longer than that, e.g. a 4 Mb centromere, it keeps restarting the
+# alignment and a window runs for days instead of minutes. So the limit covers
+# everything a window job fetches, and no array can exceed it. TRF allocates
+# ~0.6 GB per million up front: -l 12 for 10 Mb windows is ~7.5 GB.
+trf_max_length = math.ceil((trf_window + 2 * trf_overlap) / 1_000_000)
 
 models = ["M0", "M1", "M2"]
 
@@ -155,7 +163,7 @@ for species, samples in sample_dict.items():
                 trap 'rm -rf "$WORK"' EXIT
                 samtools faidx {assembly} {contig}:{fetch_start + 1}-{fetch_end} > $WORK/window.fa
                 # -ngs -> machine-readable stdout, -h -> suppress HTML
-                {trf} $WORK/window.fa {trf_params} {max_period} -ngs -h > $WORK/trf.txt
+                {trf} $WORK/window.fa {trf_params} {max_period} -ngs -h -l {trf_max_length} > $WORK/trf.txt
                 for k in {periods_str}; do
                     awk -v k=$k '/^@/{{print}} !/^@/{{if ($3==k) print}}' $WORK/trf.txt > $WORK/trf_${{k}}.txt
                     python {scripts}/parse_trf.py $WORK/trf_${{k}}.txt $k {species} {sample} M1 \
