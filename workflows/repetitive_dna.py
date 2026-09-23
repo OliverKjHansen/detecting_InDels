@@ -55,7 +55,7 @@ trf_params = "2 7 7 80 10 50"
 # explodes in long satellite arrays and a whole chromosome can run for days.
 # Windows overlap by trf_overlap so a tract crossing a boundary is still seen
 # whole; a tract longer than the overlap can be cut in two.
-trf_window  = 10_000_000
+trf_window  = 5_000_000
 trf_overlap = 1_000_000
 
 # M1 — TRF aligns a repeat over at most -l million bp (default 2). In a uniform
@@ -71,8 +71,8 @@ models = ["M0", "M1", "M2"]
 gwf = Workflow(
     defaults={
         'cores': 1,
-        'memory': '40g',
-        'walltime': '12:00:00',
+        'memory': '10g',
+        'walltime': '8:00:00',
         'account': 'mutationalscanning'})
 
 
