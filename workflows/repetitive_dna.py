@@ -155,7 +155,7 @@ for species, samples in sample_dict.items():
                     f"M1_trf_{contig}_{core_start}_{sample}_{assembly_type}",
                     inputs=[assembly, f"{assembly}.fai"],
                     outputs=window_beds,
-                    walltime="24:00:00",
+                    walltime="8:00:00",
                 ) << f"""
                 set -e
                 mkdir -p {per_k_dir}
