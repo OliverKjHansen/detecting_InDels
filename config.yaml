@@ -1,17 +1,16 @@
 
 samples:
-  #human:   [ob2v, ob003h, ob006, ob007, ob008, ob009, da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
-  #marmoset: [marmoset, lambiek, sidonia]
+  human: [ob2v, ob003h, ob006, ob007, ob008, ob009, da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
+  marmoset: [marmoset, lambiek, sidonia]
   chimp: [stephan, carl, marlock, martin, mongo, yoran]
   bonobo: [matos]
   gorilla: [mbewe, samson, kipenzi] 
-  baboon:  [sethi]     # bs5v: contaminated
+  baboon: [sethi]     # bs5v: contaminated
   gibbon: [tarzan, pink_eric] 
   orangutan: [sibu]
   pig_tailed_macaque: [lenny]
   rhesus_macaque: [R21008, R22013, R15079]
-  long_tailed_macaque:  [J12013, J17017]
-
+  long_tailed_macaque: [J12013, J17017]
 
 # Samples that have a read -> tissue classification. precompute.py only builds
 # the tissue file for samples listed both here and in `samples`.
@@ -22,13 +21,14 @@ tissue_samples:
   gibbon: [pink_eric]
   pig_tailed_macaque: [lenny]
   rhesus_macaque: [R21008, R22013, R15079]
-  long_tailed_macaque:  [J12013, J17017]
+  long_tailed_macaque: [J12013, J17017]
   marmoset: [marmoset, lambiek, sidonia]
 
 # methylation_samples:
-#   human:   []
-#   marmoset: []
-#   chimp: []
+#   human:   [ob003h, ob006, ob007, ob008, ob009]
+
+# sperm_samples:
+  # human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
 
 assembly_type: diploid
 
