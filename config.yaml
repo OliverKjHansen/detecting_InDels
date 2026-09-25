@@ -30,6 +30,14 @@ tissue_samples:
 # sperm_samples:
   # human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
 
+# Samples whose alignment is not at the standard kinetics path. Same shape as
+# `samples`: species, then sample, then the BAM to use. precompute.py,
+# indel_mutation_call.py and repetitive_indel_call.py all check this first.
+alignment_overrides:
+  gorilla:
+    mbewe:  "~/mutationalscanning/DerivedData/bam/HiFi/gorilla/mbewe/diploid_assembly/mbewe_plus_unmapped_no_clips_diploid_v2.bam"
+    samson: "~/mutationalscanning/DerivedData/bam/HiFi/gorilla/samson/diploid_assembly/samson_plus_unmapped_no_clips_diploid_v2.bam"
+
 assembly_type: diploid
 
 min_contig_length: 1_000_000

@@ -22,6 +22,7 @@ assembly_type     = config["assembly_type"]
 min_contig_length = config["min_contig_length"]
 inpath_fa         = expanduser(config["paths"]["fasta"])
 inpath_bam        = expanduser(config["paths"]["bam"])
+alignment_overrides = config.get("alignment_overrides", {})
 inpath_labels     = expanduser(config["paths"]["read_labels"])
 output            = os.path.abspath(config["paths"]["output"])
 scripts           = os.path.abspath("scripts")
@@ -42,7 +43,9 @@ gwf = Workflow(
 for species, samples in sample_dict.items():
     for sample in samples:
         assembly  = f"{inpath_fa}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
-        alignment = f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_{assembly_type}.bam"
+        # Samples listed under alignment_overrides in config.yaml use that BAM.
+        alignment = expanduser(alignment_overrides.get(species, {}).get(
+            sample, f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_{assembly_type}.bam"))
         outdir    = f"{output}/precomute/{species}/{sample}"
         coverage  = f"{outdir}/avg_coverage.txt"
         contig_dict = {}

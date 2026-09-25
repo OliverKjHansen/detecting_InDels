@@ -39,6 +39,7 @@ assembly_type     = config["assembly_type"]
 min_contig_length = config["min_contig_length"]
 inpath_fa         = expanduser(config["paths"]["fasta"])
 inpath_bam        = expanduser(config["paths"]["bam"])
+alignment_overrides = config.get("alignment_overrides", {})
 output            = os.path.abspath(config["paths"]["output"])
 results           = os.path.abspath(config["paths"]["results"])
 plots             = os.path.abspath(config["paths"]["plots"])
@@ -48,7 +49,7 @@ scripts           = os.path.abspath("scripts")
 models = ["M0", "M1", "M2"]
 
 # Step 2 splits each contig into windows of this many bp, one scan job per window.
-chunk_size = 40_000_000
+chunk_size = 10_000_000
 
 # Final filtering threshold: minimum Phred base quality across the InDel 4-mer.
 min_kmerq = 93
@@ -59,7 +60,7 @@ gwf = Workflow(
     defaults={
         'cores': 4,
         'memory': '10g',
-        'walltime': '48:00:00',
+        'walltime': '12:00:00',
         'account': 'mutationalscanning'})
 
 
@@ -67,7 +68,9 @@ for species, samples in sample_dict.items():
     for sample in samples:
         assembly    = f"{inpath_fa}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
         haploid     = f"{inpath_fa}/{species}/{sample}/haploid_assembly/{sample}_haploid.fa"
-        alignment   = f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_{assembly_type}.bam"
+        # Samples listed under alignment_overrides in config.yaml use that BAM.
+        alignment   = expanduser(alignment_overrides.get(species, {}).get(
+            sample, f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_{assembly_type}.bam"))
         precompute  = f"{output}/precomute/{species}/{sample}"
         coverage    = f"{precompute}/avg_coverage.txt"
         repeats_dir = f"{output}/repetitive_dna/{species}/{sample}"
