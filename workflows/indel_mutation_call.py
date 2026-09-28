@@ -35,6 +35,8 @@ with open("config.yaml") as handle:
 
 sample_dict       = config["samples"]
 tissue_dict       = config["tissue_samples"]
+methylation_dict  = config.get("methylation_samples", {})
+inpath_classification = expanduser(config["paths"]["classification"])
 assembly_type     = config["assembly_type"]
 min_contig_length = config["min_contig_length"]
 inpath_fa         = expanduser(config["paths"]["fasta"])
@@ -286,3 +288,29 @@ for species, samples in sample_dict.items():
             -o {resultsdir}/opportunities.tsv \\
             --min-kmerq {min_kmerq}
         """
+
+        # Step 8 — cell-type classification, for the samples listed under
+        # methylation_samples in config.yaml. Every read of those samples has a
+        # log-likelihood per cell type; the script contrasts the germline
+        # (Sperm.*) columns with a set of somatic ones and appends the
+        # difference and its bin to every call. The likelihood table covers the
+        # whole sample, so it is streamed once and filtered to the reads that
+        # carry a call.
+        if sample in methylation_dict.get(species, []):
+            likelihoods = (f"{inpath_classification}/{species}/{sample}/{sample}"
+                           f"/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv")
+
+            gwf.target(
+                f"Classify_{sample}_{assembly_type}",
+                inputs=[f"{resultsdir}/indels.tsv", likelihoods],
+                outputs=[f"{resultsdir}/indels_classified.tsv"],
+                cores=1,
+                memory="8g",
+                walltime="04:00:00",
+            ) << f"""
+            set -e
+            bash {scripts}/join_read_classification.sh \\
+                {resultsdir}/indels.tsv \\
+                {likelihoods} \\
+                {resultsdir}/indels_classified.tsv
+            """

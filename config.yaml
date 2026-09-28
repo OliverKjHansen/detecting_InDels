@@ -24,11 +24,21 @@ tissue_samples:
   long_tailed_macaque: [J12013, J17017]
   marmoset: [marmoset, lambiek, sidonia]
 
-# methylation_samples:
-#   human:   [ob003h, ob006, ob007, ob008, ob009]
+# Samples with per-read cell-type likelihoods from the methylation model. Both
+# indel pipelines add the germline/somatic classification columns for these, from
+# {classification}/{species}/{sample}/{sample}/05_ReadsClassification/.
+methylation_samples:
+  human: [ob003h, ob006, ob007, ob008, ob009]
 
 # sperm_samples:
   # human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
+
+#tissue that contains testis 
+# yoran	pink_eric	lenny	marmoset lambiek	matos sibu	kevin	R15079
+#tissue that contains sperm:
+# yoran	pink_eric	lenny	matos sibu	kevin	R15079 J12013	J17017
+
+
 
 # Samples whose alignment is not at the standard kinetics path. Same shape as
 # `samples`: species, then sample, then the BAM to use. precompute.py,
@@ -50,6 +60,7 @@ paths:
   fasta:       "~/mutationalscanning/DerivedData/fasta/HiFi"
   bam:         "~/mutationalscanning/DerivedData/bam/HiFi"
   read_labels: "~/mutationalscanning/Workspaces/pepo/de_novo_assembly/results/read_info"
+  classification: "~/mutationalscanning/Workspaces/pepo/de_novo_assembly/results/classification"
   microsat:    "/faststorage/project/mutationalscanning/Workspaces/oliver/microsatellites/ratemicrosat"
 
   output:   "output"

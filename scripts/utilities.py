@@ -268,6 +268,22 @@ def canonical_context(sequence):
     """
     return min(sequence, reverse_complement(sequence))
 
+def canonical_repeat_indel(sequence):
+    """
+    Canonical form of an InDel inside a tandem repeat: the smallest rotation of
+    the sequence or of its reverse complement.
+
+    Inside a (TC)n tract, gaining one unit reads TC or CT depending on where the
+    aligner placed the gap, and GA or AG read from the other strand. All four
+    are the same event. This is also how parse_trf.py canonicalises the tract
+    motif, so an InDel and the tract it sits in carry the same label.
+
+    Rotation only makes sense when the sequence is a whole number of repeat
+    units; contexts outside repeats use canonical_context() instead.
+    """
+    strands = (sequence, reverse_complement(sequence))
+    return min(strand[i:] + strand[:i] for strand in strands for i in range(len(strand)))
+
 def subread_array(array,readposition):
     """
     takes the array for subreads coverage and find the position of the read in the array
@@ -1071,7 +1087,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     row = (contig,
                            read_pos + 1, read_pos + 1,
                            hcheck[0:-1], hcheck[0],
-                           "deletion", seen, deletion_context, canonical_context(deletion_context),
+                           "deletion", seen, deletion_context, canonical_repeat_indel(deletion_context),
                            tissue_type, len(read_seq),
                            np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
                            position + 1, query_name, diploid_strand)
@@ -1087,7 +1103,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                            read_pos + 1, read_pos + indel_length + 1,
                            read_seq[read_pos],
                            read_seq[read_pos:read_pos + indel_length + 1],
-                           "insertion", seen, insertion_context, canonical_context(insertion_context),
+                           "insertion", seen, insertion_context, canonical_repeat_indel(insertion_context),
                            tissue_type, len(read_seq),
                            np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
                            position + 1, query_name, diploid_strand)
