@@ -2,42 +2,45 @@
 samples:
   human: [ob2v, ob003h, ob006, ob007, ob008, ob009, da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
   marmoset: [marmoset, lambiek, sidonia]
-  chimp: [stephan, carl, marlock, martin, mongo, yoran]
+  chimp: [stephan, carl, marlock, martin, mongo, yoran] #martin
   bonobo: [matos]
   gorilla: [mbewe, samson, kipenzi] 
   baboon: [sethi]     # bs5v: contaminated
   gibbon: [tarzan, pink_eric] 
-  orangutan: [sibu]
+  orangutan: [sibu] #kevin
   pig_tailed_macaque: [lenny]
   rhesus_macaque: [R21008, R22013, R15079]
-  long_tailed_macaque: [J12013, J17017]
+  long_tailed_macaque: [J12013] #J17017
 
 # Samples that have a read -> tissue classification. precompute.py only builds
 # the tissue file for samples listed both here and in `samples`.
 tissue_samples:
   chimp: [yoran]
   bonobo: [matos]
-  orangutan: [sibu]
+  orangutan: [sibu, kevin]
   gibbon: [pink_eric]
   pig_tailed_macaque: [lenny]
   rhesus_macaque: [R21008, R22013, R15079]
-  long_tailed_macaque: [J12013, J17017]
+  long_tailed_macaque: [J12013, J17017] # J17017
   marmoset: [marmoset, lambiek, sidonia]
 
 # Samples with per-read cell-type likelihoods from the methylation model. Both
 # indel pipelines add the germline/somatic classification columns for these, from
 # {classification}/{species}/{sample}/{sample}/05_ReadsClassification/.
 methylation_samples:
-  human: [ob003h, ob006, ob007, ob008, ob009]
+  human: [ob006, ob007, ob008, ob009] #ob003h, 
+  gorilla: [mbewe, samson, kipenzi] 
+  chimp: [stephan, carl, marlock, mongo] #martin
+  gibbon: [tarzan]
 
-# sperm_samples:
-  # human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
+#the  sample benjie is not here, 
+sperm_samples:
+  human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
 
 #tissue that contains testis 
 # yoran	pink_eric	lenny	marmoset lambiek	matos sibu	kevin	R15079
 #tissue that contains sperm:
 # yoran	pink_eric	lenny	matos sibu	kevin	R15079 J12013	J17017
-
 
 
 # Samples whose alignment is not at the standard kinetics path. Same shape as
