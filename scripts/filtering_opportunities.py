@@ -148,7 +148,10 @@ def main():
     print(f"Filtered to {len(filtered_df)} rows", file=sys.stderr)
     
     # Save output
-    filtered_df.to_csv(args.output, sep='\t', index=False)
+    # na_rep: the callers write "NA" for a value they do not have (no tissue
+    # label). pandas reads that as missing, and without na_rep it would write an
+    # empty field, so "unknown" would be indistinguishable from a truncated line.
+    filtered_df.to_csv(args.output, sep='\t', index=False, na_rep='NA')
     print(f"Saved to {args.output}", file=sys.stderr)
     
     # Save filter report if requested
