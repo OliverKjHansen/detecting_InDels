@@ -117,7 +117,7 @@ for species, samples in sample_dict.items():
         contig_names       = " ".join(long_contigs)
 
         gwf.target(
-            f"Mask_{sample}_{assembly_type}",
+            f"non_rep_Mask_{sample}_{assembly_type}",
             inputs=repeat_beds + unresolved_beds,
             outputs=list(masks.values()),
             cores=1,
@@ -160,7 +160,7 @@ for species, samples in sample_dict.items():
                 # homopolymer rule; and write the reads carrying a call, for
                 # haploid remapping.
                 gwf.target(
-                    f"Scan_{contig}_{start}_{sample}_{assembly_type}",
+                    f"non_rep_Scan_{contig}_{start}_{sample}_{assembly_type}",
                     inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs,
                     outputs=[w_calls, w_opportunities, w_fastq],
                     cores=1,
@@ -189,7 +189,7 @@ for species, samples in sample_dict.items():
         merge_commands = "\n        ".join(merge_commands)
 
         gwf.target(
-            f"MergeWindows_{sample}_{assembly_type}",
+            f"non_rep_MergeWindows_{sample}_{assembly_type}",
             inputs=[path for contig in long_contigs
                     for path in window_calls[contig] + window_opportunities[contig] + window_fastqs[contig]],
             outputs=list(calls.values()) + list(opportunities.values()) + list(fastqs.values()),
@@ -211,7 +211,7 @@ for species, samples in sample_dict.items():
         # FASTQs are listed explicitly and the combined FASTQ is written to
         # haploid/, so a re-run never reads its own output.
         gwf.target(
-            f"HaploidMapping_{sample}_{assembly_type}",
+            f"non_rep_HaploidMapping_{sample}_{assembly_type}",
             inputs=list(fastqs.values()) + [haploid],
             outputs=[combined_fastq, remapped_bam, haploid_locations],
             cores=16,
@@ -235,7 +235,7 @@ for species, samples in sample_dict.items():
         # once for every contig. The contigs are merged into one table (header
         # kept once) with species/sample added.
         gwf.target(
-            f"HaploidFilter_{sample}_{assembly_type}",
+            f"non_rep_HaploidFilter_{sample}_{assembly_type}",
             inputs=list(calls.values()) + [haploid_locations],
             outputs=[merged_indels],
             cores=1,
@@ -252,7 +252,7 @@ for species, samples in sample_dict.items():
         # file only, species/sample added) and draw diagnostics of the
         # unfiltered calls.
         gwf.target(
-            f"MergeAndPlot_{sample}_{assembly_type}",
+            f"non_rep_MergeAndPlot_{sample}_{assembly_type}",
             inputs=[merged_indels] + list(opportunities.values()),
             outputs=[merged_opportunities, plots_pdf],
             cores=8,
@@ -269,7 +269,7 @@ for species, samples in sample_dict.items():
         # Step 7 — final filtering, with a report of rows removed per step.
         # These small tables are the results.
         gwf.target(
-            f"FinalFiltering_{sample}_{assembly_type}",
+            f"non_rep_FinalFiltering_{sample}_{assembly_type}",
             inputs=[merged_indels, merged_opportunities],
             outputs=[f"{resultsdir}/indels.tsv",
                      f"{resultsdir}/opportunities.tsv",
@@ -301,7 +301,7 @@ for species, samples in sample_dict.items():
                            f"/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv")
 
             gwf.target(
-                f"Classify_{sample}_{assembly_type}",
+                f"non_rep_Classify_{sample}_{assembly_type}",
                 inputs=[f"{resultsdir}/indels.tsv", likelihoods],
                 outputs=[f"{resultsdir}/indels_classified.tsv"],
                 cores=1,
