@@ -46,6 +46,7 @@ chunk_size = config["scan"]["window_size"]
 scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
                 f"--flank-width {config['scan']['flank_width']} "
                 f"--reach {max(config['repeats']['periods'])} "
+                f"--min-tract-flank {config['scan']['min_tract_flank']} "
                 f"--key-parameters {pipeline.key_parameters()}")
 
 # Final filtering thresholds.

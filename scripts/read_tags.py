@@ -12,10 +12,16 @@ read_length - 1 - i (S1 in documents/nonrepetitive_indel_review.md). The
 functions here return them in the alignment's order.
 """
 from bisect import bisect_left, bisect_right
+from collections import namedtuple
 
 import numpy as np
 
 from strata import Read
+
+# One of a read's InDels, as pysam's pileup reports it: at its anchor, the
+# aligned base before it (`anchor` on the assembly, `read_pos` in the read),
+# with its length, a deletion or an insertion.
+InDel = namedtuple("InDel", "deletion anchor read_pos length")
 
 
 def decode_runs(runs):
@@ -100,4 +106,91 @@ def nearest_other_event(found, anchor):
         distances.append(anchor - found[before - 1])
     if after < len(found):
         distances.append(found[after] - anchor)
+    return min(distances) if distances else None
+
+
+def indels(alignment):
+    """
+    The read's InDels, in the order of the alignment. Like pysam's pileup,
+    it leaves out an InDel that doesn't follow an aligned base, such as an
+    insertion right after a deletion.
+    """
+    found, query, position, after_aligned = [], 0, alignment.reference_start, False
+    for op, length in alignment.cigartuples:
+        if op in (1, 2) and after_aligned:
+            found.append(InDel(op == 2, position - 1, query - 1, length))
+        if op in (0, 7, 8, 1, 4):            # bases of the read
+            query += length
+        if op in (0, 7, 8, 2, 3):            # bases of the assembly
+            position += length
+        after_aligned = op in (0, 7, 8)
+    return found
+
+
+class Blocks:
+    """Where a read's aligned bases are: its stretches of aligned bases, between InDels, clips and skips."""
+
+    def __init__(self, alignment):
+        self.positions, self.queries, self.lengths = [], [], []
+        query, position = 0, alignment.reference_start
+        for op, length in alignment.cigartuples:
+            if op in (0, 7, 8):
+                if self.positions and self.positions[-1] + self.lengths[-1] == position \
+                        and self.queries[-1] + self.lengths[-1] == query:
+                    self.lengths[-1] += length   # = and X runs make one stretch
+                else:
+                    self.positions.append(position)
+                    self.queries.append(query)
+                    self.lengths.append(length)
+            if op in (0, 7, 8, 1, 4):
+                query += length
+            if op in (0, 7, 8, 2, 3):
+                position += length
+
+    def span(self, start, end):
+        """
+        The read bases aligned in [start, end) of the assembly, and those
+        inserted between them, as a slice (first, last + 1) of the read; None
+        if no base is aligned there.
+        """
+        i = bisect_right(self.positions, start) - 1
+        if i < 0 or self.positions[i] + self.lengths[i] <= start:
+            i += 1   # start is before the read or in a gap: the next stretch's first base
+            if i == len(self.positions):
+                return None
+            first = self.queries[i]
+        else:
+            first = self.queries[i] + start - self.positions[i]
+        j = bisect_left(self.positions, end) - 1
+        if j < i:
+            return None
+        last = self.queries[j] + min(self.lengths[j], end - self.positions[j])
+        return first, last
+
+
+def nearest_outside(found, own, start, end):
+    """
+    Distance from [start, end) of the assembly to the nearest of the read's
+    events, `found` (sorted), leaving out `own`, the anchors of the InDels the
+    tract counts: 0 for an event inside, None if there is no other.
+    """
+    own = list(own)
+
+    def other(position):
+        """Whether the event at `position` is another's; else use up one of the tract's own there."""
+        if position in own:
+            own.remove(position)
+            return False
+        return True
+
+    distances = []
+    i = bisect_left(found, start)
+    for position in found[i:]:
+        if other(position):
+            distances.append(max(0, position - (end - 1)))
+            break
+    for position in reversed(found[:i]):
+        if other(position):
+            distances.append(start - position)
+            break
     return min(distances) if distances else None

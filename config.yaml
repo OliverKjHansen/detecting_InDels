@@ -282,6 +282,11 @@ scan:
   # Each call carries this many bases of the assembly on each side of its
   # anchor, so sites can be compared between individuals later.
   flank_width: 25
+  # Workflow 4: a read counts for a tract, opportunity and calls, only if its
+  # alignment covers the tract and this many bp on each side (Q22). Each
+  # record carries the read's flank on each side, binned by
+  # strata.read_end_distance_bins, so a longer flank can be required later.
+  min_tract_flank: 25
 
 # The keys calls and opportunities are both split by (scripts/strata.py), and
 # the bins they use.
@@ -292,7 +297,8 @@ strata:
   min_kmerq: 93
   # Read length, bp.
   read_length_bins: [4000, 8000, 12000, 16000, 20000]
-  # Distance from the anchor to the nearer end of the read's alignment, bp.
+  # Distance from the anchor to the nearer end of the read's alignment, bp;
+  # in workflow 4, from the tract, and its flank on each side.
   read_end_distance_bins: [25, 100, 300, 1000]
   # The read's mapping quality to the diploid assembly.
   mapq_bins: [1, 20, 60]
@@ -304,6 +310,9 @@ strata:
   strand_passes_bins: [2, 5, 10]
   # Distance from the anchor to the read's nearest other InDel or mismatch, bp.
   nearby_event_bins: [5, 25, 100]
+  # Workflow 4: the tract's copies, and its purity (model_purity, %).
+  tract_copies_bins: [5, 10, 20, 50]
+  tract_purity_bins: [90, 95, 99, 100]
 
 final_filters:
   # Workflow 4: InDels nearer a read end than this many bp are dropped.

@@ -11,7 +11,7 @@ spanning the contig, so every position stays inside the coverage window.
 import pysam
 
 import make_fixtures as mf
-from scans import nonrepetitive_scan, rows_of, tandem_repeat_scan
+from scans import nonrepetitive_scan, rows_of
 from utilities import subread_array
 
 REFERENCE = mf.build_reference()
@@ -139,38 +139,5 @@ def test_reads_crossing_a_window_edge_add_up_to_the_whole_contig(tmp_path):
 
 
 # -- tandem repeat tracts -----------------------------------------------------
-
-
-def tract_opportunities(paths, bed):
-    """Opportunity count per period k over the whole contig, for one model."""
-    _, opportunities, _ = tandem_repeat_scan({"M1": bed}, paths)
-    by_k = {}
-    for row in rows_of(opportunities["M1"]):
-        by_k[row["k"]] = by_k.get(row["k"], 0) + int(row["count"])
-    return {k: count for k, count in by_k.items() if count}
-
-
-def test_overlapping_tracts_give_calls_the_largest_period_and_opportunities_the_smallest(tmp_path):
-    bed = str(tmp_path / "tracts.bed")
-    mf.write_tr_bed(bed, [(2100, 2300, "AC", 2), (2190, 2250, "ACAG", 4, 90.0)])
-    # A 4 bp deletion inside both tracts fits either period.
-    read = mf.make_read("del4", REFERENCE, "del", 2200, 4)
-    paths = dataset(tmp_path, [read])
-    calls, _, _ = tandem_repeat_scan({"M1": bed}, paths)
-    assert [(call["readID"], call["k"]) for call in rows_of(calls["M1"])] == [("del4", "4")]
-    assert set(tract_opportunities(paths, bed)) == {"2"}
-
-
-def test_a_read_ending_inside_a_tract_counts_the_tract_bases_it_covers(tmp_path):
-    """
-    Today's unit is one opportunity per read base in a tract. Ticket 22
-    replaces it with one per tract per read spanning the tract and its flanks.
-    """
-    bed = str(tmp_path / "tracts.bed")
-    mf.write_tr_bed(bed, [(2100, 2300, "AC", 2)])
-    without = tract_opportunities(dataset(tmp_path / "without", []), bed)
-    partial = mf.make_read("partial", REFERENCE, start=0, end=2150)
-    with_partial = tract_opportunities(dataset(tmp_path / "with", [partial]), bed)
-    # Tract bases 2100-2148: all it covers except its last base, which has no
-    # base after it.
-    assert with_partial["2"] - without["2"] == 49
+#
+# Partial reads and overlapping tracts in workflow 4 are in test_tract_unit.py.

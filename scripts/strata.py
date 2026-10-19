@@ -7,13 +7,15 @@ every feature a call might be filtered on is a key here. Both scans write each
 key as a column of every call and count the opportunities per value of it,
 from the same definition, so adding a key adds it to both tables.
 
-There are two kinds of key:
+There are three kinds of key:
 
   read keys   a property of the read, computed once per read from a Read;
   site keys   a property of the bases a call or an opportunity is tested
-              on, computed from a Site.
+              on, computed from a Site;
+  tract keys  workflow 4 only: a property of a tract in one read that spans
+              it, computed from a Tract.
 
-A scan describes each read and each tested site with these two records, the
+A scan describes each read and each tested site with these records, the
 same way for a call as for an opportunity. A key that needs more about a read
 or a site adds a field here, and both scans have to fill it.
 """
@@ -35,6 +37,11 @@ Read = namedtuple("Read", "name tissue methylation_bin length reverse mapq passe
 # alignment, and the distance from the anchor to the read's nearest other
 # InDel or mismatch (None if it has none).
 Site = namedtuple("Site", "qualities support read_end_distance nearest_event")
+
+# What a tract key sees, for one tract in one read that spans it: the tract's
+# copies and purity (model_purity, %), and how many bases of the read's
+# alignment lie before the tract and after it.
+Tract = namedtuple("Tract", "copies purity left_flank right_flank")
 
 
 def binned_or_missing(edges, missing="NA"):
@@ -97,15 +104,34 @@ def keys(**parameters):
     return read_keys, site_keys
 
 
+def tract_keys(**parameters):
+    """Workflow 4's tract keys: a list of (column name, function). `parameters` as for keys()."""
+    copies_bin = binned(parameters["tract_copies_bins"])
+    purity_bin = binned(parameters["tract_purity_bins"])
+    # A flank is the read's distance to its end, seen from the tract.
+    flank_bin = binned(parameters["read_end_distance_bins"])
+    return [
+        ("tract_copies_bin", lambda tract: copies_bin(tract.copies)),
+        ("tract_purity_bin", lambda tract: purity_bin(tract.purity)),
+        ("left_flank_bin", lambda tract: flank_bin(tract.left_flank)),
+        ("right_flank_bin", lambda tract: flank_bin(tract.right_flank)),
+    ]
+
+
 class Strata:
-    """The keys of one scan: their column names, and their values for a read or a site."""
+    """The keys of one scan: their column names, and their values for a read, a site or a tract."""
 
     def __init__(self, **parameters):
         self.read_keys, self.site_keys = keys(**parameters)
         self.columns = [name for name, _ in self.read_keys + self.site_keys]
+        self.tract_keys = tract_keys(**parameters)
+        self.tract_columns = [name for name, _ in self.tract_keys]
 
     def of_read(self, read):
         return tuple(key(read) for _, key in self.read_keys)
 
     def of_site(self, site):
         return tuple(key(site) for _, key in self.site_keys)
+
+    def of_tract(self, tract):
+        return tuple(key(tract) for _, key in self.tract_keys)

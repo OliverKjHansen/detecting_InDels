@@ -225,6 +225,8 @@ Parameters:
 | Bins of mapping quality, passes, predicted accuracy, passes on the weaker strand, and distance to the nearest other event in the read | 1, 20, 60; 5, 10, 15, 20, 30; 0.99, 0.999, 0.9999; 2, 5, 10; 5, 25, 100 bp | `strata.mapq_bins`, `.passes_bins`, `.accuracy_bins`, `.strand_passes_bins`, `.nearby_event_bins` |
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
 | Minimum distance to the read end (workflow 4) | 100 bp | `final_filters.min_read_end_distance` |
+| Bases a read must cover on each side of a tract to count for it (workflow 4) | 25 bp | `scan.min_tract_flank` |
+| Bins of a tract's copies and purity, keys of workflow 4 | 5, 10, 20, 50; 90, 95, 99, 100% | `strata.tract_copies_bins`, `strata.tract_purity_bins` |
 | Bins of subread support, a key on calls and opportunities | 0.8, 0.9, 1 | `strata.subread_support_bins` |
 | Germline and somatic cell types; the 14 score bins | `Sperm.*` against six somatic types; edges −10 to 10 | `classification.germline_prefix`, `.somatic_types`, `.bin_edges`, `.bin_labels` |
 | Slurm account and per-target cores, memory, walltime | `mutationalscanning` | every workflow |
@@ -558,28 +560,40 @@ to the haploid assembly once per sample. Each model's output is the same as
 scanning that model alone, which [tests/test_integration.py](tests/test_integration.py)
 checks.
 
-At each position that passes the coverage window and lies inside a measured
-tract of a model, or up to 6 bases before one, every read with a base there:
+The unit is one tract in one read that spans it (Q22): the read's alignment
+covers the tract and at least `scan.min_tract_flank` (25) bases on each side.
+A read ending inside the tract or its flank can't show a change in the
+tract's length, so it counts for neither calls nor opportunities. For each
+measured tract of a model that begins in the window, and whose first base
+passes the coverage window, every read that spans it:
 
-- adds one opportunity under the tract's motif and k, with its tissue, mapping
-  quality and kmerQ (a read's first and last base are not counted), if the
-  position is inside the tract;
-- becomes a call for that model if it carries an InDel anchored there that is
-  counted in a tract ([The anchor base](#the-anchor-base)) and whose length is
-  a multiple of that tract's k. The call carries the tract's
+- adds one opportunity under the tract's motif and k, with the tract keys
+  (its copies and purity, the read's flank on each side) and the read and
+  site keys;
+- gives a call for each of its InDels counted in the tract ([The anchor
+  base](#the-anchor-base)) whose length is a multiple of the tract's k, with
+  the same keys as its opportunity. The call also carries the tract's
   `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity` and `model`.
+
+A tract's call and opportunity on a read are tested on the same bases (R7 in
+[the workflow 4 review](documents/workflow4_review.md)): kmerQ and subread
+support over the read's bases from two before the tract to two after it,
+whatever the InDel's size and place. Its distance to the read end is the
+nearer flank, and its nearest event the read's nearest InDel or mismatch other
+than the tract's own InDels. Workflow 2 leaves one tract per base per model;
+the scan stops with an error if a model's tracts overlap (R8).
 
 How the two callers differ:
 
 | | Workflow 3, outside repeats | Workflow 4, inside repeats |
 |---|---|---|
-| Events counted | touching no masked base, from the anchor to k bases on | touching a tract of the model, from the anchor to 6 bases on |
+| Events counted | touching no masked base, from the anchor to k bases on | touching a tract of the model, from the anchor to 6 bases on, on a read spanning the tract |
 | Excluded group | masked | tracts overlapping it dropped |
 | Unresolved-haplotype regions | masked | tracts overlapping one dropped |
 | InDel size | 1–3 bp | any multiple of the tract's k |
 | Homopolymer rule | applied | not applied |
 | `canonical_indel` | the smaller of the sequence and its reverse complement | the smallest rotation of the sequence or its reverse complement, like the tract motif |
-| Opportunity unit | read position × deletion size, by canonical k-mer; gap between two read bases × insertion size, by the canonical pair around it | read base inside a tract, by tract motif and k |
+| Opportunity unit | read position × deletion size, by canonical k-mer; gap between two read bases × insertion size, by the canonical pair around it | tract × read spanning it with 25 bp on each side, by tract motif, k, copies, purity and flanks |
 | Final filters | kmerQ ≥ 93 | kmerQ ≥ 93, ≥ 100 bp from the read end |
 | Runs | once per sample | once per model per sample |
 
@@ -607,6 +621,7 @@ Filters act at four points:
 | Coverage within 0.5×–2× the sample mean | scan | ✓ | ✓ | ✓ |
 | Position outside the mask / inside a tract | scan | outside | inside | ✓ |
 | InDel size | scan | 1–3 bp | multiple of k | – |
+| Read spans the tract and 25 bp on each side | scan | – | ✓ | ✓ in workflow 4 |
 | Homopolymer rule | scan | ✓ | – | ✓ in workflow 3, deletions |
 | Same InDel in the haploid alignment | not applied, a column (`haploid_check`) | – | – | – |
 | kmerQ ≥ 93 | final | ✓ | ✓ | ✓ |
@@ -641,9 +656,9 @@ tracts are tested on every base an event touches, not the anchor alone (L1 in
   the model, or else in the anchor's tract.
 
 So an event of 1–3 bp near a tract is counted by exactly one of the two
-workflows. A longer event that only reaches a tract more than 6 bases after
-its anchor is counted by neither: workflow 3 calls only 1–3 bp. Workflow 4's
-opportunities are still the read bases inside the tract (R6, ticket 22).
+workflows, as long as its read spans the tract (workflow 4 counts only those).
+A longer event that only reaches a tract more than 6 bases after its anchor is
+counted by neither: workflow 3 calls only 1–3 bp.
 
 ### Coverage
 
@@ -652,7 +667,8 @@ A position is used only if the number of reads covering it (pysam's
 twice the sample's mean coverage. This removes positions with too many reads,
 such as collapsed duplications, and too few, such as poorly assembled or poorly
 mapped ones. The test is made once per position, so calls and opportunities
-share it.
+share it. Workflow 4 makes it once per tract, at the tract's first base, for
+the tract's calls and opportunities alike.
 
 ### Mask and tracts
 
@@ -726,8 +742,8 @@ A deletion can't test the bases it removes, so neither does its opportunity
 opportunity has no inserted bases to test, so neither does the call. An event
 without two read bases on a side, at the very end of a read, is neither called
 nor counted (D3). Subread support is tested on the same bases. Inside repeats,
-the opportunity window still uses the tract's k as the size (R7 in
-[the workflow 4 review](documents/workflow4_review.md)).
+workflow 4 tests a tract's calls and opportunity on a read over the whole
+tract and two bases on each side (see [Workflow 4](#workflow-4-indels-inside-repeats)).
 
 HiFi base qualities are capped at 93, so kmerQ ≥ 93 means every base in the
 window is at the maximum. The scans write the threshold (`strata.min_kmerq`)
@@ -986,7 +1002,8 @@ positions in the read; the position on the contig is `position`.
 | `readID` | read name |
 | `diploid_direction` | strand of the read's alignment to the diploid assembly |
 | `flank_sequence` | the assembly from `scan.flank_width` bases before the anchor to as many after it, for comparing sites between individuals |
-| `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity`, `model` | workflow 4 only: the tract the call sits in |
+| `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity`, `model` | workflow 4 only: the tract the call is counted in |
+| `tract_copies_bin`, `tract_purity_bin`, `left_flank_bin`, `right_flank_bin` | workflow 4 only, keys: see [Keys](#keys) |
 | the keys | `tissue`, `kmerQ` and the other keys, the same columns as in the opportunity table: see [Keys](#keys) |
 | `bitflag_hap`, `contig_hap`, `pos_1based_hap`, `map_mapq` | the read's alignment to the haploid assembly: flag, contig, position and mapping quality |
 | `haploid_check` | whether the same InDel is in the haploid alignment, anywhere it can slide; `NA` where that cannot be checked. See [Haploid concordance](#haploid-concordance) |
@@ -1033,6 +1050,13 @@ tables.
 | `strand_passes_bin` | full passes on the weaker strand of the molecule, the smaller of `fn` and `rn`, binned by `strata.strand_passes_bins`; `NA` without the tags |
 | `nearby_event_bin` | distance from the anchor to the read's nearest other InDel or mismatch with the assembly, binned by `strata.nearby_event_bins`; `none` if the read has none. Events at the anchor itself, such as the call's own InDel, don't count. |
 | `subread_support` | lowest share of covering subreads that match (`sm`/`sa`), among the bases tested, binned by `strata.subread_support_bins`; `NA` for reads without subread tags (Sequel II) |
+| `tract_copies_bin`, `tract_purity_bin` | workflow 4 only: the tract's copies and purity (`model_purity`), binned by `strata.tract_copies_bins` and `strata.tract_purity_bins` (`>=100` is a pure tract) |
+| `left_flank_bin`, `right_flank_bin` | workflow 4 only: how many bases of the read's alignment lie before the tract and after it, binned by `strata.read_end_distance_bins`; at least `scan.min_tract_flank` |
+
+In workflow 4 the site keys are those of the tract in the read: kmerQ and
+subread support over the tract and two bases on each side, the distance to the
+read end from the tract, and the nearest event other than the tract's own
+InDels.
 
 Every read position is counted once for each size of deletion and of
 insertion. The calls' `context` uses the same form, so the rate of a context
@@ -1042,7 +1066,10 @@ their own opportunities, at the gaps between read bases, rather than the
 deletions' (D1 in [the review](documents/nonrepetitive_indel_review.md)).
 
 Workflow 4's table has `canonical_motif` and `k` (the tract's) in place of
-`context`, and `count` is read bases inside tracts of that motif.
+`indel_type`, `size` and `context`, then the tract keys, and `count` is tracts
+in reads that span them (R6 in [the workflow 4
+review](documents/workflow4_review.md)), so rates by tract length and purity
+need no approximation.
 
 ### Other tables
 
@@ -1142,6 +1169,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
+| [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
 | [tests/test_classification_bins.py](tests/test_classification_bins.py) | the two classification scripts binning reads the same way |

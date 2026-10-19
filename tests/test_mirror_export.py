@@ -27,7 +27,8 @@ SCRIPTS = os.path.join(REPO_ROOT, "scripts")
 TRACTS = {"M0": [(2150, 2300, "AC", 2)],
           # The second overlaps the fixture's poly-A run, so workflow 4 drops it.
           "M1": [(1950, 2010, "AC", 2), (2100, 2300, "AC", 2)],
-          "M2": [(2100, 2300, "AC", 2), (2190, 2250, "ACAG", 4, 90.0)]}
+          # One tract per base per model, as workflow 2 leaves them (R8).
+          "M2": [(2100, 2160, "AC", 2), (2160, 2180, "ACAG", 4, 90.0), (2180, 2300, "AC", 2)]}
 MODELS = list(TRACTS)   # the models config.yaml lists
 SAMPLES = [("testspecies", "testsample"), ("otherspecies", "othersample")]
 CHUNK = f"{mf.CONTIG}_0_{mf.CONTIG_LENGTH}"   # the contig is shorter than one scan window
@@ -169,7 +170,8 @@ def cluster(tmp_path_factory, fixture_paths):
                 fastq_out=opened("repetitive_window_reads"),
                 coverage_band=coverage_band, key_parameters=pipeline.config["strata"],
                 flank_width=pipeline.config["scan"]["flank_width"],
-                reach=max(pipeline.config["repeats"]["periods"]))
+                reach=max(pipeline.config["repeats"]["periods"]),
+                min_flank=pipeline.config["scan"]["min_tract_flank"])
         locations = made(path("repetitive_haploid_locations"))
         all_calls = f"{os.path.dirname(locations)}/all_calls.tsv"
         with open(all_calls, "w") as out:

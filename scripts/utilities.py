@@ -5,8 +5,9 @@ from bisect import bisect_right
 from collections import defaultdict, namedtuple
 from intervaltree import IntervalTree
 
-from read_tags import describe, events, nearest_other_event, subread_support, subread_tags, tag
-from strata import Site, Strata
+from read_tags import (Blocks, describe, events, indels, nearest_other_event, nearest_outside, subread_support,
+                       subread_tags, tag)
+from strata import Site, Strata, Tract
 
 # What a call and the opportunities both need of one read, computed once per
 # read: where its alignment ends, its sequence and base qualities, its read
@@ -452,49 +453,53 @@ def reverse_complement(sequence):
 # Tandem-repeat InDel pipeline helpers
 # ---------------------------------------------------------------------------
 
-def load_tr_bed_with_tree(bedfile, window_start=None, window_end=None):
+def load_tracts(bedfile, window_start, window_end, reach):
     """
-    Load an M0 or M1 BED file (11-column, with header) into an IntervalTree.
+    A model's tracts (an M0, M1 or M2 BED, 11 columns with a header) for a
+    scan of [window_start, window_end): the tracts that begin in it, which
+    are the window's, and the tracts a call in them can be counted in instead,
+    those within `reach` bases. Returns (the window's tracts, an IntervalTree
+    of all of them), each tract's data a dict of canonical_motif, k, copies,
+    trf_purity, model_purity and model.
 
-    Each interval's data payload is a dict with keys:
-        canonical_motif, k, copies, trf_purity, model_purity, model
-
-    The first line (header) is skipped automatically.
-    Intervals where end <= start are silently skipped.
-    With window_start/window_end only the intervals overlapping
-    [window_start, window_end) are kept, which are all the intervals a position
-    in that window can fall in.
+    Workflow 2 leaves one tract per base per model; tracts that overlap raise
+    a ValueError, since calls and opportunities would then need a rule for
+    choosing between them (R8).
     """
-    tree = IntervalTree()
-    with open(bedfile, 'r') as f:
-        for i, line in enumerate(f):
-            if i == 0:
-                continue  # skip header
+    rows = []
+    with open(bedfile) as handle:
+        next(handle)   # header
+        for line in handle:
             cols = line.strip().split('\t')
             if len(cols) < 9:
                 continue
             start, end = int(cols[1]), int(cols[2])
-            if end <= start:
-                continue
-            if window_start is not None and end <= window_start:
-                continue
-            if window_end is not None and start >= window_end:
-                continue
-            tree[start:end] = {
-                'canonical_motif': cols[3],
-                'k':               int(cols[4]),
-                'copies':          float(cols[5]),
-                'trf_purity':      float(cols[6]),
-                'model_purity':    float(cols[7]),
-                'model':           cols[8],
-            }
-    return tree
+            if end > start:
+                rows.append((start, end, cols))
+    in_window = [row for row in rows if window_start <= row[0] < window_end]
+    reach_end = max([window_end] + [end for _, end, _ in in_window]) + reach
+    tree = IntervalTree()
+    for start, end, cols in sorted(rows):
+        if end <= window_start - reach or start >= reach_end:
+            continue
+        if tree.overlap(start, end):
+            raise ValueError(f"{bedfile}: tracts overlap at {start}-{end}; workflow 4 needs one tract per base per model")
+        tree[start:end] = {
+            'canonical_motif': cols[3],
+            'k':               int(cols[4]),
+            'copies':          float(cols[5]),
+            'trf_purity':      float(cols[6]),
+            'model_purity':    float(cols[7]),
+            'model':           cols[8],
+        }
+    window_tracts = sorted(iv for iv in tree if window_start <= iv.begin < window_end)
+    return window_tracts, tree
 
 
-def assigned_tract(tracts, anchor, size, reach):
+def assigned_tract(tree, anchor, size, reach):
     """
-    The tract an InDel of `size` bases anchored at `anchor` is counted in,
-    among `tracts` (intervals within `reach` bases of the anchor), or None.
+    The tract an InDel of `size` bases anchored at `anchor` is counted in, as
+    an interval of `tree`, or None.
 
     pbmm2 places an InDel that can slide at its leftmost position, so
     slippage in a tract is anchored on the base before it, or before a
@@ -502,14 +507,12 @@ def assigned_tract(tracts, anchor, size, reach):
     another on the first tract's last base (R2). So the InDel is counted in
     the tract of the first base after the anchor, up to `size` and at most
     `reach` bases on, that lies in a tract, or else the anchor's: the bases
-    workflow 3 tests against its mask (L1). Of the tracts there, the one
-    with the largest k whose k divides the size; None if none does.
+    workflow 3 tests against its mask (L1).
     """
     for base in [*range(anchor + 1, anchor + min(size, reach) + 1), anchor]:
-        here = [iv for iv in tracts if iv.begin <= base < iv.end]
+        here = tree[base]
         if here:
-            matching = [iv for iv in here if size % iv.data['k'] == 0]
-            return max(matching, key=lambda iv: iv.data['k']).data if matching else None
+            return next(iter(here))
     return None
 
 
@@ -517,10 +520,11 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                        average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
-                       *, coverage_band, key_parameters, flank_width, reach, classification_file="NA"):
+                       *, coverage_band, key_parameters, flank_width, reach, min_flank,
+                       classification_file="NA"):
     """
-    Call InDels and count opportunities inside tandem repeat tracts for several
-    repeat models (M0, M1, M2) in one pass over the BAM.
+    Call InDels and count opportunities inside the tandem repeat tracts of
+    several repeat models (M0, M1, M2) in one pass over the BAM.
 
     tr_beds maps a model name to its BED file. calls_out and opportunities_out
     map a model name to an open file for its calls and for its opportunity
@@ -528,36 +532,35 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     gets every read carrying a call in any model, once, as forward-strand FASTQ
     for haploid remapping.
 
-    For each model the output is exactly what that model gives on its own; the
-    pileup, the coverage filter and the work per read are shared between the
-    models.
+    The unit is one tract in one read that spans it and at least min_flank
+    bases on each side (Q22): a read ending inside a tract or its flank can't
+    show a change in the tract's length, so it counts for neither.
 
-    Calls mirror nonrepetitive_scan() but:
-    - Use the TR BED as an *inclusion* filter: an InDel is the tract's if a
-      base it touches, from its anchor to `reach` bases on, is in the tract,
-      the tract after the anchor first (assigned_tract()).
-    - InDel size filter: abs(indel) % k == 0 (any size, not just 1-3 bp).
-    - Homopolymer filter is NOT applied (k=1 homopolymer InDels are the signal).
-    - Extra output columns: canonical_motif, k, copies, trf_purity, model_purity, model.
-    - When a position overlaps multiple TR intervals matching the InDel size,
-      the interval with the largest k is used (most specific period).
+    Opportunities: one per tract per spanning read, counted per motif, k, the
+    tract keys (the tract's copies and purity, the read's flank on each side)
+    and the read and site keys of strata.py.
 
-    Opportunities mirror nonrepetitive_scan(): reads passing the quality
-    filters at each position inside a TR interval, counted per (canonical_motif,
-    k, tissue, mapQ, kmerQ). The kmerQ window uses the period k as the InDel
-    length proxy. When a position overlaps multiple TR intervals, the one with
-    the smallest k is used.
+    Calls: the InDels of a spanning read that are counted in the tract
+    (assigned_tract(): anchored in it, or up to `reach` bases before it), of a
+    size that is a multiple of its k, with the tract's columns and the same
+    keys as its opportunity. No homopolymer rule: k = 1 slippage is the signal.
 
-    Only positions whose depth is within coverage_band, (low, high) multiples
-    of the sample's mean coverage, are scanned. key_parameters are the
+    A tract's call and opportunity on a read are tested on the same bases
+    (R7): kmerQ and subread support over the read's bases from two before
+    the tract to two after it. The site's distance to the read end is the
+    nearer flank; its nearest event is the read's nearest InDel or mismatch
+    other than the tract's own InDels.
+
+    Only tracts whose first base has a depth within coverage_band, (low, high)
+    multiples of the sample's mean coverage, are used. key_parameters are the
     `strata` block of config.yaml. Each call carries flank_width bases of the
     assembly on each side of its anchor. classification_file is
     read_classification.sh's table of the sample's reads, or "NA".
 
-    With window_start/window_end, only positions in [window_start, window_end)
-    are scanned; each position belongs to one window, so windows never report
-    the same call twice and their opportunity counts add up to the whole
-    contig. Without them the whole contig is scanned.
+    With window_start/window_end only the tracts that begin in [window_start,
+    window_end) are used; each tract belongs to one window, so windows never
+    report the same call twice and their opportunity counts add up to the
+    whole contig. Without them the whole contig is scanned.
     """
     calls_out = calls_out or {}
     opportunities_out = opportunities_out or {}
@@ -567,20 +570,15 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     low_depth, high_depth = (average_coverage_of_species * factor for factor in coverage_band)
 
     fasta = pysam.FastaFile(fastafile)
-    # The tracts a call anchored in the window can be counted in.
-    trees = {model: load_tr_bed_with_tree(bedfile, window_start,
-                                          None if window_end is None else window_end + reach)
-             for model, bedfile in tr_beds.items()}
+    window_start = 0 if window_start is None else window_start
+    window_end = fasta.get_reference_length(contig) if window_end is None else window_end
+    tracts = {model: load_tracts(bedfile, window_start, window_end, reach) for model, bedfile in tr_beds.items()}
 
     d = load_tissue_classification(tissue_file)
     classified = load_read_classification(classification_file)
-
-    min_mapping_qual = 0
-    min_base_qual = 0
-
     strata = Strata(**key_parameters)
 
-    # counts[model][(canonical_motif, k, *read keys, *site keys)] = count
+    # counts[model][(canonical_motif, k, *tract keys, *read keys, *site keys)] = count
     counts = {model: defaultdict(int) for model in opportunities_out}
 
     for out in calls_out.values():
@@ -589,196 +587,134 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
               "np", "ec", "rq", "fn", "rn", "mapQ", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
               "position", "readID", "diploid_direction", "flank_sequence",
               "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
-              *strata.columns,
+              *strata.tract_columns, *strata.columns,
               sep="\t", file=out)
 
-    # Each read's ReadEntry, built once rather than at every tract position it
-    # covers: copying a whole HiFi read's qualities at each position is most of
-    # the cost of counting opportunities. Keyed by read, start and flag, with
-    # the read's end so reads the scan has passed can be dropped every 10 kb.
-    reads = {}
-    next_eviction = 0
+    # The reads that can span a window's tract, or carry an InDel counted in
+    # one, or cover a base where such an InDel is anchored.
+    fetch_start = max(0, window_start - reach)
+    fetch_end = max([window_end] + [iv.end for window_tracts, _ in tracts.values() for iv in window_tracts])
 
-    def entry_of(alignment):
-        key = (alignment.query_name, alignment.reference_start, alignment.flag)
-        entry = reads.get(key)
-        if entry is None:
-            entry = reads[key] = read_entry(alignment, d, classified, strata, fasta, contig)
-        return entry
+    def alignments(bam):
+        for alignment in bam.fetch(contig, fetch_start, fetch_end):
+            if not alignment.is_unmapped and alignment.cigartuples:
+                yield alignment
+
+    # First pass: each window tract's depth at its first base, as pysam's
+    # pileup counts it (every read whose alignment spans the base), and, per
+    # base, the reads with an InDel anchored there or a deletion over it, for
+    # the calls' unique flag.
+    starts, ends = [], []
+    at_base = defaultdict(int)
+    with pysam.AlignmentFile(bamfile, "rb") as bam:
+        for alignment in alignments(bam):
+            starts.append(alignment.reference_start)
+            ends.append(alignment.reference_end)
+            for indel in indels(alignment):
+                at_base[indel.anchor] += 1
+                if indel.deletion:
+                    for base in range(indel.anchor + 1, indel.anchor + 1 + indel.length):
+                        at_base[base] += 1
+    starts.sort()
+    ends.sort()
+
+    def depth(base):
+        return bisect_right(starts, base) - bisect_right(ends, base)
+
+    usable = {model: {iv.begin for iv in window_tracts if low_depth <= depth(iv.begin) <= high_depth}
+              for model, (window_tracts, _) in tracts.items()}
 
     fastq_reads = set()
 
     with pysam.AlignmentFile(bamfile, "rb") as bam:
-        for pileupcolumn in bam.pileup(contig=contig,
-                                       start=window_start, stop=window_end,
-                                       region=None, end=None,
-                                       fastafile=fasta, truncate=True,
-                                       stepper="nofilter",
-                                       min_base_quality=min_base_qual,
-                                       min_mapping_quality=min_mapping_qual):
-
-            if not (low_depth <= pileupcolumn.nsegments <= high_depth):
-                continue
-
-            position = pileupcolumn.reference_pos
-
-            # Only positions inside a tract, or up to `reach` bases before
-            # one, where a call can be anchored that is counted in it.
-            near = {}
-            for model, tree in trees.items():
-                found = tree.overlap(position, position + reach + 1)
+        for alignment in alignments(bam):
+            read_start, read_end = alignment.reference_start, alignment.reference_end
+            spanned = {}
+            inner_start, inner_end = read_start + min_flank, read_end - min_flank
+            for model, (_, tree) in tracts.items():
+                if inner_start >= inner_end:
+                    break
+                # The tracts the read spans with min_flank bases on each side.
+                found = sorted(iv for iv in tree.envelop(inner_start, inner_end) if iv.begin in usable[model])
                 if found:
-                    near[model] = found
-            if not near:
+                    spanned[model] = found
+            if not spanned:
                 continue
-            # The tracts the position is in, for its opportunities.
-            hits = {}
-            for model, found in near.items():
-                inside = [iv for iv in found if iv.begin <= position]
-                if inside:
-                    hits[model] = inside
 
-            if position >= next_eviction:
-                reads = {key: entry for key, entry in reads.items() if entry.end > position}
-                next_eviction = position + 10_000
+            entry = read_entry(alignment, d, classified, strata, fasta, contig)
+            blocks = Blocks(alignment)
+            read_indels = indels(alignment)
+            query_name = alignment.query_name
+            read_seq = entry.sequence
+            diploid_strand = "-" if alignment.is_reverse else "+"
+            carries_call = False
 
-            pileups = pileupcolumn.pileups
-
-            call_models = [model for model in near if model in calls_out]
-            if call_models:
-                indel_count = sum(
-                    1 for pr in pileups
-                    if (pr.indel != 0) or pr.is_del
-                )
-                seen = "unique" if indel_count <= 1 else "non-unique"
-
-            # Opportunities use the interval with the smallest k at this position
-            opportunity_tracts = [(model, min(hits[model], key=lambda iv: iv.data['k']).data)
-                                  for model in hits if model in opportunities_out]
-
-            for pileupread in pileups:
-                if pileupread.query_position is None:
-                    continue
-
-                read_pos   = pileupread.query_position
-                alignment  = pileupread.alignment
-                query_name = alignment.query_name
-
-                # ---- opportunities ----
-                if opportunity_tracts and 1 <= read_pos <= alignment.query_length - 2:
-                    entry = entry_of(alignment)
-                    base_qualities, support = entry.qualities, entry.support
-                    # An opportunity's anchor is the base before its window, as a call's is the base before its gap.
-                    anchor = position - 1
-                    to_read_end = min(anchor - alignment.reference_start, entry.end - anchor)
-                    nearest = nearest_other_event(entry.events, anchor)
-
-                    for model, tr in opportunity_tracts:
-                        k = tr['k']
-                        # kmerQ window: 2 bases flanking a k-length window
-                        kmerq = (base_qualities[read_pos - 1:read_pos + 1]
-                                 + base_qualities[read_pos + k - 1:read_pos + k + 1])
-                        if not kmerq:
-                            continue
-                        tested_support = None if support is None else (
-                            support[read_pos - 1:read_pos + 1] + support[read_pos + k - 1:read_pos + k + 1])
-                        counts[model][(tr['canonical_motif'], k) + entry.key
-                                      + strata.of_site(Site(kmerq, tested_support, to_read_end, nearest))] += 1
-
-                # ---- calls ----
-                if not call_models:
-                    continue
-
-                indel = pileupread.indel
-                if indel == 0:
-                    continue
-
-                indel_length = abs(indel)
-
-                # Per model, the tract the InDel is counted in, if any.
-                call_tracts = []
-                for model in call_models:
-                    tract = assigned_tract(near[model], position, indel_length, reach)
+            for model, found in spanned.items():
+                tree = tracts[model][1]
+                # The read's InDels by the tract they are counted in.
+                own = defaultdict(list)
+                for indel in read_indels:
+                    tract = assigned_tract(tree, indel.anchor, indel.length, reach)
                     if tract is not None:
-                        call_tracts.append((model, tract))
-                if not call_tracts:
-                    continue
+                        own[tract.begin].append(indel)
 
-                sm = sx = sa = sm_pre = sx_pre = "NA"
-                read_pos_after = pileupread.query_position_or_next
-                entry          = entry_of(alignment)
-                readstart      = alignment.reference_start
-                ToreadEnd      = min(position - readstart, entry.end - position)
-                nearest        = nearest_other_event(entry.events, position)
-                flank          = fasta.fetch(contig, max(0, position - flank_width), position + flank_width + 1)
+                for iv in found:
+                    tr = iv.data
+                    k = tr['k']
+                    left, right = iv.begin - read_start, read_end - iv.end
+                    first, last = blocks.span(iv.begin - 2, iv.end + 2)
+                    support = None if entry.support is None else entry.support[first:last]
+                    nearest = nearest_outside(entry.events, [indel.anchor for indel in own[iv.begin]],
+                                              iv.begin, iv.end)
+                    site = Site(entry.qualities[first:last], support, min(left, right), nearest)
+                    keys = (strata.of_tract(Tract(tr['copies'], tr['model_purity'], left, right))
+                            + entry.key + strata.of_site(site))
+                    if model in counts:
+                        counts[model][(tr['canonical_motif'], k) + keys] += 1
 
-                read_seq       = entry.sequence
-                base_qualities = entry.qualities
+                    if model not in calls_out:
+                        continue
+                    for indel in own[iv.begin]:
+                        if indel.length % k:
+                            continue
+                        position, read_pos, indel_length = indel.anchor, indel.read_pos, indel.length
+                        seen = "unique" if at_base[position] <= 1 else "non-unique"
+                        ToreadEnd = min(position - read_start, read_end - position)
+                        flank = fasta.fetch(contig, max(0, position - flank_width), position + flank_width + 1)
 
-                # The subread tags in the alignment's order (S1).
-                tags = entry.tags
-                call_support = entry.support
-                if tags is not None:
-                    sm_all, sx_all, sa_all = tags
-                    sm, sx = sm_all[read_pos + 1], sx_all[read_pos + 1]   # the base after the anchor
-                    sa, sm_pre, sx_pre = sa_all[read_pos], sm_all[read_pos], sx_all[read_pos]   # the anchor
+                        # The subread tags in the alignment's order (S1).
+                        sm = sx = sa = sm_pre = sx_pre = "NA"
+                        if entry.tags is not None:
+                            sm_all, sx_all, sa_all = entry.tags
+                            sm, sx = sm_all[read_pos + 1], sx_all[read_pos + 1]   # the base after the anchor
+                            sa, sm_pre, sx_pre = sa_all[read_pos], sm_all[read_pos], sx_all[read_pos]   # the anchor
 
-                diploid_strand = "-" if alignment.is_reverse else "+"
+                        if indel.deletion:
+                            hcheck = fasta.fetch(contig, position, position + indel_length + 2)
+                            deletion_context = hcheck[1:-1]
+                            row = (contig, read_pos + 1, read_pos + 1, hcheck[0:-1], hcheck[0],
+                                   "deletion", seen, deletion_context, canonical_repeat_indel(deletion_context))
+                        else:
+                            insertion_context = read_seq[read_pos + 1:read_pos + indel_length + 1]
+                            row = (contig, read_pos + 1, read_pos + indel_length + 1,
+                                   read_seq[read_pos], read_seq[read_pos:read_pos + indel_length + 1],
+                                   "insertion", seen, insertion_context, canonical_repeat_indel(insertion_context))
+                        print(*row, len(read_seq),
+                              *read_tag_columns(alignment), sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
+                              position + 1, query_name, diploid_strand, flank,
+                              tr['canonical_motif'], tr['k'], tr['copies'],
+                              tr['trf_purity'], tr['model_purity'], tr['model'],
+                              *keys, sep="\t", file=calls_out[model])
+                        carries_call = True
 
-                if indel < 0:
-                    # DELETION
-                    hcheck = fasta.fetch(contig, position,
-                                         position + indel_length + 2)
-                    deletion_context = hcheck[1:-1]
-                    def tested(values):   # the bases tested, for qualities and subread support alike
-                        return (values[max(0, read_pos - 1):read_pos + 1]
-                                + values[read_pos_after + 1:read_pos_after + 3])
-                    del_q = tested(base_qualities)
-                    # Quality 0, and no support, when no base is left to test.
-                    site = Site(del_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd, nearest)
-
-                    row = (contig,
-                           read_pos + 1, read_pos + 1,
-                           hcheck[0:-1], hcheck[0],
-                           "deletion", seen, deletion_context, canonical_repeat_indel(deletion_context),
-                           len(read_seq),
-                           *read_tag_columns(alignment), sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
-                           position + 1, query_name, diploid_strand, flank)
-                else:
-                    # INSERTION
-                    insertion_context = read_seq[read_pos + 1:read_pos + indel_length + 1]
-                    def tested(values):   # the bases tested, for qualities and subread support alike
-                        return (values[max(0, read_pos):read_pos + 2]
-                                + values[max(0, read_pos) + indel_length:read_pos + indel_length + 2])
-                    ins_q = tested(base_qualities)
-                    # Quality 0, and no support, when no base is left to test.
-                    site = Site(ins_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd, nearest)
-
-                    row = (contig,
-                           read_pos + 1, read_pos + indel_length + 1,
-                           read_seq[read_pos],
-                           read_seq[read_pos:read_pos + indel_length + 1],
-                           "insertion", seen, insertion_context, canonical_repeat_indel(insertion_context),
-                           len(read_seq),
-                           *read_tag_columns(alignment), sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
-                           position + 1, query_name, diploid_strand, flank)
-
-                keys = entry.key + strata.of_site(site)
-                for model, tr in call_tracts:
-                    print(*row,
-                          tr['canonical_motif'], tr['k'], tr['copies'],
-                          tr['trf_purity'], tr['model_purity'], tr['model'],
-                          *keys,
-                          sep="\t", file=calls_out[model])
-
-                # The read, for remapping to the haploid assembly
-                if fastq_out is not None and query_name not in fastq_reads:
-                    fastq_reads.add(query_name)
-                    qual = ''.join(chr(x + 33) for x in alignment.get_forward_qualities())
-                    fastq_out.write(f"@{query_name}\n{alignment.get_forward_sequence()}\n+\n{qual}\n")
+            # The read, for remapping to the haploid assembly
+            if carries_call and fastq_out is not None and query_name not in fastq_reads:
+                fastq_reads.add(query_name)
+                qual = ''.join(chr(x + 33) for x in alignment.get_forward_qualities())
+                fastq_out.write(f"@{query_name}\n{alignment.get_forward_sequence()}\n+\n{qual}\n")
 
     for model, out in opportunities_out.items():
-        print("contig", "canonical_motif", "k", *strata.columns, "count",
+        print("contig", "canonical_motif", "k", *strata.tract_columns, *strata.columns, "count",
               sep="\t", file=out)
         for key, count in counts[model].items():
             print(contig, *key, count, sep="\t", file=out)

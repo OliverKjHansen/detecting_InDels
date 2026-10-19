@@ -154,17 +154,17 @@ def test_tandem_repeat_opportunities_are_binned_by_motif(fixture_paths):
 def three_model_beds(tmp_path_factory):
     """
     Three repeat models over the fixture that disagree: M0 covers only part of
-    the (CA)n tract, M1 all of it, and M2 all of it plus an overlapping k=4
-    interval, so the largest-k (calls) and smallest-k (opportunities) choices
-    come into play.
+    the (CA)n tract, M1 all of it, and M2 splits it at a k=4 tract. None has
+    overlapping tracts, as workflow 2 leaves them (R8).
     """
     directory = tmp_path_factory.mktemp("tr_beds")
     header = "contig\tstart\tend\tcanonical_motif\tk\tcopies\ttrf_purity\tmodel_purity\tmodel\n"
     rows = {
         "M0": [f"{CONTIG}\t2150\t2300\tAC\t2\t75\t100.00\t100.00\tM0\n"],
         "M1": [f"{CONTIG}\t2100\t2300\tAC\t2\t100\t100.00\t100.00\tM1\n"],
-        "M2": [f"{CONTIG}\t2100\t2300\tAC\t2\t100\t100.00\t100.00\tM2\n",
-               f"{CONTIG}\t2190\t2250\tACAG\t4\t15\t90.00\t90.00\tM2\n"],
+        "M2": [f"{CONTIG}\t2100\t2160\tAC\t2\t30\t100.00\t100.00\tM2\n",
+               f"{CONTIG}\t2160\t2180\tACAG\t4\t5\t90.00\t90.00\tM2\n",
+               f"{CONTIG}\t2180\t2300\tAC\t2\t60\t100.00\t100.00\tM2\n"],
     }
     beds = {}
     for model, lines in rows.items():
@@ -211,10 +211,17 @@ def test_scan_windows_add_up_to_the_whole_contig(three_model_beds, fixture_paths
                 totals[key] = totals.get(key, 0) + int(row["count"])
         return {key: count for key, count in totals.items() if count}
 
+    # A tract's calls are in the window of its first base, so a read can carry
+    # calls in two windows: the workflow keeps each read once when it joins
+    # the windows' FASTQs.
     for model in three_model_beds:
-        assert [row for calls, _, _ in parts for row in rows_of(calls[model])] == rows_of(whole_calls[model])
+        assert sorted(row for calls, _, _ in parts for row in rows_of(calls[model])) == sorted(rows_of(whole_calls[model]))
         assert summed(opportunities[model] for _, opportunities, _ in parts) == summed([whole_opportunities[model]])
-    assert "".join(fastq for _, _, fastq in parts) == whole_fastq
+
+    def records(fastq):
+        lines = fastq.strip().split("\n") if fastq.strip() else []
+        return {tuple(lines[i:i + 4]) for i in range(0, len(lines), 4)}
+    assert set().union(*(records(fastq) for _, _, fastq in parts)) == records(whole_fastq)
 
 
 def test_haploid_filter_checks_several_call_tables_against_one_remapping(tmp_path):

@@ -50,4 +50,6 @@ def test_a_new_key_splits_the_opportunities_without_changing_their_total(dummy_k
     plain = tables(fixture_paths)
     for name in ("workflow 3 opportunities", "workflow 4 opportunities"):
         assert sum(int(row["count"]) for row in split[name]) == sum(int(row["count"]) for row in plain[name])
-        assert len(split[name]) > len(plain[name])
+    # Workflow 4's opportunities are already one row per read and tract: each
+    # fixture read's name is its own SMRT Cell.
+    assert len(split["workflow 3 opportunities"]) > len(plain["workflow 3 opportunities"])
