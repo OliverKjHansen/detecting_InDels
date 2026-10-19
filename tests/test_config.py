@@ -8,6 +8,8 @@ every table is a subset of `samples`. A typo in a species or sample name is
 what they catch: the workflows would otherwise skip the entry silently.
 """
 
+import glob
+import json
 import os
 
 import pytest
@@ -85,3 +87,73 @@ def test_output_templates_are_sample_keyed(cfg):
 def test_min_contig_length_is_a_positive_int(cfg):
     assert isinstance(cfg["min_contig_length"], int)
     assert cfg["min_contig_length"] > 0
+
+
+# -- every key is read ---------------------------------------------------------
+
+
+class Tracked(dict):
+    """A config mapping that records the dotted names of the keys read from it."""
+
+    def __init__(self, data, read, prefix=""):
+        super().__init__(data)
+        self.read, self.prefix = read, prefix
+
+    def _wrap(self, key, value):
+        name = f"{self.prefix}{key}"
+        self.read.add(name)
+        return Tracked(value, self.read, name + ".") if isinstance(value, dict) else value
+
+    def __getitem__(self, key):
+        return self._wrap(key, super().__getitem__(key))
+
+    def get(self, key, default=None):
+        return self._wrap(key, super().__getitem__(key)) if key in self else default
+
+    def items(self):
+        return [(key, self._wrap(key, value)) for key, value in super().items()]
+
+
+def keys_to_check(cfg):
+    """
+    The top-level keys, and the keys inside settings blocks such as `layout`
+    or `scan`. A table keyed by species (samples, sample_age, ...) counts as
+    one key.
+    """
+    names = set()
+    for key, value in cfg.items():
+        names.add(key)
+        if isinstance(value, dict) and not set(value) <= set(cfg["samples"]):
+            names |= {f"{key}.{inner}" for inner in value}
+    return names
+
+
+def test_every_config_key_is_read_by_a_workflow_or_a_notebook(cfg, tmp_path, monkeypatch):
+    import pipeline
+    from test_workflow_snapshots import WORKFLOWS, load_targets
+    from workflow_config import write_config
+
+    root = os.path.realpath(tmp_path)
+    write_config(root)
+    read = set()
+    load = pipeline.yaml.safe_load
+    monkeypatch.setattr(pipeline.yaml, "safe_load", lambda handle: Tracked(load(handle), read))
+    for name in WORKFLOWS:
+        load_targets(name, root, monkeypatch)
+
+    # The roots under `paths` are read by every Pipeline; a root is used if a
+    # layout template that was read refers to it.
+    read = {name for name in read if not name.startswith("paths.")}
+    templates = [cfg["layout"][name.split(".", 1)[1]] for name in read if name.startswith("layout.")]
+    read |= {f"paths.{root_name}" for root_name in cfg["paths"]
+             if any(f"{{{root_name}}}" in template for template in templates)}
+
+    notebooks = ""
+    for notebook in glob.glob(os.path.join(REPO_ROOT, "plotting", "*.ipynb")):
+        with open(notebook) as handle:
+            notebooks += "".join("".join(cell["source"]) for cell in json.load(handle)["cells"]
+                                 if cell["cell_type"] == "code")
+    read |= {key for key in cfg if f'"{key}"' in notebooks}
+
+    unread = sorted(keys_to_check(cfg) - read)
+    assert not unread, f"config keys nothing reads: {unread}"

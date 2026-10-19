@@ -100,7 +100,7 @@ def cluster(tmp_path_factory, fixture_paths):
         "tissue_samples": {"testspecies": ["testsample"]},
         "methylation_samples": {}, "sperm_samples": {}, "sample_age": {}, "alignment_overrides": {},
         "paths": {"fasta": f"{root}/fasta", "bam": f"{root}/bam", "read_labels": f"{root}/labels",
-                  "classification": f"{root}/classification", "microsat": f"{root}/microsat",
+                  "classification": f"{root}/classification",
                   "output": "output", "results": "results", "plots": "plots"},
         "min_contig_length": 1000,
     })

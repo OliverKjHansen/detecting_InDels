@@ -46,7 +46,6 @@ def write_config(root):
             "bam": f"{root}/bam",
             "read_labels": f"{root}/read_labels",
             "classification": f"{root}/classification",
-            "microsat": f"{root}/microsat",
             # Relative, as in the real config: the workflows make them
             # absolute from the directory gwf runs in.
             "output": "output",
