@@ -200,18 +200,19 @@ for species, samples in config["samples"].items():
 
             # Step 4 — haploid concordance for all contigs of the model: is the
             # same InDel also in the read's alignment to the haploid assembly?
-            # locations.tsv is read once for every contig. The contigs are
+            # locations.tsv and the reads, whose sequence says how far each
+            # InDel can slide, are read once for every contig. The contigs are
             # merged into one table (header kept once) with species/sample added.
             gwf.target(
                 f"TRHaploidFilter_{species}_{sample}_{model}",
-                inputs=calls_files + [haploid_locations],
+                inputs=calls_files + [haploid_locations, combined_fastq],
                 outputs=[merged_indels],
                 cores=1,
                 memory="20g",
                 walltime="12:00:00",
             ) << f"""
             mkdir -p {merged_dir[model]}
-            python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} > {merged_indels}.tmp
+            python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} {combined_fastq} > {merged_indels}.tmp
             awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {merged_indels}.tmp > {merged_indels}
             rm -f {merged_indels}.tmp
             """
@@ -235,7 +236,9 @@ for species, samples in config["samples"].items():
             """
 
             # Step 6 — final filtering, with a report of rows removed per step.
-            # These small tables are the results.
+            # These small tables are the results. The haploid check is a
+            # column of the calls, not a filter; the report counts the calls
+            # without one.
             results_calls         = path("repetitive_results_calls", model=model)
             results_opportunities = path("repetitive_results_opportunities", model=model)
             results_report        = path("repetitive_results_report", model=model)
@@ -253,7 +256,6 @@ for species, samples in config["samples"].items():
             mkdir -p {resultsdir}
             python {scripts}/filtering_small_indels.py {merged_indels} \\
                 -o {results_calls} \\
-                --haploid-check True \\
                 --keep kmerQ_pass=pass \\
                 --min-read-end-distance {min_read_end_distance} \\
                 --report {results_report}

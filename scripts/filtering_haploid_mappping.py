@@ -1,23 +1,23 @@
-import sys
-import pysam
-import csv
-from collections import defaultdict
-import pandas
+"""
+The haploid check: is each call also in its read's alignment to the haploid
+assembly?
+
+    python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>
+
+locations.tsv holds the reads' haploid alignment records (read, flag, contig,
+position, mapQ, CIGAR) and reads.fastq the reads that were remapped, as
+sequenced. Prints the calls with the read's haploid record and the columns
+haploid_check, distance_to_indel_in_hap, softclip_haploid and other_ops.
+"""
 import re
+import sys
+from collections import defaultdict
 
+import numpy
+import pandas
+import pysam
 
-#input should be contig mutations call and the haploid mapping file
-#join on read name
-#if 16==sequence have been reverse complemented
-#use read_position fra small indel
-# LOOP OVER CIGAR BLOCKS
-
-
-# position_in_read = ifelse(
-#       haploid_strand == diploid_strand,
-#       haploid_pos_in_read,
-#       haploid_read_length - haploid_pos_in_read - 1
-#     )
+from utilities import reverse_complement
 
 haploid_header = [
     "readID",
@@ -28,205 +28,210 @@ haploid_header = [
     "cigar_hap"
 ]
 
-def find_previous_op_with_distance(cigar, start_index, target_op):
-    """
-    Search backwards in a CIGAR tuple list for target_op,
-    accumulating distance while excluding deletions ('D').
-    """
-    distance = 0
-    for idx in range(start_index, -1, -1):
-        length, op = cigar[idx]
-        length = int(length)
-        
-        if op != 'D':
-            distance += length
-        
-        if op == target_op:
-            return distance
-    
-    return None
-
-def find_next_op_with_distance(cigar, start_index, target_op):
-    """
-    Search forwards in a CIGAR tuple list for target_op,
-    accumulating distance while excluding deletions ('D').
-    """
-    distance = 0
-    for idx in range(start_index, len(cigar)):
-        length, op = cigar[idx]
-        length = int(length)
-        
-        if op != 'D':
-            distance += length
-        
-        if op == target_op:
-            return distance
-    
-    return None
-
-
-def find_indel_position_in_read(cigar, position_in_read, indel_type, indel_string):
-    """
-    Given a CIGAR string and a position in the read (1-based),
-    determine if there is an insertion or deletion at that position in a haploid mapping CIGAR string.
-    everything should be 1-based
-    """
-    softclipped_haploid = False
-    others = None
-    current_pos = 0
-    cigar_tuples = re.findall(r'(\d+)([MIDNSHP=X])', cigar)    #print(cigar_tuples)
-    target_op = indel_type[0].upper()
-    target_size = len(indel_string)
-    for idx in range(0,len(cigar_tuples)): # check om previus op er den samme som den efterfølgende
-        length,op = cigar_tuples[idx]
-        length = int(length)
-        if op == 'M' or op == '=' or op == 'X':
-          current_pos += length
-
-        elif op == 'I':
-            if (current_pos >= position_in_read) and (op == target_op):
-                # Found an insertion at or past target position
-                forward_distance = abs(current_pos - position_in_read)
-                
-                # Search backwards for another insertion
-                backward_distance = find_previous_op_with_distance(cigar_tuples, idx - 1, op)
-                
-                # Search forwards for the next insertion # redundant
-                #forward_found_distance = find_next_op_with_distance(cigar_tuples, idx + 1, op)
-                
-                # Find the minimum distance among all occurrences
-                distances = [d for d in [forward_distance, backward_distance] if d is not None]
-                distance_to_event = min(distances) if distances else forward_distance
-                
-                # check if the Indel we have found is of the same size as the target indel
-                if target_size == length:
-                  return True, distance_to_event, softclipped_haploid, others
-                else:
-                  return False, distance_to_event, softclipped_haploid, others
-            #current_pos += length
-
-        elif op == 'D':
-            if (current_pos >= position_in_read) and (op == target_op):
-                # Found a deletion at or past target position
-                forward_distance = abs(current_pos - position_in_read)
-                
-                # Search backwards for another deletion
-                backward_distance = find_previous_op_with_distance(cigar_tuples, idx - 1, op)
-                
-                # Search forwards for the next deletion
-                #forward_found_distance = find_next_op_with_distance(cigar_tuples, idx + 1, op)
-                
-                # Find the minimum distance among all occurrences
-                distances = [d for d in [forward_distance, backward_distance] if d is not None]
-                distance_to_event = min(distances) if distances else forward_distance
-
-                # check if the Indel we have found is of the same size as the target indel
-                if target_size == length:
-                  return True, distance_to_event, softclipped_haploid, others
-                else:
-                  return False, distance_to_event, softclipped_haploid, others
-            # Deletions do not advance the read position
-        elif op == "S":
-          softclipped_haploid = True
-          current_pos += length
-         # current_pos =+ length i dont this should advance the position in read for softclip
-        elif op == "H" or op == "P" or op == "N":
-          others = "HPN"
-         # current_pos =+ length i dont this should advance the position in read for hardclip, padding or N
-        else:
-          others = "unknown"
-      
-    
-    nearest_backward = find_previous_op_with_distance(cigar_tuples, len(cigar_tuples) - 1, target_op)
-    nearest_forward = find_next_op_with_distance(cigar_tuples, 0, target_op)
-    
-    distances = [d for d in [nearest_backward, nearest_forward] if d is not None]
-    if distances:
-        distance_to_event = min(distances)
-        return False, distance_to_event, softclipped_haploid, others
-    else:
-        return False, None, softclipped_haploid, others
-  
-def main():
-  # Usage: python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv>
-  # Several call tables (e.g. one per contig) are checked against the locations,
-  # which are read only once, and written out as one table with one header.
-  if len(sys.argv) < 3:
-    sys.exit("Usage: filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv>")
-  *calls_files, locations_file = sys.argv[1:]
-
-  haploid_alignment = pandas.read_csv(locations_file, sep='\t', names=haploid_header)
-  haploid_alignment = haploid_alignment.set_index("readID")
-
-  for file_number, calls_file in enumerate(calls_files):
-    check_calls(calls_file, haploid_alignment, print_header=(file_number == 0))
-
-
-def check_calls(calls_file, haploid_alignment, print_header):
-  """Join one call table to the haploid alignments and print the checked calls."""
-  indels = pandas.read_csv(calls_file, sep='\t')
-
-  merged = indels.join(haploid_alignment, on="readID")
-  merged = merged.drop_duplicates(subset=["readID","start"]) # filter when a read maps to multiple locations in the haploid assembly
-  merged = merged.rename(columns=lambda c: c.lstrip("#"))
-
-  new_columns = ["haploid_check","distance_to_indel_in_hap","softclip_haploid", "other_ops"]
-  header_cols = [col for col in merged.columns if col != "cigar_hap"] + new_columns
-  if print_header:
-    print("\t".join(header_cols))
-
-  for row in merged.itertuples(index=False):
-    read_id = row.readID
-    read_position = row.start # prettysure i make it 1 base when i print it: check #1-based
-    cigar = row.cigar_hap
-    indel_type = row.indel_type
-    indel_string = row.indel_string
-    diploid_direction = row.diploid_direction #change
-    bitflag_hap = row.bitflag_hap
-    read_length = row.read_length
-    # quality = int(row.kmerQ)
-    # if quality < 93:
-    #   continue 
-
-    if bitflag_hap == 16:
-      haploid_direction = "-"
-    elif bitflag_hap == 0:
-      haploid_direction = "+"
-    else:
-      #print("low quality mapping, skipping read:", read_id, bitflag_hap)
+def cigar_events(cigar):
+  """
+  Walk a haploid CIGAR along its read: (read length, InDels, aligned part,
+  softclip_haploid, other_ops). Each InDel is (op, length, start, end), an
+  interval of the read in the alignment's orientation: an insertion covers
+  its inserted bases, a deletion is the empty interval at its gap. The aligned
+  part is the interval between the clips. Clipped bases, hard ones too, are
+  read bases, so positions are those of the whole read.
+  """
+  position, events = 0, []
+  first = last = None
+  softclip, other_ops = False, None
+  for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar):
+    length = int(length)
+    if op in "SH":
+      softclip = softclip or op == "S"
+      other_ops = "HPN" if op == "H" else other_ops
+      position += length
       continue
-    #if pandas.isna(row.cigar_hap): #should not exist
-      #print(row)
-    #if read_id == "m84108_251007_135540_s2/186516316/ccs":
-    if diploid_direction != haploid_direction:
-      read_position = read_length - read_position - 1
-
-    res,target,softclip,thers = find_indel_position_in_read(cigar, read_position, indel_type, indel_string)
-  
-    out_cols = [col for col in merged.columns if col != "cigar_hap"]
-    values = [getattr(row, col) for col in out_cols]
-
-    print(*values,res,target,softclip,thers, sep="\t")
-    #print(res,target,softclip,thers,read_id,row.start, read_position, diploid_direction, haploid_direction, sep=" ")
-    # if res != "no_indel_found":
-    #   print(res,target,softclip,thers,read_id,diploid_direction, haploid_direction,sep=" ")
-      
-      
-    # headers = merged.headers
-    # new = ["distance_to_diploid_indel", softclip_haploid]
-    #print(row,res,target,softclip,thers, sep="\t")
+    first = position if first is None else first
+    if op in "M=X":
+      position += length
+    elif op == "I":
+      events.append(("I", length, position, position + length))
+      position += length
+    elif op == "D":
+      events.append(("D", length, position, position))
+    else:
+      # P or N
+      other_ops = "HPN"
+    last = position
+  aligned = (position, position) if first is None else (first, last)
+  return position, events, aligned, softclip, other_ops
 
 
+def mirrored(interval, length):
+  """An interval of a read of this length, seen from the other strand."""
+  start, end = interval
+  return length - end, length - start
 
-  #print(merged)
+
+def slide(read, op, start, size, deleted):
+  """
+  The stretch of the read an InDel can slide over, (start, end): the same
+  InDel can sit anywhere in it. An insertion of read bases start..start+size
+  slides while the base it gives up equals the one it takes on. A deletion of
+  `deleted` at the gap before read base `start` slides while the read base it
+  passes equals the deleted base at the far end, which then moves round.
+  """
+  if op == "I":
+    first, end = start, start + size
+    while first > 0 and read[first - 1] == read[first - 1 + size]:
+      first -= 1
+    while end < len(read) and read[end] == read[end - size]:
+      end += 1
+    return first, end
+  first, bases = start, deleted
+  while first > 0 and read[first - 1] == bases[-1]:
+    first, bases = first - 1, bases[-1] + bases[:-1]
+  end, bases = start, deleted
+  while end < len(read) and read[end] == bases[0]:
+    end, bases = end + 1, bases[1:] + bases[0]
+  return first, end
 
 
+def check_call(read, flag, cigar, start, indel_type, indel_string, diploid_direction):
+  """
+  Whether a call is also in its read's alignment to the haploid assembly, as
+  (haploid_check, distance_to_indel_in_hap, softclip_haploid, other_ops).
+
+  read is the read's sequence as sequenced, from the FASTQ that was remapped;
+  flag and cigar are the read's haploid alignment record; start, indel_type,
+  indel_string and diploid_direction are the call's columns.
+
+  Both alignments are walked in read bases (H1) and their InDels compared as
+  intervals of the read as sequenced, so a flipped strand mirrors the InDel,
+  not its anchor (H2). Two aligners can place an InDel in a repeat at
+  opposite ends of the stretch it can slide over (H3), so the call matches an
+  InDel of the same type and size anywhere in that stretch, and only there
+  (H4). The distance is from the call to the nearest such InDel, in read
+  bases, and there is none without a match.
+
+  Every value is None when the record is not a plain forward or reverse
+  alignment (flag 0 or 16). haploid_check and the distance are None when the
+  haploid alignment clips the call off, or spans another number of bases than
+  the read and so is of another sequence by that name: the check cannot tell
+  either way.
+  """
+  if flag not in (0, 16):
+    return None, None, None, None
+  op = "I" if indel_type == "insertion" else "D"
+  size = len(indel_string)
+  # `start` read bases lead up to the anchor; the InDel follows it. The
+  # deleted bases are the diploid assembly's, on the alignment's strand.
+  call = (start, start + size) if op == "I" else (start, start)
+  deleted = indel_string.upper()
+  if diploid_direction == "-":
+    call, deleted = mirrored(call, len(read)), reverse_complement(deleted)
+  first, end = slide(read, op, call[0], size, deleted)
+
+  length, events, aligned, softclip, other_ops = cigar_events(cigar)
+  if flag == 16:
+    events = [(event_op, n, *mirrored(interval, length)) for event_op, n, *interval in events]
+    aligned = mirrored(aligned, length)
+  if length != len(read) or not aligned[0] <= call[0] <= call[1] <= aligned[1]:
+    return None, None, softclip, other_ops
+  distances = [abs(event_start - call[0]) for event_op, n, event_start, event_end in events
+               if event_op == op and n == size and first <= event_start and event_end <= end]
+  if not distances:
+    return False, None, softclip, other_ops
+  return True, min(distances), softclip, other_ops
+
+
+# The columns of a call that check_call() needs.
+CALL_COLUMNS = ["readID", "start", "indel_type", "indel_string", "diploid_direction", "read_length"]
+
+# What check_call() gives a call it cannot check.
+UNCHECKED = (None, None, None, None)
+
+
+def haploid_records(locations_file):
+  """
+  One haploid alignment record per read, indexed by read: its plain forward
+  or reverse alignment (flag 0 or 16), the primary, if it has one, and
+  otherwise its first record, which check_call() cannot use. Every value is
+  kept as text.
+  """
+  records = pandas.read_csv(locations_file, sep="\t", names=haploid_header, dtype=str, keep_default_na=False)
+  usable = records.bitflag_hap.isin(["0", "16"])
+  records = records.iloc[numpy.argsort(~usable.to_numpy(), kind="stable")]
+  return records.drop_duplicates(subset="readID").set_index("readID")
+
+
+def check_tables(calls_files, records, reads_file):
+  """
+  check_call() for every call of every table, one list per table in row order.
+
+  The FASTQ holds every read carrying a call, which can be most of a sample's
+  reads, so it is streamed once and each read's calls are checked as it
+  passes. A call stays unchecked when its read is not in the FASTQ or has
+  another length there than in the call, since its position would then be
+  in another read.
+  """
+  checks, waiting = [], defaultdict(list)
+  for number, calls_file in enumerate(calls_files):
+    calls = pandas.read_csv(calls_file, sep="\t", usecols=CALL_COLUMNS, dtype=str, keep_default_na=False)
+    checks.append([UNCHECKED] * len(calls))
+    for row, call in enumerate(calls.itertuples(index=False)):
+      waiting[call.readID].append((number, row, call))
+
+  flags = dict(zip(records.index, records.bitflag_hap.astype(int)))
+  cigars = dict(zip(records.index, records.cigar_hap))
+  unusable = clipped = 0
+  with pysam.FastxFile(reads_file) as reads:
+    for read in reads:
+      for number, row, call in waiting.pop(read.name, []):
+        if int(call.read_length) != len(read.sequence):
+          continue
+        check = check_call(read.sequence, flags.get(read.name), cigars.get(read.name), int(call.start),
+                           call.indel_type, call.indel_string, call.diploid_direction)
+        unusable += check[2] is None
+        clipped += check[2] is not None and check[0] is None
+        checks[number][row] = check
+
+  total = sum(len(table) for table in checks)
+  unchecked = sum(check[0] is None for table in checks for check in table)
+  print(f"{unchecked:,} of {total:,} calls without a haploid check: {unusable:,} on reads without a "
+        f"flag 0 or 16 haploid record, {clipped:,} clipped off by the haploid alignment or with one of "
+        f"another length, "
+        f"{unchecked - unusable - clipped:,} on reads missing from the FASTQ or of another length there",
+        file=sys.stderr)
+  return checks
+
+
+def main():
+  # Usage: python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>
+  # Several call tables (e.g. one per contig) are checked against the locations
+  # and the reads, which are read only once, and written out as one table with
+  # one header. The reads are the FASTQ that was remapped to the haploid
+  # assembly.
+  if len(sys.argv) < 4:
+    sys.exit("Usage: filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>")
+  *calls_files, locations_file, reads_file = sys.argv[1:]
+
+  records = haploid_records(locations_file)
+  checks = check_tables(calls_files, records, reads_file)
+  for file_number, calls_file in enumerate(calls_files):
+    check_calls(calls_file, records, checks[file_number], print_header=(file_number == 0))
+
+
+def check_calls(calls_file, records, checks, print_header):
+  """
+  Print one call table with its read's haploid record and its checks. Every
+  call is printed: the ones the check could not make have NA in its columns.
+  The call's own columns are printed as written.
+  """
+  calls = pandas.read_csv(calls_file, sep="\t", dtype=str, keep_default_na=False)
+  merged = calls.join(records, on="readID").drop(columns="cigar_hap")
+  merged = merged.rename(columns=lambda c: c.lstrip("#"))
+  new_columns = ["haploid_check", "distance_to_indel_in_hap", "softclip_haploid", "other_ops"]
+  for column, values in zip(new_columns, zip(*checks) if checks else [[]] * len(new_columns)):
+    merged[column] = pandas.Series(values, index=merged.index, dtype=object)
+  merged.to_csv(sys.stdout, sep="\t", index=False, header=print_header, na_rep="NA")
 
 
 if __name__ == "__main__":
   main()
-
-#   cigar = [(10, 'M'), (2, 'D'), (5, 'M'), (3, 'I'), (8, 'D')]
-# # Search backwards from index 3 (the 'D')
-#   result = find_previous_op_with_distance(cigar, len(cigar)-2, 'D')
-#   print(result)

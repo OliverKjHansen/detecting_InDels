@@ -10,11 +10,6 @@ instead of a silent shift in published mutation rates.
 import pytest
 
 from parse_trf import canonicalise, hamming_pct_matches
-from filtering_haploid_mappping import (
-    find_indel_position_in_read,
-    find_next_op_with_distance,
-    find_previous_op_with_distance,
-)
 from utilities import (
     homopolymer_check,
     reverse_complement,
@@ -106,52 +101,3 @@ def test_hamming_pct_matches_with_a_mismatch():
 
 def test_hamming_pct_matches_empty_sequence():
     assert hamming_pct_matches("", "AT") == 100.0
-
-
-# -- CIGAR walking ----------------------------------------------------------
-
-
-def test_find_previous_op_excludes_deletions_from_the_distance():
-    cigar = [("10", "M"), ("2", "D"), ("5", "M")]
-    # Walking back from the last block: 5 (M) then the D contributes nothing.
-    assert find_previous_op_with_distance(cigar, 2, "D") == 5
-
-
-def test_find_next_op_returns_none_when_absent():
-    assert find_next_op_with_distance([("10", "M")], 0, "I") is None
-
-
-def test_find_indel_position_in_read_matching_deletion():
-    found, distance, softclip, others = find_indel_position_in_read(
-        "10M2D10M", 10, "deletion", "AB"
-    )
-    assert found is True
-    assert distance == 0
-    assert softclip is False
-    assert others is None
-
-
-def test_find_indel_position_in_read_matching_insertion():
-    found, _, _, _ = find_indel_position_in_read("10M3I10M", 10, "insertion", "ABC")
-    assert found is True
-
-
-def test_find_indel_position_in_read_rejects_a_size_mismatch():
-    """An InDel is only concordant if type AND size agree."""
-    found, _, _, _ = find_indel_position_in_read("10M2D10M", 10, "deletion", "A")
-    assert found is False
-
-
-def test_find_indel_position_in_read_flags_softclipping():
-    _, _, softclip, _ = find_indel_position_in_read(
-        "5S10M2D10M", 15, "deletion", "AB"
-    )
-    assert softclip is True
-
-
-def test_find_indel_position_in_read_reports_no_match_for_a_clean_cigar():
-    found, distance, _, _ = find_indel_position_in_read(
-        "100M", 50, "deletion", "A"
-    )
-    assert found is False
-    assert distance is None

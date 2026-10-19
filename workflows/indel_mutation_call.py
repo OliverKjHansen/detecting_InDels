@@ -221,19 +221,20 @@ for species, samples in config["samples"].items():
         plots_pdf            = path("nonrepetitive_plots")
 
         # Step 5 — haploid concordance for all contigs: is the same InDel also
-        # in the read's alignment to the haploid assembly? locations.tsv is read
+        # in the read's alignment to the haploid assembly? locations.tsv and the
+        # reads, whose sequence says how far each InDel can slide, are read
         # once for every contig. The contigs are merged into one table (header
         # kept once) with species/sample added.
         gwf.target(
             f"non_rep_HaploidFilter_{species}_{sample}_{assembly_type}",
-            inputs=list(calls.values()) + [haploid_locations],
+            inputs=list(calls.values()) + [haploid_locations, combined_fastq],
             outputs=[merged_indels],
             cores=1,
             memory="20g",
             walltime="12:00:00",
         ) << f"""
         mkdir -p {merged_dir}
-        python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} > {merged_indels}.tmp
+        python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} {combined_fastq} > {merged_indels}.tmp
         awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {merged_indels}.tmp > {merged_indels}
         rm -f {merged_indels}.tmp
         """
@@ -257,7 +258,8 @@ for species, samples in config["samples"].items():
         """
 
         # Step 7 — final filtering, with a report of rows removed per step.
-        # These small tables are the results.
+        # These small tables are the results. The haploid check is a column
+        # of the calls, not a filter; the report counts the calls without one.
         results_calls         = path("nonrepetitive_results_calls")
         results_opportunities = path("nonrepetitive_results_opportunities")
         results_report        = path("nonrepetitive_results_report")
@@ -275,7 +277,6 @@ for species, samples in config["samples"].items():
         mkdir -p {resultsdir}
         python {scripts}/filtering_small_indels.py {merged_indels} \\
             -o {results_calls} \\
-            --haploid-check True \\
             --keep kmerQ_pass=pass \\
             --report {results_report}
         python {scripts}/filtering_opportunities.py {merged_opportunities} \\

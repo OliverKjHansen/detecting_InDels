@@ -55,7 +55,7 @@ or tissue.
    could have been seen, under the same filters, is counted. This is the
    denominator of the rate.
 4. **Confirm.** Reads carrying a call are aligned again, to the haploid assembly.
-   A call is kept only if the same InDel shows up there.
+   Each call records whether the same InDel shows up there.
 5. **Filter.** Thresholds on base quality and on position in the read remove
    what is most likely sequencing error.
 
@@ -439,16 +439,16 @@ unresolved-haplotype region. Intermediates go to
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
    flag, contig, position, mapping quality and CIGAR, sorted by read ID.
 5. **Haploid check.** [filtering_haploid_mappping.py](scripts/filtering_haploid_mappping.py)
-   checks every call against its read's haploid alignment (see
-   [Haploid concordance](#haploid-concordance)) and writes one table for the
-   sample, with `species` and `sample` columns added.
+   checks every call against its read's haploid alignment and its sequence in
+   `haploid/all.fastq` (see [Haploid concordance](#haploid-concordance)) and
+   writes one table for the sample, with `species` and `sample` columns added.
 6. **Opportunities and plots.** The contigs' opportunities are concatenated, with
    `species` and `sample` added. [plot_indels.R](scripts/plot_indels.R) draws
    diagnostics of the calls before final filtering: kmerQ, the 20 most common
    InDel sequences, distance to the read end, the unique flag, the haploid
    check, tissue, kmerQ against haploid distance, and subread coverage.
-7. **Final filtering.** Calls must pass the haploid check and have
-   `kmerQ_pass` = `pass`. Opportunities must have `kmerQ_pass` = `pass`.
+7. **Final filtering.** Calls and opportunities must have `kmerQ_pass` =
+   `pass`. The haploid check stays a column of the calls.
 8. **Germline/somatic.** See [Tissue and cell-type labels](#tissue-and-cell-type-labels).
 
 ---
@@ -496,7 +496,7 @@ How the two callers differ:
 | Homopolymer rule | applied | not applied |
 | `canonical_indel` | the smaller of the sequence and its reverse complement | the smallest rotation of the sequence or its reverse complement, like the tract motif |
 | Opportunity unit | read position × deletion size, by canonical k-mer; gap between two read bases × insertion size, by the canonical pair around it | read base inside a tract, by tract motif and k |
-| Final filters | haploid check, kmerQ ≥ 93 | haploid check, kmerQ ≥ 93, ≥ 100 bp from the read end |
+| Final filters | kmerQ ≥ 93 | kmerQ ≥ 93, ≥ 100 bp from the read end |
 | Runs | once per sample | once per model per sample |
 
 ---
@@ -507,8 +507,8 @@ Filters act at four points:
 
 - **During the scan**, before anything is written. These decide which positions
   and reads count at all, and they apply to calls and opportunities alike.
-- **At the haploid check**, which annotates every call and drops calls whose read
-  has no usable haploid alignment.
+- **At the haploid check**, which annotates every call and drops none; where it
+  cannot check a call, it leaves `NA`.
 - **At final filtering**, which applies thresholds to recorded columns and
   reports what each one removed.
 - **In the analysis notebooks**, which apply a few more to the final tables.
@@ -522,8 +522,7 @@ Filters act at four points:
 | Position outside the mask / inside a tract | scan | outside | inside | ✓ |
 | InDel size | scan | 1–3 bp | multiple of k | – |
 | Homopolymer rule | scan | ✓ | – | ✓ in workflow 3, deletions |
-| Read has a usable haploid alignment | haploid check | ✓ | ✓ | – |
-| Same InDel in the haploid alignment | final | ✓ | ✓ | – |
+| Same InDel in the haploid alignment | not applied, a column (`haploid_check`) | – | – | – |
 | kmerQ ≥ 93 | final | ✓ | ✓ | ✓ |
 | At least 100 bp from a read end | final | – | ✓ | – |
 | No other InDel at the position (`unique`) | notebooks | ✓ | ✓ | – |
@@ -628,10 +627,11 @@ the opportunity window still uses the tract's k as the size (R7 in
 [the workflow 4 review](documents/workflow4_review.md)).
 
 HiFi base qualities are capped at 93, so kmerQ ≥ 93 means every base in the
-window is at the maximum. The threshold is applied at final filtering, to calls
-(`--min-quality 93`) and opportunities (`--min-kmerq 93`) alike. The merged
-tables in `output/` keep every value (opportunities are counted per kmerQ from
-0 to 93), so another threshold can be applied to them without scanning again.
+window is at the maximum. The scans write the threshold (`strata.min_kmerq`)
+as the key `kmerQ_pass` on calls and opportunities alike, and final filtering
+keeps `kmerQ_pass` = `pass` on both (`--keep kmerQ_pass=pass`). The calls keep
+the raw `kmerQ` as well; the opportunities don't, so another threshold needs a
+new scan.
 
 ### Haploid concordance
 
@@ -642,24 +642,38 @@ against an independent alignment of its read to the haploid assembly, in
 [filtering_haploid_mappping.py](scripts/filtering_haploid_mappping.py):
 
 1. Every read carrying a call (before final filtering) is written to FASTQ in its
-   original orientation and aligned with `pbmm2 align --preset HIFI`.
-2. Calls are joined to their read's alignment records. The read's first record in
-   the sorted table is used, which is its primary alignment when it has one. A
-   call whose record is not a plain forward or reverse alignment (flag 0 or 16),
-   because the read did not align or aligned only as secondary or supplementary,
-   is dropped here. It does not appear in the filter report.
-3. If the read lies on opposite strands in the two alignments, the call's read
-   position is mirrored (`read_length − start − 1`).
-4. The haploid CIGAR is walked from the start of the read, counting read bases
-   through `M`, `=`, `X` and `S` operations. The first `I` (for an insertion) or
-   `D` (for a deletion) at or after the call's read position decides:
-   `haploid_check` is True if its length equals the call's, and False otherwise.
-   With no such operation it is False.
+   original orientation and aligned with `pbmm2 align --preset HIFI`. The check
+   reads the same FASTQ for the reads' sequence.
+2. Each call is joined to one record of its read: its plain forward or reverse
+   alignment (flag 0 or 16), the primary, when it has one. A call whose read
+   has no such record (it did not align, or aligned only as secondary or
+   supplementary), or is not in the FASTQ at the call's read length, is kept
+   with `NA` in the check's columns.
+3. The two alignments are compared in the read as sequenced. Each InDel is an
+   interval of the read: its inserted bases, or the empty interval at a
+   deletion's gap. The haploid CIGAR is walked counting read bases through
+   `M`, `=`, `X`, `I`, `S` and `H`. If the read lies on opposite strands in the
+   two alignments, the InDel's interval is mirrored, not its anchor.
+4. An InDel in a repeat can sit anywhere in the stretch of read it can slide
+   over, and aligners put it at the leftmost place on their own assembly's
+   strand: on opposite strands, at opposite ends. The call's stretch is worked
+   out from the read and, for a deletion, the deleted bases. `haploid_check` is
+   True if the haploid alignment has an InDel of the same type and size
+   anywhere in that stretch, False otherwise, and `NA` where the haploid
+   alignment clips the call off or spans another number of bases than the
+   read.
 
-Final filtering keeps calls with `haploid_check` True. The distance between the
-call's read position and the matched haploid event (`distance_to_indel_in_hap`)
-is recorded but not limited, so a call can pass on an InDel of the same size far
-along the read. `max_hap_distance` in the notebooks can limit it.
+`distance_to_indel_in_hap` is the number of read bases from the call to the
+nearest matching haploid InDel: 0 at the same place, more where the two
+alignments put an InDel in a repeat at different places. Without a match it is
+`NA`.
+
+The check is a column, not a filter: final filtering keeps calls whatever their
+`haploid_check`, and the filter report counts the calls without one. It is to be
+compared with the hap1/hap2 test before the definition of a final call is
+settled. Tables made before this version dropped the calls the check failed,
+with four bugs in it that failed real InDels (H1–H4 in
+[the review](documents/nonrepetitive_indel_review.md)).
 
 ### Distance to the read end
 
@@ -686,29 +700,35 @@ order of the table below), and `--report` writes how many rows each step removed
 
 | Option (calls) | Keeps rows where | Used by |
 |---|---|---|
-| `--haploid-check True` | `haploid_check` is True | workflows 3 and 4 |
+| `--haploid-check True` | `haploid_check` is True | – |
 | `--softclip True` or `False` | `softclip_haploid` equals the value | – |
 | `--min-distance N`, `--max-distance N` | `distance_to_indel_in_hap` ≥ N, ≤ N | – |
 | `--indel-type insertion` or `deletion` | `indel_type` equals the value | – |
 | `--tissue a,b` | `tissue` is in the list | – |
 | `--unique-only` | `unique` is `unique` | – |
-| `--min-quality N` | `kmerQ` ≥ N | workflows 3 and 4 (93) |
+| `--min-quality N` | `kmerQ` ≥ N | – |
 | `--min-read-end-distance N` | `ToreadEnd` ≥ N | workflow 4 (100) |
+| `--keep COLUMN=VALUE` | `COLUMN` equals `VALUE`; repeatable, applied last | workflows 3 and 4 (`kmerQ_pass=pass`) |
 
-The opportunities take `--min-kmerq` (used, 93), `--max-kmerq`, `--min-mapq`,
-`--max-mapq`, `--tissue`, `--context` and `--min-count`.
+The opportunities take `--keep` (used, `kmerQ_pass=pass`), `--tissue`,
+`--context` and `--min-count`. Their `--min-kmerq`, `--max-kmerq`,
+`--min-mapq` and `--max-mapq` read raw `kmerQ` and `mapQ` columns, which the
+scans no longer write (they write the keys `kmerQ_pass` and `mapQ_bin`).
 
-`filter_report.tsv` has one row per step (tab-separated):
+`filter_report.tsv` has one row for the calls read and one per step
+(tab-separated):
 
 ```
-filter                 rows_before  rows_after  rows_removed
-haploid_check          …            …           …
-min_kmerQ              …            …           …
-min_read_end_distance  …            …           …             (workflow 4 only)
+filter                 rows_before  rows_after  rows_removed  haploid_check_missing
+input                  …            …           0             …
+min_read_end_distance  …            …           …             …         (workflow 4 only)
+kmerQ_pass=pass        …            …           …             …
 ```
 
-The first `rows_before` counts the calls that reached final filtering, so it
-leaves out the calls the haploid check dropped for lack of a usable alignment.
+`haploid_check_missing` counts the rows left after the step that have no
+haploid check (`NA`): their read had no usable haploid alignment, or the
+alignment clipped the call off. The haploid check drops no call, so the `input`
+row counts every call.
 
 Adding a filter takes one new option and one entry in `filter_steps`; the
 comparisons (`eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `notin`) already exist.
@@ -717,9 +737,9 @@ Values the callers write as `NA` stay `NA` in the output.
 ### What the opportunities go through
 
 The opportunities pass the scan's filters (coverage, mask or tract, and the
-homopolymer rule in workflow 3) and the kmerQ threshold. The haploid check, the
-read-end distance and the unique flag remove calls only, with nothing matching
-them in the denominator. Since they remove some real mutations along with the
+homopolymer rule in workflow 3) and the kmerQ threshold. The read-end distance
+and the unique flag remove calls only, with nothing matching them in the
+denominator. Since they remove some real mutations along with the
 artefacts, the rates are conservative.
 
 ### Filters in the notebooks
@@ -840,9 +860,9 @@ positions in the read; the position on the contig is `position`.
 | `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity`, `model` | workflow 4 only: the tract the call sits in |
 | the keys | `tissue`, `kmerQ` and the other keys, the same columns as in the opportunity table: see [Keys](#keys) |
 | `bitflag_hap`, `contig_hap`, `pos_1based_hap`, `map_mapq` | the read's alignment to the haploid assembly: flag, contig, position and mapping quality |
-| `haploid_check` | whether the same InDel is in the haploid alignment, see [Haploid concordance](#haploid-concordance) |
-| `distance_to_indel_in_hap` | read bases from the call's read position to the matched haploid event (0 means the same place). Without a match, the distance from a read end to the nearest event of the same type, or `NA` if there is none. |
-| `softclip_haploid` | whether the haploid CIGAR has a soft clip in the part the check walked |
+| `haploid_check` | whether the same InDel is in the haploid alignment, anywhere it can slide; `NA` where that cannot be checked. See [Haploid concordance](#haploid-concordance) |
+| `distance_to_indel_in_hap` | read bases from the call to the matching haploid InDel (0 means the same place; more where the two alignments put an InDel in a repeat at different places). `NA` without a match. |
+| `softclip_haploid` | whether the haploid CIGAR has a soft clip; `NA` without a usable haploid alignment |
 | `other_ops` | `HPN` if the haploid CIGAR has `H`, `P` or `N` operations, else `NA` |
 | `species`, `sample` | |
 
@@ -900,7 +920,7 @@ Workflow 4's table has `canonical_motif` and `k` (the tract's) in place of
   `model_purity`, `model`, `species`, `sample` and `count`, the number of tracts
   of each kind.
 - `filter_report.tsv`: `filter`, `rows_before`, `rows_after`, `rows_removed`,
-  see [the report](#final-filtering-and-the-filter-report).
+  `haploid_check_missing`, see [the report](#final-filtering-and-the-filter-report).
 - `indels_classified.tsv`: `indels.tsv` plus the five columns under
   [Germline or somatic](#tissue-and-cell-type-labels).
 
@@ -967,7 +987,8 @@ Two approximations to keep in mind when reading the rates:
 
 | File | Covers |
 |---|---|
-| [tests/test_pure_functions.py](tests/test_pure_functions.py) | canonicalisation, the homopolymer rule, reading the `sa` tag, Hamming purity, walking the haploid CIGAR |
+| [tests/test_pure_functions.py](tests/test_pure_functions.py) | canonicalisation, the homopolymer rule, reading the `sa` tag, Hamming purity |
+| [tests/test_haploid_check.py](tests/test_haploid_check.py) | the haploid check: findings H1–H4 of the review on its CIGAR cases, InDels in a repeat on flipped reads, the calls it cannot check kept with `NA`, the primary record chosen, and the filter report's count of unchecked calls |
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
 | [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve, and every key is read by a workflow or a notebook |

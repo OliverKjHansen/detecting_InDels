@@ -60,10 +60,10 @@ def write_haploid_records(bam, calls, path):
                           f"{read.reference_start + 1}\t{read.mapping_quality}\t{read.cigarstring}\n")
 
 
-def haploid_check(calls, locations, merged, species, sample):
+def haploid_check(calls, locations, reads, merged, species, sample):
     """The haploid-check step, with species and sample appended as the workflow's awk does."""
     checked = io.StringIO()
-    run_script("filtering_haploid_mappping.py", calls, locations, stdout=checked)
+    run_script("filtering_haploid_mappping.py", calls, locations, reads, stdout=checked)
     header, *rows = checked.getvalue().splitlines()
     with open(merged, "w") as out:
         out.write(header + "\tspecies\tsample\n")
@@ -71,7 +71,7 @@ def haploid_check(calls, locations, merged, species, sample):
 
 
 def final_filtering(merged, final_calls, report, *extra):
-    run_script("filtering_small_indels.py", merged, "-o", final_calls, "--haploid-check", "True",
+    run_script("filtering_small_indels.py", merged, "-o", final_calls,
                "--keep", "kmerQ_pass=pass", *map(str, extra), "--report", report)
 
 
@@ -146,7 +146,7 @@ def cluster(tmp_path_factory, fixture_paths):
         locations = made(path("nonrepetitive_haploid_locations"))
         write_haploid_records(bam, calls, locations)
         merged = made(path("nonrepetitive_merged_calls"))
-        haploid_check(calls, locations, merged, species, sample)
+        haploid_check(calls, locations, path("nonrepetitive_window_reads", **window), merged, species, sample)
         final_filtering(merged, made(path("nonrepetitive_results_calls")), path("nonrepetitive_results_report"))
 
         # Workflow 4.
@@ -172,7 +172,8 @@ def cluster(tmp_path_factory, fixture_paths):
         write_haploid_records(bam, all_calls, locations)
         for model in MODELS:
             merged = made(path("repetitive_merged_calls", model=model))
-            haploid_check(path("repetitive_calls", contig=mf.CONTIG, model=model), locations, merged, species, sample)
+            haploid_check(path("repetitive_calls", contig=mf.CONTIG, model=model), locations,
+                          path("repetitive_window_reads", **window), merged, species, sample)
             final_filtering(merged, made(path("repetitive_results_calls", model=model)),
                             path("repetitive_results_report", model=model),
                             "--min-read-end-distance", filters["min_read_end_distance"])

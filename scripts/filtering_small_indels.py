@@ -56,34 +56,45 @@ def filter_indels(df, **filters):
     
     return filtered_df
 
+def haploid_check_missing(df):
+    """
+    The rows without a haploid check: their read had no usable haploid
+    alignment, or the alignment clipped the call off. NA without the column.
+    """
+    return df['haploid_check'].isna().sum() if 'haploid_check' in df.columns else pd.NA
+
+
 def apply_filters_with_report(df, filter_steps):
     """
     Apply filters sequentially and report how many rows each step removes.
-    
+
     Parameters:
         df: DataFrame
         filter_steps: list of (filter_name, column, condition) tuples
-    
+
     Returns:
         filtered_df: DataFrame after all filters
-        report: list of (filter_name, rows_before, rows_after, rows_removed) tuples
+        report: list of (filter_name, rows_before, rows_after, rows_removed,
+                haploid_check_missing) tuples, the first for the input as
+                read, then one per step; haploid_check_missing counts the
+                rows kept that have no haploid check
     """
-    report = []
+    report = [('input', len(df), len(df), 0, haploid_check_missing(df))]
     current_df = df.copy()
-    
+
     for filter_name, column, condition in filter_steps:
         rows_before = len(current_df)
         if column not in current_df.columns:
             print(f"Warning: Column '{column}' not found, skipping filter '{filter_name}'", file=sys.stderr)
-            report.append((filter_name, rows_before, rows_before, 0))
+            report.append((filter_name, rows_before, rows_before, 0, haploid_check_missing(current_df)))
             continue
-        
+
         current_df = filter_indels(current_df, **{column: condition})
         rows_after = len(current_df)
         rows_removed = rows_before - rows_after
-        report.append((filter_name, rows_before, rows_after, rows_removed))
+        report.append((filter_name, rows_before, rows_after, rows_removed, haploid_check_missing(current_df)))
         print(f"  {filter_name}: {rows_before} -> {rows_after} ({rows_removed} removed)", file=sys.stderr)
-    
+
     return current_df, report
 
 def main():
@@ -172,8 +183,9 @@ def main():
     
     # Save filter report if requested
     if args.report:
-        report_df = pd.DataFrame(report, columns=['filter', 'rows_before', 'rows_after', 'rows_removed'])
-        report_df.to_csv(args.report, sep='\t', index=False)
+        report_df = pd.DataFrame(report, columns=['filter', 'rows_before', 'rows_after', 'rows_removed',
+                                                  'haploid_check_missing'])
+        report_df.to_csv(args.report, sep='\t', index=False, na_rep='NA')
         print(f"Filter report saved to {args.report}", file=sys.stderr)
 
 if __name__ == "__main__":

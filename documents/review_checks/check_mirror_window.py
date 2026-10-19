@@ -21,8 +21,9 @@ import pysam
 import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
-from filtering_haploid_mappping import find_indel_position_in_read  # noqa: E402
-from utilities import subread_array  # noqa: E402
+from filtering_haploid_mappping import check_call  # noqa: E402
+from old_haploid_walk import find_indel_position_in_read  # noqa: E402
+from utilities import reverse_complement, subread_array  # noqa: E402
 
 warnings.simplefilter("ignore")
 pysam.set_verbosity(0)          # the copied index can be older than the BAM; harmless
@@ -243,18 +244,26 @@ for c in merged.itertuples(index=False):
     low, high = slide(read, kind, gap, c.indel_string if kind == "D" else read[gap:gap + n])
     if flipped:
         low, high = (length - high, length - low) if kind == "D" else (length - high - n, length - low - n)
+    # The pipeline's check as fixed since the review takes the read as sequenced.
+    forward = read if c.diploid_direction == "+" else reverse_complement(read)
+    fixed, _, _, _ = check_call(forward, int(rec[1]), cigar, c.start, c.indel_type, c.indel_string, c.diploid_direction)
     rows.append({"flipped": flipped, "type": c.indel_type, "size": n, "recorded": c.haploid_check,
                  "now": now, "H1 fixed": walk_with_h1_fixed(cigar, position_used, kind, n),
                  "H1+H2 fixed": mapped in same, "H1+H2+H3 fixed": any(low <= q <= high for q in same),
-                 "contig_hap": rec[2]})
+                 "pipeline fixed": np.nan if fixed is None else float(fixed), "contig_hap": rec[2]})
 haploid = pd.DataFrame(rows)
-print(f"The pipeline's own find_indel_position_in_read() reproduces the recorded haploid_check for "
+print(f"The walk as reviewed (old_haploid_walk.py) reproduces the recorded haploid_check for "
       f"{(haploid.now == haploid.recorded).mean():.1%} of {len(haploid):,} calls")
 print(f"InDels per read in the haploid CIGARs (median): {np.median([len(events(v[5])) for v in first.values()]):.0f}")
 print("\nShare of calls passing the haploid check, now and with the bugs fixed one after another:")
 print(haploid.groupby(["flipped", "type", "size"]).agg(
     calls=("now", "size"), now=("now", "mean"), H1_fixed=("H1 fixed", "mean"),
-    H1_H2_fixed=("H1+H2 fixed", "mean"), H1_H2_H3_fixed=("H1+H2+H3 fixed", "mean")).round(3).to_string())
+    H1_H2_fixed=("H1+H2 fixed", "mean"), H1_H2_H3_fixed=("H1+H2+H3 fixed", "mean"),
+    pipeline_fixed=("pipeline fixed", "mean")).round(3).to_string())
+checked = haploid[haploid["pipeline fixed"].notna()]
+print(f"The pipeline's check as fixed agrees with H1+H2+H3 fixed for "
+      f"{(checked['pipeline fixed'] == checked['H1+H2+H3 fixed']).mean():.1%} of the calls it checks; "
+      f"{len(haploid) - len(checked)} it leaves NA, as the haploid alignment clips them off")
 wrong = haploid[haploid.now & ~haploid["H1+H2+H3 fixed"]]
 print(f"\nH4: calls passing now with no matching event where the InDel is: {len(wrong)} of {haploid.now.sum():,}")
 print(f"Overall pass rate: now {haploid.now.mean():.1%}, with H1-H3 fixed {haploid['H1+H2+H3 fixed'].mean():.1%}")
