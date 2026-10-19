@@ -96,3 +96,11 @@ def test_window_counts_are_summed_on_every_other_column(tmp_path):
     header, *rows = out.read_text().splitlines()
     assert header == "contig\tcontext\tmapQ\ttissue\tkmerQ\tcount"
     assert sorted(rows) == ["c1\tA\t60\tbrain\t93\t1", "c1\tA\t60\tliver\t93\t7", "c1\tC\t5\tliver\t40\t7"]
+
+
+def test_the_key_parameters_are_the_strata_block_as_one_shell_word(pipeline):
+    import json
+    import shlex
+    words = shlex.split(f"--key-parameters {pipeline.key_parameters()}")
+    assert len(words) == 2
+    assert json.loads(words[1]) == pipeline.config["strata"]

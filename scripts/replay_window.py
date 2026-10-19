@@ -12,6 +12,7 @@ replays, and the replay tests the pipeline as it is now. Outputs go to local/ in
 the window and the scripts' messages to local/replay.log. Each table is
 compared with scripts/compare_tables.py; the exit status is 1 if any differs.
 """
+import json
 import os
 import subprocess
 import sys
@@ -34,7 +35,8 @@ def main():
     with open(os.path.join(REPO, "config.yaml")) as handle:
         current = yaml.safe_load(handle)
     models, filters = current["repeats"]["models"], current["final_filters"]
-    coverage_band = ["--coverage-band", *current["scan"]["coverage_band"]]
+    scan_options = ["--coverage-band", *current["scan"]["coverage_band"],
+                    "--key-parameters", json.dumps(current["strata"])]
     data = Pipeline(f"{window}/config.yaml", base=window)
     # A window exported before a layout template existed lacks it; this
     # checkout's template places the file the same way.
@@ -68,7 +70,7 @@ def main():
     os.makedirs(w3, exist_ok=True)
     run("nonrepetitive_scan.py", data.path("nonrepetitive_mask", species, sample, contig=contig), *inputs,
         f"{w3}/calls.tsv", f"{w3}/opportunities.tsv", f"{w3}/reads.fastq",
-        *coverage_band, "--indel-sizes", *current["scan"]["indel_sizes"])
+        *scan_options, "--indel-sizes", *current["scan"]["indel_sizes"])
     replay(f"{w3}/calls.tsv", data.path("nonrepetitive_haploid_locations", species, sample), w3)
     tables = [("workflow 3", w3, f"{cluster}/nonrepetitive_indels")]
 
@@ -81,7 +83,7 @@ def main():
             os.makedirs(f"{w4}/{model}", exist_ok=True)
             model_args += ["--model", model, data.path("tandem_repeats", species, sample, contig=contig, model=model),
                            f"{w4}/{model}/calls.tsv", f"{w4}/{model}/opportunities.tsv"]
-        run("tandem_repeat_scan.py", *inputs, f"{w4}/reads.fastq", *coverage_band, *model_args)
+        run("tandem_repeat_scan.py", *inputs, f"{w4}/reads.fastq", *scan_options, *model_args)
         for model in models:
             replay(f"{w4}/{model}/calls.tsv", data.path("repetitive_haploid_locations", species, sample), f"{w4}/{model}",
                    "--min-read-end-distance", filters["min_read_end_distance"])

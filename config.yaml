@@ -245,6 +245,12 @@ scan:
   # Workflow 3: the smallest and largest InDels called outside repeats, in bp.
   indel_sizes: [1, 3]
 
+# The keys calls and opportunities are both split by (scripts/strata.py), and
+# the bins they use.
+strata:
+  # The lowest share of covering subreads that match, among the bases tested.
+  subread_support_bins: [0.8, 0.9, 1.0]
+
 final_filters:
   # Minimum Phred base quality across the InDel 4-mer.
   min_kmerq: 93

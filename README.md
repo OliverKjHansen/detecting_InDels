@@ -183,7 +183,7 @@ in.
 | `paths.output`, `paths.results`, `paths.plots` | Where intermediates, final tables and PDFs go, relative to the repository root. |
 | `tools.mreps`, `tools.trf` | The two repeat finders. |
 | `layout` | Where every file lives: one path template per file, filled from `paths`, `assembly_type`, species, sample and, per file, contig, model, window start and end, or period k. The workflows build every path from these, through [workflows/pipeline.py](workflows/pipeline.py). |
-| `precompute`, `repeats`, `scan`, `final_filters`, `classification` | The workflows' parameters, below. The scripts take them as arguments. |
+| `precompute`, `repeats`, `scan`, `strata`, `final_filters`, `classification` | The workflows' parameters, below. The scripts take them as arguments; the scans take the whole `strata` block as `--key-parameters`. |
 
 No workflow reads `sperm_samples` or `sample_age`; the notebooks do.
 
@@ -204,6 +204,7 @@ Parameters:
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
 | Minimum kmerQ | 93 | `final_filters.min_kmerq` |
 | Minimum distance to the read end (workflow 4) | 100 bp | `final_filters.min_read_end_distance` |
+| Bins of subread support, a key on calls and opportunities | 0.8, 0.9, 1 | `strata.subread_support_bins` |
 | Germline and somatic cell types; the 14 score bins | `Sperm.*` against six somatic types; edges −10 to 10 | `classification.germline_prefix`, `.somatic_types`, `.bin_edges`, `.bin_labels` |
 | Slurm account and per-target cores, memory, walltime | `mutationalscanning` | every workflow |
 
@@ -810,7 +811,7 @@ positions in the read; the position on the contig is `position`.
 | `read_length` | length of the read |
 | `np` | number of passes (PacBio `np` tag) |
 | `ec` | effective coverage (PacBio `ec` tag) |
-| `sm`, `sx` | subreads matching / mismatching at the read base after the anchor: the first inserted base, or the first base after a deletion (PacBio `sm`, `sx`) |
+| `sm`, `sx` | subreads matching / mismatching at the read base after the anchor: the first inserted base, or the first base after a deletion (PacBio `sm`, `sx`). PacBio stores these tags in the order the read was sequenced, which runs backwards along the alignment of a read aligned to the reverse strand; they are read in the alignment's order (S1). |
 | `sm_pre`, `sx_pre` | the same at the anchor |
 | `sa` | subread coverage at the anchor, decoded from PacBio's run-length-encoded `sa` tag |
 | `ToreadEnd` | distance from the anchor to the nearer end of the read's alignment |
@@ -852,6 +853,7 @@ tables.
 |---|---|
 | `tissue` | the read's tissue label, or `NA` |
 | `kmerQ` | lowest base quality among the bases tested, see [kmerQ](#kmerq); only 93 remains after final filtering |
+| `subread_support` | lowest share of covering subreads that match (`sm`/`sa`), among the bases tested, binned by `strata.subread_support_bins`; `NA` for reads without subread tags (Sequel II) |
 
 Every read position is counted once for each size, so the opportunities for one
 size are the rows whose `context` has that length. `canonical_indel` in the

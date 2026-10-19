@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import signal
 
@@ -12,9 +13,10 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 #
 # Usage: python nonrepetitive_scan.py <mask_bed> <contig> <bam> <fasta> <avg_coverage> <tissue> <start> <end> \
 #            <calls.tsv> <opportunities.tsv> <reads.fastq> \
-#            --coverage-band <low> <high> --indel-sizes <smallest> <largest>
+#            --coverage-band <low> <high> --indel-sizes <smallest> <largest> --key-parameters <json>
 #
-# The two options are the `scan` parameters in config.yaml.
+# The first two options are the `scan` parameters in config.yaml, and
+# --key-parameters its `strata` block, as JSON.
 #
 # Every output is written to a .tmp file and renamed only when the whole window
 # is done, so a job that dies never leaves a finished-looking output behind.
@@ -30,6 +32,7 @@ if __name__ == "__main__":
         parser.add_argument(name)
     parser.add_argument("--coverage-band", type=float, nargs=2, required=True, metavar=("LOW", "HIGH"))
     parser.add_argument("--indel-sizes", type=int, nargs=2, required=True, metavar=("SMALLEST", "LARGEST"))
+    parser.add_argument("--key-parameters", type=json.loads, required=True, metavar="JSON")
     args = parser.parse_args()
     calls, opportunities, fastq = args.calls, args.opportunities, args.fastq
 
@@ -39,7 +42,8 @@ if __name__ == "__main__":
         nonrepetitive_scan(args.mask_bed, args.contig, args.bam, args.fasta, args.avg_coverage, args.tissue,
                            args.start, args.end,
                            calls_out=calls_out, opportunities_out=opportunities_out, fastq_out=fastq_out,
-                           coverage_band=args.coverage_band, indel_sizes=args.indel_sizes)
+                           coverage_band=args.coverage_band, indel_sizes=args.indel_sizes,
+                           key_parameters=args.key_parameters)
 
     for path in (calls, opportunities, fastq):
         os.replace(f"{path}.tmp", path)

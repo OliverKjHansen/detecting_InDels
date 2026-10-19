@@ -42,7 +42,8 @@ models = config["repeats"]["models"]
 chunk_size = config["scan"]["window_size"]
 # The positions scanned, and the InDel sizes called and counted.
 scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
-                f"--indel-sizes {' '.join(map(str, config['scan']['indel_sizes']))}")
+                f"--indel-sizes {' '.join(map(str, config['scan']['indel_sizes']))} "
+                f"--key-parameters {pipeline.key_parameters()}")
 
 # Final filtering threshold: minimum Phred base quality across the InDel 4-mer.
 min_kmerq = config["final_filters"]["min_kmerq"]

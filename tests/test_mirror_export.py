@@ -138,7 +138,8 @@ def cluster(tmp_path_factory, fixture_paths):
             utilities.nonrepetitive_scan(mask, mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
                                          calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
                                          coverage_band=coverage_band,
-                                         indel_sizes=pipeline.config["scan"]["indel_sizes"])
+                                         indel_sizes=pipeline.config["scan"]["indel_sizes"],
+                                         key_parameters=pipeline.config["strata"])
         calls = made(path("nonrepetitive_calls", contig=mf.CONTIG))
         place(path("nonrepetitive_window_calls", **window), calls)
         locations = made(path("nonrepetitive_haploid_locations"))
@@ -158,7 +159,7 @@ def cluster(tmp_path_factory, fixture_paths):
                 calls_out={model: opened("repetitive_window_calls", model=model) for model in MODELS},
                 opportunities_out={model: opened("repetitive_window_opportunities", model=model) for model in MODELS},
                 fastq_out=opened("repetitive_window_reads"),
-                coverage_band=coverage_band)
+                coverage_band=coverage_band, key_parameters=pipeline.config["strata"])
         locations = made(path("repetitive_haploid_locations"))
         all_calls = f"{os.path.dirname(locations)}/all_calls.tsv"
         with open(all_calls, "w") as out:

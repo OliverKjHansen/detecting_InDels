@@ -13,6 +13,7 @@ from make_fixtures import CONTIG
 # The pipeline's parameters, as config.yaml sets them; a test can pass others.
 COVERAGE_BAND = (0.5, 2.0)
 INDEL_SIZES = (1, 3)
+KEY_PARAMETERS = {"subread_support_bins": [0.8, 0.9, 1.0]}
 
 
 def rows_of(text):
@@ -30,7 +31,7 @@ def nonrepetitive_scan(paths, window_start=None, window_end=None,
         paths["filters"], CONTIG, paths["bam"], paths["assembly"],
         paths["coverage"], paths["tissue"], window_start, window_end,
         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
-        coverage_band=coverage_band, indel_sizes=indel_sizes,
+        coverage_band=coverage_band, indel_sizes=indel_sizes, key_parameters=KEY_PARAMETERS,
     )
     return calls.getvalue(), opportunities.getvalue(), fastq.getvalue()
 
@@ -44,7 +45,7 @@ def tandem_repeat_scan(beds, paths, window_start=None, window_end=None, coverage
         beds, CONTIG, paths["bam"], paths["assembly"],
         paths["coverage"], paths["tissue"], window_start, window_end,
         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
-        coverage_band=coverage_band,
+        coverage_band=coverage_band, key_parameters=KEY_PARAMETERS,
     )
     return ({model: out.getvalue() for model, out in calls.items()},
             {model: out.getvalue() for model, out in opportunities.items()},

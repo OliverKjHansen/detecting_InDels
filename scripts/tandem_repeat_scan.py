@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import signal
 
@@ -11,11 +12,12 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 # reads carrying a call in any model to one FASTQ.
 #
 # Usage: python tandem_repeat_scan.py <contig> <bam> <fasta> <avg_coverage> <tissue> <start> <end> <reads.fastq> \
-#            --coverage-band <low> <high> \
+#            --coverage-band <low> <high> --key-parameters <json> \
 #            --model M0 <M0.bed> <M0_calls.tsv> <M0_opportunities.tsv> \
 #            --model M1 ...
 #
-# --coverage-band is scan.coverage_band in config.yaml.
+# --coverage-band is scan.coverage_band in config.yaml, and --key-parameters
+# its `strata` block, as JSON.
 #
 # Every output is written to a .tmp file and renamed only when the whole window
 # is done, so a job that dies never leaves a finished-looking output behind.
@@ -33,6 +35,7 @@ def main():
     parser.add_argument("end", type=int)
     parser.add_argument("fastq", help="reads carrying a call in any model")
     parser.add_argument("--coverage-band", type=float, nargs=2, required=True, metavar=("LOW", "HIGH"))
+    parser.add_argument("--key-parameters", type=json.loads, required=True, metavar="JSON")
     parser.add_argument("--model", nargs=4, action="append", required=True,
                         metavar=("NAME", "BED", "CALLS", "OPPORTUNITIES"))
     args = parser.parse_args()
@@ -49,6 +52,7 @@ def main():
         opportunities_out={name: handles[opportunities] for name, _, _, opportunities in args.model},
         fastq_out=handles[args.fastq],
         coverage_band=args.coverage_band,
+        key_parameters=args.key_parameters,
     )
 
     for path, handle in handles.items():

@@ -108,7 +108,7 @@ def write_fasta(path, contig, sequence, width=60):
 
 def make_read(name, reference, kind=None, position=None, length=0, *, start=0, end=None,
               reverse=False, mapq=MAPPING_QUALITY, soft_clip=(0, 0), substitutions=None,
-              qualities=None, subreads=None):
+              qualities=None, subreads=None, subread_tags=True):
     """
     One aligned read over reference[start:end], by default the whole contig,
     as pbmm2 writes it.
@@ -139,6 +139,8 @@ def make_read(name, reference, kind=None, position=None, length=0, *, start=0, e
     subreads: (matching, mismatching, covering) subreads per reference
     position, with the key "inserted" for every inserted base. Other bases get
     SUBREADS covering subreads, all of them matching.
+
+    subread_tags: False leaves out sm, sx and sa, as in Sequel II reads.
     """
     end = len(reference) if end is None else end
     if kind is not None:
@@ -196,9 +198,10 @@ def make_read(name, reference, kind=None, position=None, length=0, *, start=0, e
         sm, sx, sa = sm[::-1], sx[::-1], sa[::-1]
     read.set_tag("np", 20, value_type="i")
     read.set_tag("ec", 20.0, value_type="f")
-    read.set_tag("sm", array.array("B", sm))
-    read.set_tag("sx", array.array("B", sx))
-    read.set_tag("sa", array.array("I", run_length_encode(sa)))
+    if subread_tags:
+        read.set_tag("sm", array.array("B", sm))
+        read.set_tag("sx", array.array("B", sx))
+        read.set_tag("sa", array.array("I", run_length_encode(sa)))
 
     return read
 

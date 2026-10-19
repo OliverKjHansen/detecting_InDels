@@ -15,6 +15,7 @@ the current directory, and relative paths in it, such as `output`, are made
 absolute from there, because gwf runs the recipes from workflows/.
 """
 
+import json
 import os
 import shlex
 import string
@@ -80,6 +81,10 @@ class Pipeline:
         values = [block["germline_prefix"], ",".join(block["somatic_types"]),
                   ",".join(map(str, block["bin_edges"])), ",".join(map(str, block["bin_labels"]))]
         return " ".join(shlex.quote(value) for value in values)
+
+    def key_parameters(self):
+        """The scans' --key-parameters: the `strata` block, as JSON quoted for the shell."""
+        return shlex.quote(json.dumps(self.config["strata"], separators=(",", ":")))
 
     def long_contigs(self, species, sample):
         """

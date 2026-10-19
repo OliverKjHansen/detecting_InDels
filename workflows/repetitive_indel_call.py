@@ -37,7 +37,8 @@ models = config["repeats"]["models"]
 # Step 1 splits each contig into windows of this many bp, one scan job per window.
 chunk_size = config["scan"]["window_size"]
 # The positions scanned.
-scan_options = f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))}"
+scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
+                f"--key-parameters {pipeline.key_parameters()}")
 
 # Final filtering thresholds.
 min_kmerq = config["final_filters"]["min_kmerq"]
