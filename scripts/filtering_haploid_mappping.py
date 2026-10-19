@@ -13,6 +13,7 @@ import re
 import sys
 from collections import defaultdict
 
+import numpy
 import pandas
 import pysam
 
@@ -29,30 +30,37 @@ haploid_header = [
 
 def cigar_events(cigar):
   """
-  Walk a haploid CIGAR along its read: (read length, InDels, softclip_haploid,
-  other_ops). Each InDel is (op, length, start, end), an interval of the read
-  in the alignment's orientation: an insertion covers its inserted bases, a
-  deletion is the empty interval at its gap. Clipped bases, hard ones too,
-  are read bases, so positions are those of the whole read.
+  Walk a haploid CIGAR along its read: (read length, InDels, aligned part,
+  softclip_haploid, other_ops). Each InDel is (op, length, start, end), an
+  interval of the read in the alignment's orientation: an insertion covers
+  its inserted bases, a deletion is the empty interval at its gap. The aligned
+  part is the interval between the clips. Clipped bases, hard ones too, are
+  read bases, so positions are those of the whole read.
   """
   position, events = 0, []
+  first = last = None
   softclip, other_ops = False, None
   for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar):
     length = int(length)
-    if op in "M=XS":
-      position += length
+    if op in "SH":
       softclip = softclip or op == "S"
+      other_ops = "HPN" if op == "H" else other_ops
+      position += length
+      continue
+    first = position if first is None else first
+    if op in "M=X":
+      position += length
     elif op == "I":
       events.append(("I", length, position, position + length))
       position += length
     elif op == "D":
       events.append(("D", length, position, position))
     else:
-      # H, P or N
+      # P or N
       other_ops = "HPN"
-      if op == "H":
-        position += length
-  return position, events, softclip, other_ops
+    last = position
+  aligned = (position, position) if first is None else (first, last)
+  return position, events, aligned, softclip, other_ops
 
 
 def mirrored(interval, length):
@@ -101,7 +109,13 @@ def check_call(read, flag, cigar, start, indel_type, indel_string, diploid_direc
   InDel of the same type and size anywhere in that stretch, and only there
   (H4). The distance is from the call to the nearest such InDel, in read
   bases, and there is none without a match.
+
+  Every value is None when the record is not a plain forward or reverse
+  alignment (flag 0 or 16), and haploid_check and the distance are None when
+  the haploid alignment clips the call off: the check cannot tell either way.
   """
+  if flag not in (0, 16):
+    return None, None, None, None
   op = "I" if indel_type == "insertion" else "D"
   size = len(indel_string)
   # `start` read bases lead up to the anchor; the InDel follows it. The
@@ -112,9 +126,12 @@ def check_call(read, flag, cigar, start, indel_type, indel_string, diploid_direc
     call, deleted = mirrored(call, len(read)), reverse_complement(deleted)
   first, end = slide(read, op, call[0], size, deleted)
 
-  length, events, softclip, other_ops = cigar_events(cigar)
+  length, events, aligned, softclip, other_ops = cigar_events(cigar)
   if flag == 16:
     events = [(event_op, n, *mirrored(interval, length)) for event_op, n, *interval in events]
+    aligned = mirrored(aligned, length)
+  if not aligned[0] <= call[0] <= call[1] <= aligned[1]:
+    return None, None, softclip, other_ops
   distances = [abs(event_start - call[0]) for event_op, n, event_start, event_end in events
                if event_op == op and n == size and first <= event_start and event_end <= end]
   if not distances:
@@ -125,6 +142,22 @@ def check_call(read, flag, cigar, start, indel_type, indel_string, diploid_direc
 # The columns of a call that check_call() needs.
 CALL_COLUMNS = ["readID", "start", "indel_type", "indel_string", "diploid_direction", "read_length"]
 
+# What check_call() gives a call it cannot check.
+UNCHECKED = (None, None, None, None)
+
+
+def haploid_records(locations_file):
+  """
+  One haploid alignment record per read, indexed by read: its plain forward
+  or reverse alignment (flag 0 or 16), the primary, if it has one, and
+  otherwise its first record, which check_call() cannot use. Every value is
+  kept as text.
+  """
+  records = pandas.read_csv(locations_file, sep="\t", names=haploid_header, dtype=str, keep_default_na=False)
+  usable = records.bitflag_hap.isin(["0", "16"])
+  records = records.iloc[numpy.argsort(~usable.to_numpy(), kind="stable")]
+  return records.drop_duplicates(subset="readID").set_index("readID")
+
 
 def check_tables(calls_files, records, reads_file):
   """
@@ -132,26 +165,37 @@ def check_tables(calls_files, records, reads_file):
 
   The FASTQ holds every read carrying a call, which can be most of a sample's
   reads, so it is streamed once and each read's calls are checked as it
-  passes. A call is None when its read has no haploid record of flag 0 or 16;
-  check_calls() leaves it out.
+  passes. A call stays unchecked when its read is not in the FASTQ or has
+  another length there than in the call, since its position would then be
+  in another read.
   """
   checks, waiting = [], defaultdict(list)
   for number, calls_file in enumerate(calls_files):
     calls = pandas.read_csv(calls_file, sep="\t", usecols=CALL_COLUMNS, dtype=str, keep_default_na=False)
-    checks.append([None] * len(calls))
+    checks.append([UNCHECKED] * len(calls))
     for row, call in enumerate(calls.itertuples(index=False)):
       waiting[call.readID].append((number, row, call))
 
-  flags = dict(zip(records.index, records.bitflag_hap))
+  flags = dict(zip(records.index, records.bitflag_hap.astype(int)))
   cigars = dict(zip(records.index, records.cigar_hap))
+  unusable = clipped = 0
   with pysam.FastxFile(reads_file) as reads:
     for read in reads:
-      calls = waiting.pop(read.name, None)
-      if calls is None or flags.get(read.name) not in (0, 16):
-        continue
-      for number, row, call in calls:
-        checks[number][row] = check_call(read.sequence, flags[read.name], cigars[read.name], int(call.start),
-                                         call.indel_type, call.indel_string, call.diploid_direction)
+      for number, row, call in waiting.pop(read.name, []):
+        if int(call.read_length) != len(read.sequence):
+          continue
+        check = check_call(read.sequence, flags.get(read.name), cigars.get(read.name), int(call.start),
+                           call.indel_type, call.indel_string, call.diploid_direction)
+        unusable += check[2] is None
+        clipped += check[2] is not None and check[0] is None
+        checks[number][row] = check
+
+  total = sum(len(table) for table in checks)
+  unchecked = sum(check[0] is None for table in checks for check in table)
+  print(f"{unchecked:,} of {total:,} calls without a haploid check: {unusable:,} on reads without a "
+        f"flag 0 or 16 haploid record, {clipped:,} clipped off by the haploid alignment, "
+        f"{unchecked - unusable - clipped:,} on reads missing from the FASTQ or of another length there",
+        file=sys.stderr)
   return checks
 
 
@@ -165,32 +209,25 @@ def main():
     sys.exit("Usage: filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>")
   *calls_files, locations_file, reads_file = sys.argv[1:]
 
-  haploid_alignment = pandas.read_csv(locations_file, sep='\t', names=haploid_header)
-  # One record per read: the first, which is the primary alignment as it sorts first.
-  haploid_alignment = haploid_alignment.drop_duplicates(subset="readID").set_index("readID")
-
-  checks = check_tables(calls_files, haploid_alignment, reads_file)
+  records = haploid_records(locations_file)
+  checks = check_tables(calls_files, records, reads_file)
   for file_number, calls_file in enumerate(calls_files):
-    check_calls(calls_file, haploid_alignment, checks[file_number], print_header=(file_number == 0))
+    check_calls(calls_file, records, checks[file_number], print_header=(file_number == 0))
 
 
-def check_calls(calls_file, haploid_alignment, checks, print_header):
-  """Join one call table to the haploid alignments and print the checked calls."""
-  indels = pandas.read_csv(calls_file, sep='\t')
-
-  merged = indels.join(haploid_alignment, on="readID")
+def check_calls(calls_file, records, checks, print_header):
+  """
+  Print one call table with its read's haploid record and its checks. Every
+  call is printed: the ones the check could not make have NA in its columns.
+  The call's own columns are printed as written.
+  """
+  calls = pandas.read_csv(calls_file, sep="\t", dtype=str, keep_default_na=False)
+  merged = calls.join(records, on="readID").drop(columns="cigar_hap")
   merged = merged.rename(columns=lambda c: c.lstrip("#"))
-
-  new_columns = ["haploid_check","distance_to_indel_in_hap","softclip_haploid", "other_ops"]
-  out_cols = [col for col in merged.columns if col != "cigar_hap"]
-  if print_header:
-    print("\t".join(out_cols + new_columns))
-
-  for row, check in zip(merged.itertuples(index=False), checks):
-    if check is None:
-      continue
-    values = [getattr(row, col) for col in out_cols]
-    print(*values, *check, sep="\t")
+  new_columns = ["haploid_check", "distance_to_indel_in_hap", "softclip_haploid", "other_ops"]
+  for column, values in zip(new_columns, zip(*checks) if checks else [[]] * len(new_columns)):
+    merged[column] = pandas.Series(values, index=merged.index, dtype=object)
+  merged.to_csv(sys.stdout, sep="\t", index=False, header=print_header, na_rep="NA")
 
 
 if __name__ == "__main__":

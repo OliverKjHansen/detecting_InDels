@@ -61,7 +61,7 @@ def main():
         with open(f"{results}/merged_indels.tsv", "w") as merged:
             run("filtering_haploid_mappping.py", calls, locations, reads, stdout=merged)
         run("filtering_small_indels.py", f"{results}/merged_indels.tsv", "-o", f"{results}/indels.tsv",
-            "--haploid-check", "True", "--min-quality", filters["min_kmerq"], *options,
+            "--min-quality", filters["min_kmerq"], *options,
             "--report", f"{results}/filter_report.tsv")
         run("filtering_opportunities.py", f"{results}/opportunities.tsv",
             "-o", f"{results}/opportunities_q{filters['min_kmerq']}.tsv", "--min-kmerq", filters["min_kmerq"])

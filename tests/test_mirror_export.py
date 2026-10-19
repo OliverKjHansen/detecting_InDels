@@ -71,7 +71,7 @@ def haploid_check(calls, locations, reads, merged, species, sample):
 
 
 def final_filtering(merged, final_calls, report, min_kmerq, *extra):
-    run_script("filtering_small_indels.py", merged, "-o", final_calls, "--haploid-check", "True",
+    run_script("filtering_small_indels.py", merged, "-o", final_calls,
                "--min-quality", str(min_kmerq), *map(str, extra), "--report", report)
 
 

@@ -251,7 +251,8 @@ for species, samples in config["samples"].items():
         """
 
         # Step 7 — final filtering, with a report of rows removed per step.
-        # These small tables are the results.
+        # These small tables are the results. The haploid check is a column
+        # of the calls, not a filter; the report counts the calls without one.
         results_calls         = path("nonrepetitive_results_calls")
         results_opportunities = path("nonrepetitive_results_opportunities")
         results_report        = path("nonrepetitive_results_report")
@@ -269,7 +270,6 @@ for species, samples in config["samples"].items():
         mkdir -p {resultsdir}
         python {scripts}/filtering_small_indels.py {merged_indels} \\
             -o {results_calls} \\
-            --haploid-check True \\
             --min-quality {min_kmerq} \\
             --report {results_report}
         python {scripts}/filtering_opportunities.py {merged_opportunities} \\
