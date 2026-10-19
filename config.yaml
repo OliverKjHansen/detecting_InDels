@@ -134,7 +134,8 @@ tools:
 # ---------------------------------------------------------------------------
 # File layout. These templates are the single source of truth for where data
 # lives; workflows never build paths by hand. Placeholders are filled from
-# `paths` and `assembly_type` above, plus species/sample/contig/model.
+# `paths` and `assembly_type` above, plus species/sample/contig/model and, for
+# files written per window of a contig, start/end.
 # ---------------------------------------------------------------------------
 layout:
   # Raw inputs.
@@ -146,7 +147,9 @@ layout:
 
   # Written by precompute.py.
   contig_fasta: "{output}/precomute/{species}/{sample}/contigs/{contig}.fa"
+  long_contigs: "{output}/precomute/{species}/{sample}/long_contigs.bed"
   coverage:     "{output}/precomute/{species}/{sample}/avg_coverage.txt"
+  unresolved_window: "{output}/precomute/{species}/{sample}/unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed"
   unresolved:   "{output}/precomute/{species}/{sample}/unresolved_haplotypes/{contig}.bed"
   tissue:       "{output}/precomute/{species}/{sample}/sorted_tissue_classification.tsv"
 

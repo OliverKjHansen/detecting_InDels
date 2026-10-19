@@ -1,33 +1,21 @@
-import os
-from os.path import expanduser
-
-import yaml
 from gwf import Workflow
+
+from pipeline import Pipeline
 
 # ---------------------------------------------------------------------------
 # Configuration, read from config.yaml. Run gwf from the repository root:
 #
 #   gwf -f workflows/precompute.py run
 #
-# output/ and scripts/ are made absolute from there, because gwf runs the
-# recipes from workflows/.
+# Paths come from the `layout` templates in config.yaml, through pipeline.py.
 # ---------------------------------------------------------------------------
 
-with open("config.yaml") as handle:
-    config = yaml.safe_load(handle)
+pipeline          = Pipeline()
+assembly_type     = pipeline.config["assembly_type"]
+min_contig_length = pipeline.config["min_contig_length"]
+scripts           = pipeline.scripts
 
-sample_dict       = config["samples"]
-tissue_dict       = config["tissue_samples"]
-assembly_type     = config["assembly_type"]
-min_contig_length = config["min_contig_length"]
-inpath_fa         = expanduser(config["paths"]["fasta"])
-inpath_bam        = expanduser(config["paths"]["bam"])
-alignment_overrides = config.get("alignment_overrides", {})
-inpath_labels     = expanduser(config["paths"]["read_labels"])
-output            = os.path.abspath(config["paths"]["output"])
-scripts           = os.path.abspath("scripts")
-
-# should properly go to config 
+# should properly go to config
 chunk_size = 40_000_000
 
 
@@ -40,38 +28,33 @@ gwf = Workflow(
         'account': 'mutationalscanning'})
 
 
-for species, samples in sample_dict.items():
+for species, samples in pipeline.config["samples"].items():
     for sample in samples:
-        assembly  = f"{inpath_fa}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
+        assembly  = pipeline.path("assembly", species, sample)
         # Samples listed under alignment_overrides in config.yaml use that BAM.
-        alignment = expanduser(alignment_overrides.get(species, {}).get(
-            sample, f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_{assembly_type}.bam"))
-        outdir    = f"{output}/precomute/{species}/{sample}"
-        coverage  = f"{outdir}/avg_coverage.txt"
-        contig_dict = {}
-
-        with open(f"{assembly}.fai") as contigs:
-            for line in contigs:
-                contig_dict[line.split()[0]] = line.split()[1]
+        alignment = pipeline.alignment(species, sample)
+        outdir    = pipeline.folder("coverage", species, sample)
+        coverage  = pipeline.path("coverage", species, sample)
+        long_contigs = pipeline.long_contigs(species, sample)
 
         # Step 1 — split the assembly into per-contig FASTAs.
-        contigs_dir = f"{outdir}/contigs"
+        contigs_dir = pipeline.folder("contig_fasta", species, sample)
 
         gwf.target(
             f"faSplit_{sample}_{assembly_type}",
             inputs=[assembly],
-            outputs=[f"{contigs_dir}/{contig}.fa" for contig, length in contig_dict.items() if int(length) > min_contig_length],
+            outputs=[pipeline.path("contig_fasta", species, sample, contig=contig) for contig in long_contigs],
         ) << f"""
         mkdir -p {contigs_dir}
         faSplit byname {assembly} {contigs_dir}/
         """
 
         # Step 2 — average depth across the positions samtools reports.
-        long_contigs_bed = f"{outdir}/long_contigs.bed"
+        long_contigs_bed = pipeline.path("long_contigs", species, sample)
 
         gwf.target(
             f"average_coverage_{sample}",
-            inputs=[alignment, f"{assembly}.fai"],
+            inputs=[alignment, pipeline.path("assembly_fai", species, sample)],
             outputs=[long_contigs_bed, coverage],
             cores=8,
             memory="100g",
@@ -89,20 +72,16 @@ for species, samples in sample_dict.items():
         # built from the full span of its reads, so it can reach past its
         # window; the pieces from neighbouring windows then overlap, and
         # bedtools merge joins them back into one region.
-        chunk_dir = f"{outdir}/unresolved_haplotypes/chunks"
+        chunk_dir = pipeline.folder("unresolved_window", species, sample)
 
-        for contig, length in contig_dict.items():
-            length = int(length)
-            if length <= min_contig_length:
-                continue
-
-            unresolved = f"{outdir}/unresolved_haplotypes/{contig}.bed"
+        for contig, length in long_contigs.items():
+            unresolved = pipeline.path("unresolved", species, sample, contig=contig)
             chunk_beds = []
 
             # Step 3a — one job per window.
             for start in range(0, length, chunk_size):
                 end = min(start + chunk_size, length)
-                chunk_bed = f"{chunk_dir}/{contig}_{start}_{end}.bed"
+                chunk_bed = pipeline.path("unresolved_window", species, sample, contig=contig, start=start, end=end)
                 chunk_beds.append(chunk_bed)
 
                 gwf.target(
@@ -130,9 +109,9 @@ for species, samples in sample_dict.items():
 
         # Step 4 — read -> tissue table, sorted by read ID. Only samples listed
         # under tissue_samples in config.yaml have read labels.
-        if sample in tissue_dict.get(species, []):
-            read_labels = f"{inpath_labels}/{species}/{sample}/{sample}_read_labels.txt"
-            tissue      = f"{outdir}/sorted_tissue_classification.tsv"
+        if pipeline.is_listed("tissue_samples", species, sample):
+            read_labels = pipeline.path("read_labels", species, sample)
+            tissue      = pipeline.path("tissue", species, sample)
 
             gwf.target(
                 f"sorting_tissue_classification_{sample}_{assembly_type}",

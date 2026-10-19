@@ -921,6 +921,8 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
 | [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve |
+| [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/` |
+| [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs |
 | [tests/test_strip_notebook_outputs.py](tests/test_strip_notebook_outputs.py) | the notebook clean filter, alone and through git |
 
 The fixtures come from [tests/make_fixtures.py](tests/make_fixtures.py), which
@@ -929,6 +931,14 @@ session; `python tests/make_fixtures.py` writes the same files to
 `tests/fixtures/` to look at. The planted InDels and the expected outcome for
 each are `PLANTED` in that file, and its `make_read()` builds the other read
 shapes. The tests need no cluster and no external binaries.
+
+The workflow snapshots show whether a change alters what the workflows run.
+After a deliberate change, rewrite them and review their diff:
+
+```bash
+UPDATE_SNAPSHOTS=1 .venv/bin/python -m pytest tests/test_workflow_snapshots.py
+git diff tests/snapshots/
+```
 
 ---
 
@@ -939,6 +949,7 @@ config.yaml                        samples, input paths, tools
 environment.yml                    conda environment for the cluster
 requirements.txt                   Python packages for local work and tests
 workflows/
+  pipeline.py                      config loading and paths from the layout templates, shared by the workflows
   precompute.py                    workflow 1
   repetitive_dna.py                workflow 2
   indel_mutation_call.py           workflow 3

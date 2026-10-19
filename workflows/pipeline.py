@@ -1,0 +1,76 @@
+"""
+What every workflow needs from config.yaml: the samples, their paths built
+from the `layout` templates, and the contigs long enough to analyse.
+
+    from pipeline import Pipeline
+
+    pipeline = Pipeline()
+    assembly = pipeline.path("assembly", species, sample)
+    for contig, length in pipeline.long_contigs(species, sample).items():
+        fasta = pipeline.path("contig_fasta", species, sample, contig=contig)
+
+gwf puts the workflow's folder on the import path, so the workflows import
+this file directly. Run gwf from the repository root: config.yaml is read from
+the current directory, and relative paths in it, such as `output`, are made
+absolute from there, because gwf runs the recipes from workflows/.
+"""
+
+import os
+import string
+
+import yaml
+
+
+class Pipeline:
+    def __init__(self, config_path="config.yaml"):
+        with open(config_path) as handle:
+            self.config = yaml.safe_load(handle)
+        self.roots = {name: os.path.abspath(os.path.expanduser(value))
+                      for name, value in self.config["paths"].items()}
+        self.scripts = os.path.abspath("scripts")
+
+    def is_listed(self, table, species, sample):
+        """Whether the sample is listed under its species in a table such as `tissue_samples`."""
+        return sample in ((self.config.get(table) or {}).get(species) or [])
+
+    def path(self, name, species, sample, **fields):
+        """
+        The `layout` template `name` for one sample, filled in from `paths` and
+        `assembly_type` plus `fields` such as contig or model.
+        """
+        return self.config["layout"][name].format(
+            **self.roots, assembly_type=self.config["assembly_type"],
+            species=species, sample=sample, **fields)
+
+    def folder(self, name, species, sample):
+        """
+        The folder the files of `layout` template `name` go in, for one sample.
+        The per-file fields, such as contig, may only appear in the file name.
+        """
+        filled = {"species", "sample", "assembly_type", *self.roots}
+        blanks = {field: "\0" for _, field, _, _ in string.Formatter().parse(self.config["layout"][name])
+                  if field and field not in filled}
+        folder = os.path.dirname(self.path(name, species, sample, **blanks))
+        if "\0" in folder:
+            raise ValueError(f"layout.{name} has a per-file field in its folder")
+        return folder
+
+    def alignment(self, species, sample):
+        """The sample's BAM: its entry under `alignment_overrides`, if any, else the layout's."""
+        overrides = (self.config.get("alignment_overrides") or {}).get(species) or {}
+        if sample in overrides:
+            return os.path.expanduser(overrides[sample])
+        return self.path("alignment", species, sample)
+
+    def long_contigs(self, species, sample):
+        """
+        {contig: length} for the contigs of the sample's assembly longer than
+        `min_contig_length`, in the order of its index.
+        """
+        contigs = {}
+        with open(self.path("assembly_fai", species, sample)) as handle:
+            for line in handle:
+                contig, length = line.split()[:2]
+                if int(length) > self.config["min_contig_length"]:
+                    contigs[contig] = int(length)
+        return contigs

@@ -1,10 +1,10 @@
 """
 Shared pytest setup.
 
-Puts the repository root and scripts/ on sys.path so tests can import the
-analysis modules, which use flat imports
+Puts the repository root, scripts/ and workflows/ on sys.path so tests can
+import the analysis modules and the workflows' helper, which use flat imports
 (``from utilities import nonrepetitive_scan``) because they are normally run as
-standalone scripts.
+standalone scripts, and gwf puts a workflow's own folder on the path.
 """
 
 import os
@@ -16,8 +16,9 @@ import make_fixtures
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "scripts")
+WORKFLOW_DIR = os.path.join(REPO_ROOT, "workflows")
 
-for path in (REPO_ROOT, SCRIPTS_DIR):
+for path in (REPO_ROOT, SCRIPTS_DIR, WORKFLOW_DIR):
     if path not in sys.path:
         sys.path.insert(0, path)
 

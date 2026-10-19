@@ -15,7 +15,6 @@ import difflib
 import json
 import os
 import runpy
-import sys
 
 import pytest
 
