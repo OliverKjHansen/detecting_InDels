@@ -250,7 +250,7 @@ for c in merged.itertuples(index=False):
     rows.append({"flipped": flipped, "type": c.indel_type, "size": n, "recorded": c.haploid_check,
                  "now": now, "H1 fixed": walk_with_h1_fixed(cigar, position_used, kind, n),
                  "H1+H2 fixed": mapped in same, "H1+H2+H3 fixed": any(low <= q <= high for q in same),
-                 "pipeline fixed": fixed, "contig_hap": rec[2]})
+                 "pipeline fixed": np.nan if fixed is None else float(fixed), "contig_hap": rec[2]})
 haploid = pd.DataFrame(rows)
 print(f"The walk as reviewed (old_haploid_walk.py) reproduces the recorded haploid_check for "
       f"{(haploid.now == haploid.recorded).mean():.1%} of {len(haploid):,} calls")
@@ -260,8 +260,10 @@ print(haploid.groupby(["flipped", "type", "size"]).agg(
     calls=("now", "size"), now=("now", "mean"), H1_fixed=("H1 fixed", "mean"),
     H1_H2_fixed=("H1+H2 fixed", "mean"), H1_H2_H3_fixed=("H1+H2+H3 fixed", "mean"),
     pipeline_fixed=("pipeline fixed", "mean")).round(3).to_string())
+checked = haploid[haploid["pipeline fixed"].notna()]
 print(f"The pipeline's check as fixed agrees with H1+H2+H3 fixed for "
-      f"{(haploid['pipeline fixed'] == haploid['H1+H2+H3 fixed']).mean():.1%} of calls")
+      f"{(checked['pipeline fixed'] == checked['H1+H2+H3 fixed']).mean():.1%} of the calls it checks; "
+      f"{len(haploid) - len(checked)} it leaves NA, as the haploid alignment clips them off")
 wrong = haploid[haploid.now & ~haploid["H1+H2+H3 fixed"]]
 print(f"\nH4: calls passing now with no matching event where the InDel is: {len(wrong)} of {haploid.now.sum():,}")
 print(f"Overall pass rate: now {haploid.now.mean():.1%}, with H1-H3 fixed {haploid['H1+H2+H3 fixed'].mean():.1%}")
