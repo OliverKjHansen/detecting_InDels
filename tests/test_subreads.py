@@ -40,9 +40,10 @@ def test_a_forward_strand_call_reports_the_same(tmp_path):
 
 
 def test_a_call_carries_the_subread_support_of_the_bases_it_tests(tmp_path):
-    # 4 of 12 subreads match the inserted base: a third, the lowest of the window.
+    # The anchor's 9 of 11 is the lowest of the bases tested; the inserted
+    # base's 4 of 12 isn't tested (D4).
     read = mf.make_read("rev", REFERENCE, "ins", 1003, 1, reverse=True, subreads=PLANTED)
-    assert call_of(tmp_path, read)["subread_support"] == "<0.8"
+    assert call_of(tmp_path, read)["subread_support"] == "0.8-0.9"
     clean_call = mf.make_read("plain", REFERENCE, "ins", 1003, 1, reverse=True)
     assert call_of(tmp_path / "plain", clean_call)["subread_support"] == ">=1"
 
@@ -61,7 +62,7 @@ def test_opportunities_testing_a_poorly_supported_base_fall_in_its_bin_on_either
     for reverse in (False, True):
         read = mf.make_read("low", REFERENCE, reverse=reverse, subreads={1500: (5, 3, 10)})
         totals = opportunities_by_support(tmp_path / str(reverse), read)
-        assert 0 < totals["<0.8"] < 12, (reverse, totals)
+        assert totals["<0.8"] == 24, (reverse, totals)   # four deletions and four gaps per size
         assert set(totals) == {"<0.8", ">=1"}, (reverse, totals)
 
 

@@ -424,10 +424,12 @@ unresolved-haplotype region. Intermediates go to
    `nonrepetitive_scan()` from [utilities.py](scripts/utilities.py). At each
    position of the window that passes the coverage window and lies outside the
    mask, every read with a base there:
-   - adds its opportunities: one per InDel size (1, 2 and 3 bp), under the
-     canonical k-mer of that size starting at the read position, with its
-     tissue, mapping quality and kmerQ (a read's first and last base are not
-     counted);
+   - adds its opportunities: a deletion of each size (1, 2 and 3 bp), under
+     the canonical k-mer of that size starting at the read position, and an
+     insertion of each size in the gap before the read position, under the
+     canonical pair of bases around it, each with the [keys](#keys) of the
+     read and of the site (an event without two read bases on each side is
+     not counted);
    - becomes a call if it carries a 1–3 bp InDel anchored there that passes the
      homopolymer rule, and then goes to the FASTQ.
 3. **Join.** Per contig, the windows' calls are concatenated, their opportunity
@@ -493,7 +495,7 @@ How the two callers differ:
 | InDel size | 1–3 bp | any multiple of the tract's k |
 | Homopolymer rule | applied | not applied |
 | `canonical_indel` | the smaller of the sequence and its reverse complement | the smallest rotation of the sequence or its reverse complement, like the tract motif |
-| Opportunity unit | read position × InDel size, by canonical k-mer | read base inside a tract, by tract motif and k |
+| Opportunity unit | read position × deletion size, by canonical k-mer; gap between two read bases × insertion size, by the canonical pair around it | read base inside a tract, by tract motif and k |
 | Final filters | haploid check, kmerQ ≥ 93 | haploid check, kmerQ ≥ 93, ≥ 100 bp from the read end |
 | Runs | once per sample | once per model per sample |
 
@@ -519,7 +521,7 @@ Filters act at four points:
 | Coverage within 0.5×–2× the sample mean | scan | ✓ | ✓ | ✓ |
 | Position outside the mask / inside a tract | scan | outside | inside | ✓ |
 | InDel size | scan | 1–3 bp | multiple of k | – |
-| Homopolymer rule | scan | ✓ | – | ✓ in workflow 3 |
+| Homopolymer rule | scan | ✓ | – | ✓ in workflow 3, deletions |
 | Read has a usable haploid alignment | haploid check | ✓ | ✓ | – |
 | Same InDel in the haploid alignment | final | ✓ | ✓ | – |
 | kmerQ ≥ 93 | final | ✓ | ✓ | ✓ |
@@ -591,31 +593,39 @@ The rule counts base changes, not run length, so a whole homopolymer deleted fro
 between two different bases (the last row) is called.
 
 The opportunity counter applies the same rule to the k-mer at each read position
-together with the base on each side of it. Workflow 4 has no homopolymer rule:
+together with the base on each side of it. It counts an insertion opportunity
+at every gap: whatever the bases around a gap, some inserted sequence passes
+the rule there (a base differing from both). Workflow 4 has no homopolymer rule:
 its periods start at 2, and a 1 bp InDel is never a multiple of k.
 
 ### kmerQ
 
-`kmerQ` is the lowest base quality in a four-base window of the read around the
-event:
+`kmerQ` is the lowest base quality of the two read bases on each side of the
+event, never of the event's own bases:
 
 ```
 deletion of CG      assembly  G A T C G T A C
                     read      G A T - - T A C
-                    kmerQ       ^ ^     ^ ^       two read bases on each side of the gap
+                    kmerQ       ^ ^     ^ ^
 
 insertion of CG     assembly  G A T - - T A C
                     read      G A T C G T A C
-                    kmerQ         ^ ^ ^ ^         anchor, first and last inserted base, next base
+                    kmerQ       ^ ^     ^ ^
 
-opportunity, 2 bp   read      G A T C G T A C     k-mer CG
-                    kmerQ         ^ ^ ^ ^         base before, first and last k-mer base, base after
+opportunity,        read      G A T C G T A C     deleting the k-mer CG
+2 bp deletion       kmerQ       ^ ^     ^ ^
+
+opportunity,        read      G A T C G T A C     inserting into the gap between T and C
+insertion           kmerQ       ^ ^ ^ ^
 ```
 
-For a 1 bp event the window holds three distinct bases (the middle one counts
-twice). For a 3 bp event the middle base of the sequence is not in it. Inside
-repeats, the opportunity window uses the tract's k as the size. A deletion's
-window holds only flanking bases, since the deleted bases are not in the read.
+A deletion can't test the bases it removes, so neither does its opportunity
+(D4 in [the review](documents/nonrepetitive_indel_review.md)); an insertion's
+opportunity has no inserted bases to test, so neither does the call. An event
+without two read bases on a side, at the very end of a read, is neither called
+nor counted (D3). Subread support is tested on the same bases. Inside repeats,
+the opportunity window still uses the tract's k as the size (R7 in
+[the workflow 4 review](documents/workflow4_review.md)).
 
 HiFi base qualities are capped at 93, so kmerQ ≥ 93 means every base in the
 window is at the maximum. The threshold is applied at final filtering, to calls
@@ -812,6 +822,7 @@ positions in the read; the position on the contig is `position`.
 | `unique` | `unique` or `non-unique`, see [The unique flag](#the-unique-flag) |
 | `indel_string` | the inserted or deleted sequence, on the assembly's forward strand |
 | `canonical_indel` | `indel_string` grouped with its reverse complement (workflow 3), or with its rotations too (workflow 4) |
+| `context` | workflow 3 only: the opportunity context the call is counted against. For a deletion `canonical_indel`; for an insertion the anchor and the read base after the inserted ones, grouped with their reverse complement. |
 | `read_length` | length of the read |
 | `np` | number of passes (PacBio `np` tag) |
 | `ec` | effective coverage (PacBio `ec` tag) |
@@ -837,13 +848,15 @@ positions in the read; the position on the contig is `position`.
 
 ### Opportunities
 
-Workflow 3's `opportunities.tsv` has one row per contig, context and value of
-the keys:
+Workflow 3's `opportunities.tsv` has one row per contig, InDel type, size,
+context and value of the keys:
 
 | Column | Meaning |
 |---|---|
 | `contig` | |
-| `context` | canonical k-mer: the smaller of the k-mer and its reverse complement. Its length is the InDel size it counts for (1, 2 or 3), so 1 bp contexts are only `A` and `C`. |
+| `indel_type` | `deletion` or `insertion` |
+| `size` | the InDel size it counts for: 1, 2 or 3 |
+| `context` | for a deletion, the canonical k-mer: the smaller of the k-mer and its reverse complement, so 1 bp contexts are only `A` and `C`. For an insertion, the two read bases around the gap, grouped the same way. |
 | the keys | the same columns, with the same values, as at the end of each call: see [Keys](#keys) |
 | `count` | read positions |
 | `species`, `sample` | |
@@ -864,17 +877,19 @@ tables.
 | `aligned_strand` | the strand of the assembly the read is aligned to: `+`, or `-` for flag 16 |
 | `smrt_cell` | the SMRT Cell (movie): the first part of the read's name |
 | `kmerQ_pass` | `pass` if every base tested has at least `strata.min_kmerq`, else `fail`; final filtering keeps `pass` on both tables. Calls also carry the raw `kmerQ`. |
-| `read_end_distance_bin` | distance from the anchor to the nearer end of the read's alignment, binned by `strata.read_end_distance_bins`. An opportunity's anchor is the base before its k-mer. |
+| `read_end_distance_bin` | distance from the anchor to the nearer end of the read's alignment, binned by `strata.read_end_distance_bins`. An opportunity's anchor is the base before its k-mer or gap. |
 | `mapQ_bin` | the read's mapping quality to the diploid assembly, binned by `strata.mapq_bins` (N1) |
 | `np_bin`, `rq_bin` | the read's passes (`np`) and predicted accuracy (`rq`), binned by `strata.passes_bins` and `strata.accuracy_bins`; `NA` without the tag |
 | `strand_passes_bin` | full passes on the weaker strand of the molecule, the smaller of `fn` and `rn`, binned by `strata.strand_passes_bins`; `NA` without the tags |
 | `nearby_event_bin` | distance from the anchor to the read's nearest other InDel or mismatch with the assembly, binned by `strata.nearby_event_bins`; `none` if the read has none. Events at the anchor itself, such as the call's own InDel, don't count. |
 | `subread_support` | lowest share of covering subreads that match (`sm`/`sa`), among the bases tested, binned by `strata.subread_support_bins`; `NA` for reads without subread tags (Sequel II) |
 
-Every read position is counted once for each size, so the opportunities for one
-size are the rows whose `context` has that length. `canonical_indel` in the
-calls uses the same form, so the rate of a context is its calls divided by its
-opportunities.
+Every read position is counted once for each size of deletion and of
+insertion. The calls' `context` uses the same form, so the rate of a context
+is its calls divided by its opportunities, joined on `indel_type`, size (the
+length of the calls' `indel_string`), `context` and the keys. Insertions have
+their own opportunities, at the gaps between read bases, rather than the
+deletions' (D1 in [the review](documents/nonrepetitive_indel_review.md)).
 
 Workflow 4's table has `canonical_motif` and `k` (the tract's) in place of
 `context`, and `count` is read bases inside tracts of that motif.

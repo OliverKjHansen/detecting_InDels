@@ -76,9 +76,10 @@ def test_opportunities_near_another_event_in_the_read_fall_in_its_bin(tmp_path):
     read = mf.make_read("mismatch", REFERENCE, substitutions={1500: "T" if REFERENCE[1500] != "T" else "G"})
     nearby = opportunity_totals(dataset(tmp_path, [read]), "nearby_event_bin")
     # Clean reads have no events; the one read's anchors 1-4 bases from the
-    # mismatch, on either side, fall below 5, about 8 anchors for each size.
+    # mismatch, on either side, fall below 5, about 8 anchors for each size
+    # of deletion and of insertion.
     assert set(nearby) == {"none", "<5", "5-25", "25-100", ">=100"}
-    assert 0 < nearby["<5"] <= 3 * 8
+    assert 0 < nearby["<5"] <= 6 * 8
 
 
 def test_a_call_carries_the_assembly_around_its_anchor(tmp_path):

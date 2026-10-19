@@ -71,7 +71,7 @@ def test_opportunities_are_pass_or_fail_at_the_threshold(tmp_path):
     low = mf.make_read("low", REFERENCE, qualities={1500: 40})
     passes = opportunity_totals(dataset(tmp_path, [low]), "kmerQ_pass")
     assert set(passes) == {"pass", "fail"}
-    assert 0 < passes["fail"] <= 12   # the windows that include base 1500
+    assert passes["fail"] == 24   # the windows that include base 1500: four deletions and four gaps per size
 
 
 def test_the_repeat_scan_carries_the_same_keys(tmp_path):

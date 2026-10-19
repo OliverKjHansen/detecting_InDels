@@ -68,9 +68,9 @@ def test_a_calls_kmerq_is_the_lowest_quality_beside_its_gap(tmp_path):
         # 1 bp deletion of base 500: the two bases on each side are 498, 499
         # and 501, 502. Base 400 is far away.
         mf.make_read("del_q30", REFERENCE, "del", 500, 1, qualities={502: 30, 400: 20}),
-        # 1 bp insertion after base 1003: the window is 1003, the inserted
-        # base and 1004.
-        mf.make_read("ins_q25", REFERENCE, "ins", 1003, 1, qualities={"inserted": 25}),
+        # 1 bp insertion after base 1003: the two bases on each side are
+        # 1002, 1003 and 1004, 1005, not the inserted base.
+        mf.make_read("ins_q25", REFERENCE, "ins", 1003, 1, qualities={1005: 25, "inserted": 20}),
     ]
     calls = calls_by_read(dataset(tmp_path, reads))
     assert calls["del_q30"]["kmerQ"] == "30"

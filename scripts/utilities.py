@@ -140,6 +140,22 @@ def homopolymer_check(seq):
 
     return True
 
+def has_flanks(before, after, read_length):
+    """
+    Whether an event has two read bases on each side: `before` is the read
+    index of the last base before it, `after` of the first base after it.
+    Calls and opportunities without them are neither called nor counted (D3).
+    """
+    return before >= 1 and after + 2 <= read_length
+
+def flanking(values, before, after):
+    """
+    Per-base values (base qualities or subread support) of the two read bases
+    before an event and the two after it, never of the event's own bases: the
+    bases calls and opportunities alike are tested on (D4).
+    """
+    return values[before - 1:before + 1] + values[after:after + 2]
+
 def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
@@ -162,11 +178,18 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     BED), except those whose sequence plus one flanking base on each side is a
     homopolymer (changes base at most once).
 
-    Opportunities: every read position outside the mask, counted once per
-    InDel size under the canonical k-mer of that size (the smaller of the
-    k-mer and its reverse complement), per mapQ and per value of the keys in
-    strata.py, with the same homopolymer rule applied to the k-mer and its
-    flanking bases. Each call carries the same keys as columns.
+    Opportunities: at every read position outside the mask, a deletion of each
+    size, counted under the canonical k-mer it would delete (the smaller of
+    the k-mer and its reverse complement) with the same homopolymer rule, and
+    an insertion of each size in the gap before the position, counted under
+    the canonical pair of bases around the gap. Counted per type, size and
+    value of the keys in strata.py; each call carries the same keys as
+    columns, and its `context` is the opportunity context it is counted
+    against.
+
+    Calls and opportunities alike are tested (kmerQ, subread support) on the
+    two read bases on each side of the event, never on the event's own bases,
+    and are neither called nor counted without them (D3, D4).
 
     fastq_out gets every read carrying a call, once, as forward-strand FASTQ
     for haploid remapping.
@@ -196,7 +219,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
     if calls_out is not None:
         print("#contig", "start", "end", "ref", "alt",
-        "indel_type","unique","indel_string","canonical_indel","read_length",
+        "indel_type","unique","indel_string","canonical_indel","context","read_length",
         "np","ec","rq","fn","rn","mapQ","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
         "position","readID", "diploid_direction", "flank_sequence", *strata.columns,
         sep= "\t", file=calls_out) #header for output
@@ -216,8 +239,9 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
         return entry
 
     # Canonical k-mer and homopolymer check of a run (k-mer plus its flanking
-    # bases), computed once per distinct run.
+    # bases), and canonical pair of bases around a gap, computed once each.
     runs = {}
+    gaps = {}
 
     fastq_reads = set()
 
@@ -263,31 +287,39 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                 query_name = alignment.query_name
 
                 # ---- opportunities ----
-                # we need at least one base on each side of the kmer
-                if opportunities_out is not None and 1 <= read_pos <= alignment.query_length - 2:
+                # The gap before this read base, for an insertion, and the
+                # k-mers starting at it, for deletions, each tested on two read
+                # bases on each side, as the calls are.
+                if opportunities_out is not None and read_pos >= 2:
                     entry = entry_of(alignment)
                     read_seq, base_qualities, support = entry.sequence, entry.qualities, entry.support
-                    # An opportunity's anchor is the base before its k-mer, as a call's is the base before its gap.
+                    read_length = len(read_seq)
+                    # An opportunity's anchor is the base before its gap or k-mer, as a call's is the base before its gap.
                     anchor = position - 1
                     to_read_end = min(anchor - alignment.reference_start, entry.end - anchor)
                     nearest = nearest_other_event(entry.events, anchor)
 
+                    def keys(before, after):
+                        site = Site(flanking(base_qualities, before, after),
+                                    None if support is None else flanking(support, before, after), to_read_end, nearest)
+                        return entry.key + strata.of_site(site)
+
+                    #quality, insertion   deletion of 1    deletion of 3
+                    #NT|AC                 NT|A|CN          NT|ACT|CN
+                    #00|00                 00|x|00          00|xxx|00
+                    if has_flanks(read_pos - 1, read_pos, read_length):
+                        pair = read_seq[read_pos-1:read_pos+1]
+                        context = gaps.get(pair)
+                        if context is None:
+                            context = gaps[pair] = canonical_context(pair) # grouped with the other strand
+                        gap = keys(read_pos - 1, read_pos) # the same bases tested for every size
+                        for indel_length in sizes:
+                            data[("insertion", indel_length, context) + gap] += 1
+
                     for indel_length in sizes: #indel lengths here means kmer length
+                        if not has_flanks(read_pos - 1, read_pos + indel_length, read_length):
+                            break # nor does any longer k-mer
                         run = read_seq[read_pos-1:read_pos+indel_length+1]   #run dependent on indel length # includes kmer + flanking bases
-                        kmerq = base_qualities[read_pos-1:read_pos+1]+base_qualities[read_pos+indel_length-1:read_pos+indel_length+1] #look weird but it makes sure that the 3 indel does not inlude the central base to insure a 4merQ
-
-                        #quality 3size
-                        #NT|ACT|CN
-                        #x0|0x0|0x
-
-                        #quality 2size
-                        #NTA|CT|CN
-                        #xx0|00|0x
-
-                        #quality 1size
-                        #TA|C|TC
-                        #x0|0|0x
-
                         info = runs.get(run)
                         if info is None:
                             #context of kmer without the flanking bases, grouped with the other strand
@@ -295,10 +327,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                         lexi, homopolymer = info
                         if homopolymer == True: # filter out homopolymers
                             continue
-
-                        tested_support = None if support is None else (
-                            support[read_pos-1:read_pos+1]+support[read_pos+indel_length-1:read_pos+indel_length+1])
-                        data[(lexi,) + entry.key + strata.of_site(Site(kmerq, tested_support, to_read_end, nearest))] += 1
+                        data[("deletion", indel_length, lexi) + keys(read_pos - 1, read_pos + indel_length)] += 1
 
                 # ---- calls ----
                 if calls_out is None:
@@ -309,8 +338,13 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                 if not smallest <= abs(indel) <= largest:
                     continue
 
+                indel_length = abs(indel)
+                # The last read base before the gap and the first after it.
+                before, after = read_pos, read_pos + 1 + (indel_length if indel > 0 else 0)
+                if not has_flanks(before, after, alignment.query_length):
+                    continue
+
                 sm = sx = sa = sm_pre = sx_pre = "NA" # initialise tags
-                read_pos_after = pileupread.query_position_or_next
                 entry = entry_of(alignment)
                 readstart = alignment.reference_start
                 ToreadEnd = min([(position-readstart),(entry.end-position)]) #tjek
@@ -328,8 +362,13 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     sm, sx = sm_all[read_pos+1], sx_all[read_pos+1] # the base after the anchor
                     sa, sm_pre, sx_pre = sa_all[read_pos], sm_all[read_pos], sx_all[read_pos] # the anchor
 
-                indel_length = abs(indel)
                 diploid_strand = "-" if alignment.is_reverse == True else "+"
+
+                #quality check, as for the opportunities
+                #AA|ACG|TT
+                #00|xxx|00
+                site = Site(flanking(base_qualities, before, after),
+                            None if call_support is None else flanking(call_support, before, after), ToreadEnd, nearest)
 
                 if indel < 0:
                 # -------------------
@@ -342,16 +381,9 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     if homopolymer == True: # filter out homopolymers
                         continue
 
-                    #quality check
-                    #AA|ACG|TT
-                    #00|xxx|00
-                    def tested(values): # the bases tested, for qualities and subread support alike
-                        return values[max(0, read_pos-1):read_pos+1]+values[read_pos_after+1:read_pos_after+3]
-                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support),
-                                ToreadEnd, nearest)
-
                     row = (contig, read_pos+1,read_pos+1,hcheck[0:-1],hcheck[0], #start and end are the same for delettion, becaus its is in the read
-                           "deletion", seen, deletion_context, canonical_context(deletion_context), len(read_seq),
+                           "deletion", seen, deletion_context, canonical_context(deletion_context),
+                           canonical_context(deletion_context), len(read_seq),
                            *read_tag_columns(alignment),sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
                            position+1,query_name, diploid_strand, flank)
                 else:
@@ -365,16 +397,10 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     if homopolymer == True: # filter out homopolymers
                         continue
 
-                    #quality check
-                    #AA|ACG|TT
-                    #x0|0x0|0x
-                    def tested(values): # the bases tested; the middle base twice for 1 bp, which doesn't matter
-                        return values[max(0, read_pos):read_pos+2]+values[max(0, read_pos)+indel_length:read_pos+indel_length+2]
-                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support),
-                                ToreadEnd, nearest)
-
+                    # Counted against the opportunities of the gap between the anchor and the base after.
+                    gap = canonical_context(read_seq[before] + read_seq[after])
                     row = (contig, read_pos+1,read_pos + indel_length +1,read_seq[read_pos],read_seq[read_pos:read_pos + indel_length +1],
-                           "insertion", seen, insertion_context, canonical_context(insertion_context), len(read_seq),
+                           "insertion", seen, insertion_context, canonical_context(insertion_context), gap, len(read_seq),
                            *read_tag_columns(alignment),sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
                            position+1,query_name, diploid_strand, flank)
 
@@ -389,7 +415,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     fasta.close()
 
     if opportunities_out is not None:
-        print("contig", "context", *strata.columns, "count", sep="\t", file=opportunities_out) #header for output
+        print("contig", "indel_type", "size", "context", *strata.columns, "count", sep="\t", file=opportunities_out) #header for output
         for key, count in data.items():
             print(contig, *key, count, sep="\t", file=opportunities_out)
     return

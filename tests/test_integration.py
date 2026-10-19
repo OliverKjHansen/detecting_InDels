@@ -282,4 +282,5 @@ def test_positions_outside_the_coverage_band_are_skipped(fixture_paths):
 def test_only_indels_of_the_configured_sizes_are_called_and_counted(fixture_paths):
     calls, opportunities, _ = nonrepetitive_scan(fixture_paths, indel_sizes=(2, 3))
     assert {call["readID"] for call in rows_of(calls)} == {"read_del2"}
-    assert {len(row["context"]) for row in rows_of(opportunities)} == {2, 3}
+    assert {(row["indel_type"], row["size"]) for row in rows_of(opportunities)} == {
+        ("deletion", "2"), ("deletion", "3"), ("insertion", "2"), ("insertion", "3")}
