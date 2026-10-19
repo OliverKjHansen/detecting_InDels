@@ -253,5 +253,51 @@
    "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
   "spec": "\n                mkdir -p {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precomute/monkey/s3/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
+ },
+ "unresolved_summary_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c1.bed",
+   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "2g",
+   "walltime": "00:30:00"
+  },
+  "outputs": [
+   "{ROOT}/results/precompute/ape/s1/unresolved_summary.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/ape/s1\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 13500000, bp / 13500000, \"ape\", \"s1\"}' \\\n            {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c1.bed {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv\n        "
+ },
+ "unresolved_summary_ape_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/unresolved_haplotypes/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "2g",
+   "walltime": "00:30:00"
+  },
+  "outputs": [
+   "{ROOT}/results/precompute/ape/s2/unresolved_summary.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/ape/s2\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 1500000, bp / 1500000, \"ape\", \"s2\"}' \\\n            {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv\n        "
+ },
+ "unresolved_summary_monkey_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "2g",
+   "walltime": "00:30:00"
+  },
+  "outputs": [
+   "{ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/monkey/s3\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 1500000, bp / 1500000, \"monkey\", \"s3\"}' \\\n            {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv\n        "
  }
 }

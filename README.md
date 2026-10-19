@@ -62,16 +62,31 @@ or tissue.
 Tandem repeats mutate by replication slippage, at rates far above the rest of the
 genome, so they are measured separately. The pipeline annotates repeats first,
 masks them out for one caller, and scans only them with a second caller that has
-its own size rule.
+its own size rule. Every base falls in one of three groups:
+
+| Group | What's in it | Measured by |
+|---|---|---|
+| Repeat | tracts with periods 2–6 | workflow 4 |
+| Excluded | homopolymer runs of 6 bp or more, and tracts with periods of 7 or more | neither: masked from workflow 3, and workflow 4 drops the tracts that overlap them |
+| Non-repetitive | everything else | workflow 3 |
+
+Homopolymers are where HiFi makes the most errors, and repeats with longer
+periods still slip faster than the background, so leaving them in the
+non-repetitive group would raise its rate. Repeat bases workflow 4 can't
+measure, the tracts that overlap the excluded group and the parts of tracts
+that [overlap resolution](#workflow-2-repeat-annotation) drops, stay masked
+from workflow 3, so they are in neither workflow either. So are the
+[unresolved-haplotype regions](#workflow-1-precompute), whatever group their
+bases belong to.
 
 ### The four workflows
 
 | # | Workflow | What it does | Needs | Writes |
 |---|---|---|---|---|
-| 1 | [precompute.py](workflows/precompute.py) | Per-contig FASTAs, mean coverage, unresolved-haplotype regions, read → tissue table | the inputs | `output/precomute/` |
-| 2 | [repetitive_dna.py](workflows/repetitive_dna.py) | Tandem repeat tracts with periods 2–6, under three models (M0, M1, M2) | 1 | `output/repetitive_dna/`, `results/repetitive_dna/` |
-| 3 | [indel_mutation_call.py](workflows/indel_mutation_call.py) | 1–3 bp InDels outside every repeat tract and every unresolved region | 1, 2 | `results/nonrepetitive_indels/` |
-| 4 | [repetitive_indel_call.py](workflows/repetitive_indel_call.py) | InDels inside the tracts of each model, sized a whole number of repeat units | 1, 2 | `results/repetitive_indels/` |
+| 1 | [precompute.py](workflows/precompute.py) | Per-contig FASTAs, mean coverage, unresolved-haplotype regions, read → tissue table | the inputs | `output/precomute/`, `results/precompute/` |
+| 2 | [repetitive_dna.py](workflows/repetitive_dna.py) | Tandem repeat tracts with periods 2–6, under three models (M0, M1, M2); the excluded group | 1 | `output/repetitive_dna/`, `results/repetitive_dna/` |
+| 3 | [indel_mutation_call.py](workflows/indel_mutation_call.py) | 1–3 bp InDels outside every repeat tract, excluded region and unresolved region | 1, 2 | `results/nonrepetitive_indels/` |
+| 4 | [repetitive_indel_call.py](workflows/repetitive_indel_call.py) | InDels inside the tracts of each model that overlap no excluded or unresolved region, sized a whole number of repeat units | 1, 2 | `results/repetitive_indels/` |
 
 ```
 precompute.py ──> repetitive_dna.py ──┬──> indel_mutation_call.py     InDels outside repeats
@@ -197,8 +212,10 @@ Parameters:
 | Repeat periods | 2, 3, 4, 5, 6 | `repeats.periods` |
 | mreps minimum exponent (M0, M2) | 3 copies | `repeats.mreps_min_exponent` |
 | mreps resolution (M2) | 1 | `repeats.m2_resolution` |
-| TRF scoring (M1) | `2 7 7 80 10 50`, maximum period 6 | `repeats.trf_params` |
-| TRF window and overlap (M1) | 5 Mb, plus 1 Mb on each side | `repeats.trf_window_size`, `repeats.trf_overlap` |
+| TRF scoring (M1, and the long periods) | `2 7 7 80 10 50`, maximum period 6 | `repeats.trf_params` |
+| TRF window and overlap (M1, and the long periods) | 5 Mb, plus 1 Mb on each side | `repeats.trf_window_size`, `repeats.trf_overlap` |
+| Excluded homopolymer runs | 6 bp or more | `repeats.homopolymer_min_length` |
+| Excluded periods | 7 (one above `repeats.periods`) to 2000 | `repeats.long_period_max` |
 | InDel scan window | 10 Mb | `scan.window_size` |
 | Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
@@ -260,7 +277,8 @@ targets whose outputs are missing or out of date.
 
 [workflows/precompute.py](workflows/precompute.py) prepares what the other
 workflows share. Outputs go to `output/precomute/{species}/{sample}/` (the
-directory is spelled `precomute` in the code).
+directory is spelled `precomute` in the code), and the one summary to
+`results/precompute/{species}/{sample}/`.
 
 | Step | Target | Runs per | Output |
 |---|---|---|---|
@@ -268,6 +286,7 @@ directory is spelled `precomute` in the code).
 | 2. Mean coverage | `average_coverage_{species}_{sample}` | sample | `long_contigs.bed`, `avg_coverage.txt` |
 | 3a. Unresolved haplotypes | `unresolved_haplotype_{species}_{sample}_{contig}_{start}_diploid` | 40 Mb window | `unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed` |
 | 3b. Join the windows | `merge_unresolved_{species}_{sample}_{contig}_diploid` | contig | `unresolved_haplotypes/{contig}.bed` |
+| 3c. Share masked | `unresolved_summary_{species}_{sample}_diploid` | sample | `results/precompute/{species}/{sample}/unresolved_summary.tsv` |
 | 4. Tissue table | `sorting_tissue_classification_{species}_{sample}_diploid` | sample in `tissue_samples` | `sorted_tissue_classification.tsv` |
 | 5. Read classification | `read_classification_{species}_{sample}_diploid` | sample in `methylation_samples` | `read_classification.tsv`: every read's germline/somatic score and bin, by [read_classification.sh](scripts/read_classification.sh) |
 
@@ -288,11 +307,16 @@ Those differences would be called as mutations. `resolve_haplotypes()` in
    the assembly and has base quality ≥ 40.
 2. If at least two of them carry the same base, it marks a region from the
    leftmost start to the rightmost end of those reads' alignments.
-3. A region that overlaps the previous one extends it.
+3. A region that overlaps or touches the one being built joins it, which
+   becomes their union: a later region never cuts it short.
 
 A region can reach past its window, so the windows' BEDs are joined with
 `bedtools merge`. The result is a headerless BED (`contig, start, end`) per
-contig. It is part of workflow 3's mask; workflow 4 does not use it.
+contig. Both InDel workflows leave the regions out: they are part of workflow
+3's mask, and workflow 4 drops every tract that overlaps one. In such a region
+a read can align to the wrong haplotype, and in a tandem repeat that turns a
+germline length difference into a false call. `unresolved_summary.tsv` gives
+the share of the genome they mask, per sample (see [Other tables](#other-tables)).
 
 **Tissue table.** The read label file (read ID and tissue, whitespace-separated)
 becomes a sorted two-column TSV with a `readID  tissue` header.
@@ -302,12 +326,13 @@ becomes a sorted two-column TSV with a `readID  tissue` header.
 ## Workflow 2: repeat annotation
 
 [workflows/repetitive_dna.py](workflows/repetitive_dna.py) annotates tandem
-repeats with periods k = 2 to 6 under three models. Homopolymers (k = 1) are not
-annotated; workflow 3 handles them with its [homopolymer rule](#homopolymer-rule).
-Outputs go to `output/repetitive_dna/{species}/{sample}/`.
+repeats with periods k = 2 to 6 under three models, and the excluded group:
+homopolymer runs of 6 bp or more and tracts with periods of 7 or more. Outputs
+go to `output/repetitive_dna/{species}/{sample}/`.
 
 The tracts serve both InDel workflows. Workflow 3 masks out the union of all
-three models; workflow 4 scans each model's tracts on their own.
+three models and the excluded group; workflow 4 scans each model's tracts on
+their own, without those that overlap the excluded group.
 
 | Model | Tool | A tract is | Command | `trf_purity` | `model_purity` |
 |---|---|---|---|---|---|
@@ -320,8 +345,11 @@ three models; workflow 4 scans each model's tracts on their own.
 | 1a. M0 tracts | `M0_mreps_k{k}_{contig}_{species}_{sample}_diploid` | contig × k | `per_k/{contig}_M0_k{k}.bed` |
 | 1a. M2 tracts | `M2_mreps_k{k}_{contig}_{species}_{sample}_diploid` | contig × k | `per_k/{contig}_M2_k{k}.bed` |
 | 1a. M1 tracts | `M1_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window | `per_k/{contig}_M1_k{k}_{start}.bed`, one per k |
-| 1b. Resolve overlaps | `{model}_merge_k_{contig}_{species}_{sample}_diploid` | contig × model | `{contig}_{model}.bed` |
-| 2. Sample BED and summary | `cat_{model}_{species}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` |
+| 1b. Resolve overlaps | `{model}_merge_k_{contig}_{species}_{sample}_diploid` | contig × model | `{contig}_{model}.bed`, `bases/{contig}_{model}.bed` |
+| 2. Sample BED and summaries | `cat_{model}_{species}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` and `{model}_dropped.tsv` |
+| 3a. Long-period tracts | `long_period_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window | `excluded/chunks/{contig}_long_periods_{start}.bed` |
+| 3b. Excluded group | `excluded_{contig}_{species}_{sample}_diploid` | contig | `excluded/{contig}_homopolymers.bed`, `excluded/{contig}_long_periods.bed`, `excluded/{contig}.bed` |
+| 3c. Excluded summary | `excluded_summary_{species}_{sample}_diploid` | sample | `results/repetitive_dna/{species}/{sample}/excluded_summary.tsv` |
 
 **mreps (M0, M2).** mreps runs once per contig and period.
 [parse_mreps_canonical.py](scripts/parse_mreps_canonical.py) turns its report into
@@ -376,13 +404,43 @@ base in at most one tract per model:
 
 Keeping the smallest period keeps a repeat's fundamental period: TRF often
 reports a repeat again at multiples of its period, such as `(AT)n` at periods 4
-and 6. A dropped tract is not trimmed, so its bases outside the kept tract lose
-that model's annotation. Workflow 3 builds its mask from these resolved BEDs.
+and 6. A dropped tract is not trimmed, so its bases outside the kept tract are
+in no tract of the model, and workflow 4 does not see them. Workflow 3 masks
+them all the same, because its mask is built from every tract before
+resolution: the same step writes the bases in any of the model's tracts, as
+merged intervals, to `bases/{contig}_{model}.bed`. So those bases are in
+neither workflow, like the [excluded group](#workflow-2-repeat-annotation), and
+`{model}_dropped.tsv` counts them.
 
-**Sample BED and summary.** The contigs' resolved BEDs are concatenated into
+**Sample BED and summaries.** The contigs' resolved BEDs are concatenated into
 `{model}.bed`. The summary counts tracts per distinct combination of
 `canonical_motif`, `k`, `copies`, `trf_purity` and `model_purity`, which keeps a
-whole genome small enough to plot locally.
+whole genome small enough to plot locally. `{model}_dropped.tsv` gives the bases
+overlap resolution leaves out of the model (see [Other tables](#other-tables)).
+
+**The excluded group.** Two kinds of sequence are in neither InDel workflow:
+
+- **Homopolymer runs** of at least `homopolymer_min_length` (6) bp, the shortest
+  period-2 tract M0 annotates. [find_homopolymers.py](scripts/find_homopolymers.py)
+  reads the contig's FASTA, ignoring case; runs of `N` are not homopolymers.
+  Shorter runs are left to workflow 3's [homopolymer rule](#homopolymer-rule).
+- **Tracts with periods from 7 to `long_period_max` (2000)**, from a TRF run of
+  their own with M1's scoring (minimum score 50) and windows, and maximum period
+  2000. M1 keeps its own run with maximum period 6, so M1 does not change.
+  [parse_trf.py](scripts/parse_trf.py) keeps the periods 7–2000, but skips a
+  tract whose consensus motif is whole copies of a motif shorter than 7: TRF can
+  report a short repeat again at a multiple of its period, `(AC)n` as
+  `ACACACAC`, and that is M1's tract. These tracts are only masked, so a window
+  keeps every tract it reports rather than only those starting in its core: an
+  array longer than the overlap is then covered by the windows' pieces.
+
+Per contig, `excluded/{contig}_homopolymers.bed` lists the runs (contig, start,
+end, base), `excluded/{contig}_long_periods.bed` the long-period tracts as
+merged intervals, and `excluded/{contig}.bed` their union, which workflow 3
+masks and workflow 4 drops the tracts it overlaps. The merging is done by
+[merge_regions.py](scripts/merge_regions.py), which joins intervals that overlap
+or touch, as `bedtools merge` does. `excluded_summary.tsv` gives the bases of
+each kind and of their union per sample (see [Other tables](#other-tables)).
 
 Every repeat BED has these 11 tab-separated columns and a header line:
 
@@ -402,8 +460,8 @@ Every repeat BED has these 11 tab-separated columns and a header line:
 ## Workflow 3: InDels outside repeats
 
 [workflows/indel_mutation_call.py](workflows/indel_mutation_call.py) calls
-1–3 bp InDels at positions outside every repeat tract and every
-unresolved-haplotype region. Intermediates go to
+1–3 bp InDels at positions outside every repeat tract, every excluded region
+and every unresolved-haplotype region. Intermediates go to
 `output/nonrepetitive_indels/{species}/{sample}/`.
 
 | Step | Target | Runs per | Output |
@@ -417,9 +475,9 @@ unresolved-haplotype region. Intermediates go to
 | 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
 | 8. Germline/somatic | `non_rep_Classify_{species}_{sample}_diploid` | sample in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
-1. **Mask.** Per contig, the tracts of all three models (after overlap
-   resolution) and the unresolved-haplotype regions, merged with
-   `bedtools merge`.
+1. **Mask.** Per contig, every tract of the three models before overlap
+   resolution (`bases/{contig}_{model}.bed`), the unresolved-haplotype regions
+   and the excluded group, merged with [merge_regions.py](scripts/merge_regions.py).
 2. **Scan.** [nonrepetitive_scan.py](scripts/nonrepetitive_scan.py) runs
    `nonrepetitive_scan()` from [utilities.py](scripts/utilities.py). At each
    position of the window that passes the coverage window and lies outside the
@@ -462,6 +520,7 @@ Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 
 | Step | Target | Runs per | Output |
 |---|---|---|---|
+| 0. Tracts measured | `TRTracts_{species}_{sample}` | sample | `{model}/tracts/{contig}.bed`, `results/repetitive_indels/{species}/{sample}/tracts_summary.tsv` |
 | 1. Scan | `TRScan_{contig}_{start}_{species}_{sample}` | 10 Mb window | `{model}/calls/chunks/`, `{model}/opportunities/chunks/`, `fastq/chunks/` |
 | 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
 | 3. Remap to haploid | `TRHaploidMapping_{species}_{sample}` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
@@ -470,15 +529,24 @@ Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 | 6. Final filtering | `TRFinalFiltering_{species}_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
 | 7. Germline/somatic | `TRClassify_{species}_{sample}_{model}` | sample × model, in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
-The steps mirror workflow 3, with two savings. One scan of a window serves all
+**Tracts measured.** [drop_excluded_tracts.py](scripts/drop_excluded_tracts.py)
+drops every tract of a model that shares a base with the excluded group
+(`excluded/{contig}.bed` from workflow 2) or with an unresolved-haplotype region
+(from workflow 1). A tract is dropped whole, so it is measured whole or not at
+all, for calls and opportunities alike, and its bases stay in workflow 3's mask,
+so they are in neither workflow. A tract that only touches such a region is
+kept. `tracts_summary.tsv` gives each model's tracts and their bases before and
+after (see [Other tables](#other-tables)).
+
+Steps 1–7 mirror workflow 3, with two savings. One scan of a window serves all
 three models ([tandem_repeat_scan.py](scripts/tandem_repeat_scan.py) runs
 `tandem_repeat_scan()`), and the reads carrying a call in any model are remapped
 to the haploid assembly once per sample. Each model's output is the same as
 scanning that model alone, which [tests/test_integration.py](tests/test_integration.py)
 checks.
 
-At each position that passes the coverage window and lies inside a tract of a
-model, every read with a base there:
+At each position that passes the coverage window and lies inside a measured
+tract of a model, every read with a base there:
 
 - adds one opportunity under the tract's motif and k, with its tissue, mapping
   quality and kmerQ (a read's first and last base are not counted);
@@ -491,7 +559,8 @@ How the two callers differ:
 | | Workflow 3, outside repeats | Workflow 4, inside repeats |
 |---|---|---|
 | Positions scanned | outside the mask | inside a tract of the model |
-| Unresolved-haplotype regions | masked | not masked |
+| Excluded group | masked | tracts overlapping it dropped |
+| Unresolved-haplotype regions | masked | tracts overlapping one dropped |
 | InDel size | 1–3 bp | any multiple of the tract's k |
 | Homopolymer rule | applied | not applied |
 | `canonical_indel` | the smaller of the sequence and its reverse complement | the smallest rotation of the sequence or its reverse complement, like the tract motif |
@@ -518,6 +587,8 @@ Filters act at four points:
 | Filter | Stage | Workflow 3 | Workflow 4 | Opportunities |
 |---|---|---|---|---|
 | Contig longer than 1 Mb | setup | ✓ | ✓ | ✓ |
+| Excluded group (homopolymer runs ≥ 6 bp, periods ≥ 7) | setup | masked | tracts overlapping it dropped | ✓ |
+| Unresolved-haplotype regions | setup | masked | tracts overlapping one dropped | ✓ |
 | Coverage within 0.5×–2× the sample mean | scan | ✓ | ✓ | ✓ |
 | Position outside the mask / inside a tract | scan | outside | inside | ✓ |
 | InDel size | scan | 1–3 bp | multiple of k | – |
@@ -559,10 +630,12 @@ share it.
 ### Mask and tracts
 
 Workflow 3 skips every position inside its mask: the union of the M0, M1 and M2
-tracts and the unresolved-haplotype regions. Workflow 4 uses only positions
-inside a tract of the model being called, and does not mask unresolved
-haplotypes. After overlap resolution a base lies in at most one tract per model,
-so each position has a single tract, motif and k. (The code's tie-breaks, the
+tracts (every tract, before overlap resolution), the excluded group and the
+unresolved-haplotype regions. Workflow 4 uses only positions inside a measured
+tract of the model being called: a tract that overlaps none of the excluded
+group and no unresolved-haplotype region. After overlap resolution a base lies
+in at most one tract per model, so each position has a single tract, motif and
+k. (The code's tie-breaks, the
 largest k for a call and the smallest for an opportunity, only matter for BEDs
 that were not resolved.)
 
@@ -574,7 +647,9 @@ but not 3 bp.
 
 ### Homopolymer rule
 
-Homopolymers are not annotated as repeats, so workflow 3 removes them itself. It
+Homopolymer runs of 6 bp or more are in workflow 3's mask, with the rest of the
+[excluded group](#workflow-2-repeat-annotation). Shorter runs are not masked, so
+workflow 3 removes InDels in them itself. It
 takes the InDel's sequence with one flanking base on each side (the anchor and
 the next base), from the assembly for a deletion and from the read for an
 insertion, and drops the call if that run changes base at most once.
@@ -801,7 +876,10 @@ output/
 ├── repetitive_dna/{species}/{sample}/
 │   ├── per_k/                                    per period (and per window for M1)
 │   ├── {contig}_{model}.bed                      overlaps resolved
-│   └── {model}.bed                               all contigs
+│   ├── bases/{contig}_{model}.bed                the bases in any tract, before resolution
+│   ├── {model}.bed                               all contigs
+│   └── excluded/                                 {contig}_homopolymers.bed, {contig}_long_periods.bed
+│                                                 and their union {contig}.bed; TRF windows in chunks/
 ├── nonrepetitive_indels/{species}/{sample}/
 │   ├── mask/{contig}.bed
 │   ├── calls/  opportunities/  fastq/            per contig; per window in chunks/
@@ -810,18 +888,24 @@ output/
 └── repetitive_indels/{species}/{sample}/
     ├── fastq/  haploid/                          shared by the models
     └── {model}/
+        ├── tracts/{contig}.bed                   the tracts measured
         ├── calls/  opportunities/
         └── merged/                               indels.tsv, opportunities.tsv
 
 results/
-├── repetitive_dna/{species}/{sample}/{model}_summary.tsv
+├── precompute/{species}/{sample}/unresolved_summary.tsv
+├── repetitive_dna/{species}/{sample}/
+│   ├── {model}_summary.tsv
+│   ├── {model}_dropped.tsv
+│   └── excluded_summary.tsv
 ├── nonrepetitive_indels/{species}/{sample}/
 │   ├── indels.tsv
 │   ├── indels_classified.tsv                     methylation_samples only
 │   ├── opportunities.tsv
 │   └── filter_report.tsv
-└── repetitive_indels/{species}/{sample}/{model}/
-    └── the same four files
+└── repetitive_indels/{species}/{sample}/
+    ├── tracts_summary.tsv
+    └── {model}/                                  the same four files
 
 plots/
 ├── nonrepetitive_indels/{species}/{sample}/plots.pdf
@@ -919,6 +1003,23 @@ Workflow 4's table has `canonical_motif` and `k` (the tract's) in place of
 - `{model}_summary.tsv`: `canonical_motif`, `k`, `copies`, `trf_purity`,
   `model_purity`, `model`, `species`, `sample` and `count`, the number of tracts
   of each kind.
+- `{model}_dropped.tsv`: one row, the `model`, with `bp_before`, the bases in a
+  tract of the model before overlap resolution; `bp_kept`, those in the tracts
+  it keeps; `bp_dropped`, the difference, the bases of dropped tracts that no
+  kept tract covers, which are in neither InDel workflow; and `share_dropped`,
+  `bp_dropped` over `bp_before`; then `species` and `sample`.
+- `excluded_summary.tsv`: one row per `class` of the excluded group,
+  `homopolymer`, `long_period` and `excluded` (their union), with `regions`
+  (homopolymer runs, or merged intervals), `bp`, and `share`, the bases over
+  those of the contigs analysed; then `species` and `sample`.
+- `tracts_summary.tsv` (workflow 4): one row per `model`, with `tracts` and `bp`,
+  the model's tracts from workflow 2 and their bases, and `tracts_measured` and
+  `bp_measured`, those left once the tracts overlapping the excluded group or an
+  unresolved-haplotype region are dropped; then `species` and `sample`.
+- `unresolved_summary.tsv` (workflow 1): one row, with `regions`, the merged
+  unresolved-haplotype regions; `bp`, their bases; `contigs_bp`, the bases of
+  the contigs analysed; and `share`, `bp` over `contigs_bp`, the share of the
+  genome both InDel workflows leave out for them; then `species` and `sample`.
 - `filter_report.tsv`: `filter`, `rows_before`, `rows_after`, `rows_removed`,
   `haploid_check_missing`, see [the report](#final-filtering-and-the-filter-report).
 - `indels_classified.tsv`: `indels.tsv` plus the five columns under
@@ -994,6 +1095,9 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve, and every key is read by a workflow or a notebook |
 | [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/` |
 | [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs |
+| [tests/test_unresolved_haplotypes.py](tests/test_unresolved_haplotypes.py) | the unresolved-haplotype regions: the evidence rule, and regions that overlap or touch merging to their union |
+| [tests/test_masks.py](tests/test_masks.py) | what the InDel workflows leave out, from the workflows' own targets run with bash on a one-contig sample (TRF and samtools are stand-ins): the excluded group, workflow 3's mask, the tracts workflow 4 measures, and their summaries |
+| [tests/test_mirror_export.py](tests/test_mirror_export.py) | the mirror exporter and the replay, end to end on a fake cluster checkout |
 | [tests/test_strip_notebook_outputs.py](tests/test_strip_notebook_outputs.py) | the notebook clean filter, alone and through git |
 
 The fixtures come from [tests/make_fixtures.py](tests/make_fixtures.py), which
@@ -1037,7 +1141,10 @@ filters on its window, and compares every table with the cluster's using
 [scripts/compare_tables.py](scripts/compare_tables.py): by content, in any row
 order, with numbers compared by value and the species and sample columns the
 workflows append ignored. A window that is one whole scan job (10 Mb) has its
-opportunities compared too. The script exits 1 if any table differs.
+opportunities compared too. The script exits 1 if any table differs. Workflow
+4's scan reads the window's measured tracts, or, in a window exported before
+workflow 4 dropped tracts (step 0), all of the model's tracts, as the cluster
+scanned them then.
 
 ---
 
@@ -1059,8 +1166,11 @@ scripts/
   tandem_repeat_scan.py            workflow 4's scan job
   resolve_haplotypes.py            unresolved-haplotype regions of one window
   parse_mreps_canonical.py         mreps report -> repeat BED (M0, M2)
-  parse_trf.py                     TRF output -> repeat BED (M1); canonicalise(), Hamming purity
+  parse_trf.py                     TRF output -> repeat BED (M1, the long periods); canonicalise(), Hamming purity
   resolve_repeat_overlaps.py       one tract per base per model
+  find_homopolymers.py             homopolymer runs of a FASTA (the excluded group)
+  merge_regions.py                 the merged union of BEDs: the mask, the excluded group
+  drop_excluded_tracts.py          the tracts workflow 4 measures
   filtering_haploid_mappping.py    haploid concordance check
   filtering_small_indels.py        final filters on the calls, with the report
   filtering_opportunities.py       final filters on the opportunities

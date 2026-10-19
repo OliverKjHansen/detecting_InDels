@@ -25,7 +25,8 @@ from workflow_config import REPO_ROOT
 
 SCRIPTS = os.path.join(REPO_ROOT, "scripts")
 TRACTS = {"M0": [(2150, 2300, "AC", 2)],
-          "M1": [(2100, 2300, "AC", 2)],
+          # The second overlaps the fixture's poly-A run, so workflow 4 drops it.
+          "M1": [(1950, 2010, "AC", 2), (2100, 2300, "AC", 2)],
           "M2": [(2100, 2300, "AC", 2), (2190, 2250, "ACAG", 4, 90.0)]}
 MODELS = list(TRACTS)   # the models config.yaml lists
 SAMPLES = [("testspecies", "testsample"), ("otherspecies", "othersample")]
@@ -127,6 +128,9 @@ def cluster(tmp_path_factory, fixture_paths):
             place(fixture_paths["tissue"], tissue)
         for model in MODELS:
             mf.write_tr_bed(made(path("tandem_repeats", contig=mf.CONTIG, model=model)), TRACTS[model], model)
+        with open(made(path("excluded", contig=mf.CONTIG)), "w") as excluded:
+            run_script("find_homopolymers.py", assembly, str(pipeline.config["repeats"]["homopolymer_min_length"]),
+                       stdout=excluded)
 
         # Workflow 3.
         mask = made(path("nonrepetitive_mask", contig=mf.CONTIG))
@@ -149,12 +153,16 @@ def cluster(tmp_path_factory, fixture_paths):
         haploid_check(calls, locations, path("nonrepetitive_window_reads", **window), merged, species, sample)
         final_filtering(merged, made(path("nonrepetitive_results_calls")), path("nonrepetitive_results_report"))
 
-        # Workflow 4.
+        # Workflow 4: the tracts measured, then the scan.
+        for model in MODELS:
+            with open(made(path("repetitive_tracts", contig=mf.CONTIG, model=model)), "w") as measured:
+                run_script("drop_excluded_tracts.py", path("tandem_repeats", contig=mf.CONTIG, model=model),
+                           path("excluded", contig=mf.CONTIG), path("unresolved", contig=mf.CONTIG), stdout=measured)
         with contextlib.ExitStack() as files:
             def opened(name, **fields):
                 return files.enter_context(open(made(path(name, **window, **fields)), "w"))
             utilities.tandem_repeat_scan(
-                {model: path("tandem_repeats", contig=mf.CONTIG, model=model) for model in MODELS},
+                {model: path("repetitive_tracts", contig=mf.CONTIG, model=model) for model in MODELS},
                 mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
                 calls_out={model: opened("repetitive_window_calls", model=model) for model in MODELS},
                 opportunities_out={model: opened("repetitive_window_opportunities", model=model) for model in MODELS},
@@ -228,6 +236,19 @@ def test_a_replay_that_differs_from_the_cluster_fails(windows, tmp_path):
     assert code == 1
     assert [line for line in output.splitlines() if line.startswith("DIFFERENT")] == \
         ["DIFFERENT: workflow 4 M1 final calls"]
+
+
+def test_a_window_exported_before_workflow_4_dropped_tracts_replays_with_all_of_them(windows, tmp_path):
+    window = shutil.copytree(windows["scan job"], tmp_path / CHUNK)
+    for model in MODELS:
+        os.remove(window / "output" / "repetitive_indels" / "testspecies" / "testsample" / model / "tracts"
+                  / f"{mf.CONTIG}.bed")
+    code, output = replay(window, repo=REPO_ROOT)
+    # The cluster here scanned the measured tracts, so only M1's tract over
+    # the poly-A run adds opportunities.
+    assert code == 1
+    assert [line for line in output.splitlines() if line.startswith("DIFFERENT")] == \
+        ["DIFFERENT: workflow 4 M1 opportunities"]
 
 
 def test_the_help_says_the_mirror_is_for_software_testing_only():

@@ -47,9 +47,10 @@ config.yaml points into it with relative paths:
   output/repetitive_dna/
                      the M0, M1 and M2 tracts near the window
   output/nonrepetitive_indels/, output/repetitive_indels/
-                     workflow 3's mask near the window, and both workflows'
-                     haploid alignment records (locations.tsv) of the window's
-                     reads, so the haploid check runs without remapping
+                     workflow 3's mask and the tracts workflow 4 measures near
+                     the window, and both workflows' haploid alignment records
+                     (locations.tsv) of the window's reads, so the haploid check
+                     runs without remapping
   cluster/           the cluster's tables for the window, per workflow (and per
                      model for workflow 4): the scan's calls and
                      opportunities, the calls after the haploid check, and the
@@ -281,9 +282,13 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     for model in models:
         copy_overlapping(*both("tandem_repeats", contig=contig, model=model), contig, left, right, header=True)
 
-    # Workflows 3 and 4: the mask, and the haploid alignments of the window's reads.
-    log("  mask and haploid alignment records")
+    # Workflows 3 and 4: the mask, the tracts workflow 4 measures (absent if it
+    # ran before it dropped the tracts that overlap an excluded or unresolved
+    # region), and the haploid alignments of the window's reads.
+    log("  mask, measured tracts and haploid alignment records")
     copy_overlapping(*both("nonrepetitive_mask", contig=contig), contig, left, right, header=False)
+    for model in models:
+        copy_overlapping(*both("repetitive_tracts", contig=contig, model=model), contig, left, right, header=True)
     for workflow in ["nonrepetitive"] + (["repetitive"] if has_workflow4 else []):
         copy_rows_of_reads(*both(f"{workflow}_haploid_locations"), names)
 

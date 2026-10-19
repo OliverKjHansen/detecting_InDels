@@ -110,6 +110,30 @@ for species, samples in pipeline.config["samples"].items():
             cat {chunk_list} | sort -k1,1 -k2,2n | bedtools merge -i - > {unresolved}
             """
 
+        # Step 3c — the share of the genome the regions mask, in both InDel
+        # workflows: the regions of every contig, their bases, the contigs'
+        # bases, and the share. The merged regions never overlap, so their
+        # lengths add up.
+        unresolved_beds    = [pipeline.path("unresolved", species, sample, contig=contig) for contig in long_contigs]
+        unresolved_summary = pipeline.path("unresolved_summary", species, sample)
+        contigs_bp         = sum(long_contigs.values())
+
+        gwf.target(
+            f"unresolved_summary_{species}_{sample}_{assembly_type}",
+            inputs=unresolved_beds,
+            outputs=[unresolved_summary],
+            cores=1,
+            memory="2g",
+            walltime="00:30:00",
+        ) << f"""
+        set -e
+        mkdir -p {pipeline.folder("unresolved_summary", species, sample)}
+        printf "regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n" > {unresolved_summary}.tmp
+        awk -v OFS='\\t' '{{n++; bp += $3 - $2}} END {{print n + 0, bp + 0, {contigs_bp}, bp / {contigs_bp}, "{species}", "{sample}"}}' \\
+            {" ".join(unresolved_beds)} >> {unresolved_summary}.tmp
+        mv {unresolved_summary}.tmp {unresolved_summary}
+        """
+
         # Step 4 — read -> tissue table, sorted by read ID. Only samples listed
         # under tissue_samples in config.yaml have read labels.
         if pipeline.is_listed("tissue_samples", species, sample):

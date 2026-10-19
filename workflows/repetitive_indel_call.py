@@ -9,6 +9,11 @@ from pipeline import Pipeline, summed_counts
 # InDels inside repetitive DNA. For every repeat model written by
 # repetitive_dna.py (M0, M1, M2), scans the positions inside that model's
 # repeat tracts and calls InDels whose size is a multiple of the period k.
+# Tracts that overlap the excluded group (homopolymer runs, tracts with longer
+# periods) or an unresolved-haplotype region are dropped whole first, so they
+# are in neither InDel workflow. In an unresolved region a read can align to
+# the wrong haplotype, which turns a germline length difference in a tract
+# into a false call (decisions Q19).
 #
 # The BAM is read once per window for all three models: one scan job writes the
 # calls and opportunities of every model plus one FASTQ of the reads carrying a
@@ -86,12 +91,62 @@ for species, samples in config["samples"].items():
         haploid_dir = folder("repetitive_haploid_locations")
 
         # Per model.
+        tracts_dir        = {model: folder("repetitive_tracts", model=model) for model in models}
         calls_dir         = {model: folder("repetitive_calls", model=model) for model in models}
         opportunities_dir = {model: folder("repetitive_opportunities", model=model) for model in models}
         merged_dir        = {model: folder("repetitive_merged_calls", model=model) for model in models}
 
+        # Step 0 — the tracts measured, for every contig and model: the
+        # model's tracts from repetitive_dna.py, without those that overlap an
+        # excluded region or an unresolved-haplotype region. A tract is
+        # dropped whole, so it is measured whole or not at all, for calls and
+        # opportunities alike; its bases stay in workflow 3's mask, so they
+        # are in neither workflow. The summary counts each model's tracts and
+        # their bases before and after.
+        annotated_tracts = {model: [path("tandem_repeats", contig=contig, model=model) for contig in long_contigs]
+                            for model in models}
+        measured_tracts  = {model: [path("repetitive_tracts", contig=contig, model=model) for contig in long_contigs]
+                            for model in models}
+        excluded_beds    = [path(name, contig=contig) for contig in long_contigs for name in ("excluded", "unresolved")]
+        tracts_summary   = path("repetitive_tracts_summary")
+        # The commands for the contig in the shell loop's $contig.
+        tract_commands = []
+        for model in models:
+            annotated = path("tandem_repeats", contig="${contig}", model=model)
+            measured  = path("repetitive_tracts", contig="${contig}", model=model)
+            tract_commands += [
+                f"python {scripts}/drop_excluded_tracts.py {annotated} {path('excluded', contig='${contig}')}"
+                f" {path('unresolved', contig='${contig}')} > {measured}.tmp",
+                f"mv {measured}.tmp {measured}"]
+        tract_commands = "\n            ".join(tract_commands)
+        summary_commands = "\n        ".join(
+            f'printf "{model}\\t%s\\t%s\\t{species}\\t{sample}\\n" '
+            f'"$(count {" ".join(annotated_tracts[model])})" "$(count {" ".join(measured_tracts[model])})"'
+            f" >> {tracts_summary}.tmp"
+            for model in models)
+
+        gwf.target(
+            f"TRTracts_{species}_{sample}",
+            inputs=[bed for model in models for bed in annotated_tracts[model]] + excluded_beds,
+            outputs=[bed for model in models for bed in measured_tracts[model]] + [tracts_summary],
+            cores=1,
+            memory="8g",
+            walltime="02:00:00",
+        ) << f"""
+        set -e
+        mkdir -p {" ".join(tracts_dir.values())} {folder("repetitive_tracts_summary")}
+        for contig in {" ".join(long_contigs)}; do
+            {tract_commands}
+        done
+        # The tracts and their bases in repeat BEDs, tab-separated.
+        count() {{ awk 'FNR > 1 {{n++; bp += $3 - $2}} END {{print n + 0 "\\t" bp + 0}}' "$@"; }}
+        printf "model\\ttracts\\tbp\\ttracts_measured\\tbp_measured\\tspecies\\tsample\\n" > {tracts_summary}.tmp
+        {summary_commands}
+        mv {tracts_summary}.tmp {tracts_summary}
+        """
+
         for contig, length in long_contigs.items():
-            repeat_beds   = {model: path("tandem_repeats", contig=contig, model=model) for model in models}
+            repeat_beds   = {model: path("repetitive_tracts", contig=contig, model=model) for model in models}
             calls         = {model: path("repetitive_calls", contig=contig, model=model) for model in models}
             opportunities = {model: path("repetitive_opportunities", contig=contig, model=model) for model in models}
             fastq         = path("repetitive_reads", contig=contig)
