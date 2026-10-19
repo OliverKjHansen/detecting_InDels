@@ -86,7 +86,7 @@ bases belong to.
 | 1 | [precompute.py](workflows/precompute.py) | Per-contig FASTAs, mean coverage, unresolved-haplotype regions, read → tissue table | the inputs | `output/precomute/`, `results/precompute/` |
 | 2 | [repetitive_dna.py](workflows/repetitive_dna.py) | Tandem repeat tracts with periods 2–6, under three models (M0, M1, M2); the excluded group | 1 | `output/repetitive_dna/`, `results/repetitive_dna/` |
 | 3 | [indel_mutation_call.py](workflows/indel_mutation_call.py) | 1–3 bp InDels outside every repeat tract, excluded region and unresolved region | 1, 2 | `results/nonrepetitive_indels/` |
-| 4 | [repetitive_indel_call.py](workflows/repetitive_indel_call.py) | InDels inside the tracts of each model that overlap no excluded or unresolved region, sized a whole number of repeat units | 1, 2 | `results/repetitive_indels/` |
+| 4 | [repetitive_indel_call.py](workflows/repetitive_indel_call.py) | InDels inside the tracts of each model that overlap no excluded or unresolved region, classed as slippage or other | 1, 2 | `results/repetitive_indels/` |
 
 ```
 precompute.py ──> repetitive_dna.py ──┬──> indel_mutation_call.py     InDels outside repeats
@@ -527,9 +527,10 @@ and every unresolved-haplotype region. Intermediates go to
 ## Workflow 4: InDels inside repeats
 
 [workflows/repetitive_indel_call.py](workflows/repetitive_indel_call.py) calls, for
-each repeat model, the InDels in that model's tracts whose length is a whole
-number of repeat units (a multiple of the tract's k), of any size: anchored
+each repeat model, every InDel in that model's tracts, of any size: anchored
 inside a tract or just before one (see [The anchor base](#the-anchor-base)).
+Each is classed as slippage or other (see [InDel size](#indel-size)).
+
 Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 
 | Step | Target | Runs per | Output |
@@ -571,8 +572,8 @@ passes the coverage window, every read that spans it:
   (its copies and purity, the read's flank on each side) and the read and
   site keys;
 - gives a call for each of its InDels counted in the tract ([The anchor
-  base](#the-anchor-base)) whose length is a multiple of the tract's k, with
-  the same keys as its opportunity. The call also carries the tract's
+  base](#the-anchor-base)), with its class and size and the same keys as its
+  opportunity. The call also carries the tract's
   `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity` and `model`.
 
 A tract's call and opportunity on a read are tested on the same bases (R7 in
@@ -590,7 +591,7 @@ How the two callers differ:
 | Events counted | touching no masked base, from the anchor to k bases on | touching a tract of the model, from the anchor to 6 bases on, on a read spanning the tract |
 | Excluded group | masked | tracts overlapping it dropped |
 | Unresolved-haplotype regions | masked | tracts overlapping one dropped |
-| InDel size | 1–3 bp | any multiple of the tract's k |
+| InDel size | 1–3 bp | any, classed slippage or other |
 | Homopolymer rule | applied | not applied |
 | `canonical_indel` | the smaller of the sequence and its reverse complement | the smallest rotation of the sequence or its reverse complement, like the tract motif |
 | Opportunity unit | read position × deletion size, by canonical k-mer; gap between two read bases × insertion size, by the canonical pair around it | tract × read spanning it with 25 bp on each side, by tract motif, k, copies, purity and flanks |
@@ -620,7 +621,7 @@ Filters act at four points:
 | Unresolved-haplotype regions | setup | masked | tracts overlapping one dropped | ✓ |
 | Coverage within 0.5×–2× the sample mean | scan | ✓ | ✓ | ✓ |
 | Position outside the mask / inside a tract | scan | outside | inside | ✓ |
-| InDel size | scan | 1–3 bp | multiple of k | – |
+| InDel size | scan | 1–3 bp | any (a class) | – |
 | Read spans the tract and 25 bp on each side | scan | – | ✓ | ✓ in workflow 4 |
 | Homopolymer rule | scan | ✓ | – | ✓ in workflow 3, deletions |
 | Same InDel in the haploid alignment | not applied, a column (`haploid_check`) | – | – | – |
@@ -685,9 +686,16 @@ that were not resolved.)
 
 ### InDel size
 
-Workflow 3 keeps InDels of 1, 2 or 3 bp. Workflow 4 keeps an InDel if its length
-is a multiple of the tract's k, with no upper limit: 2 or 4 bp in an `AC` tract,
-but not 3 bp.
+Workflow 3 keeps InDels of 1, 2 or 3 bp. Workflow 4 keeps every InDel counted
+in a tract, with no upper limit, and gives it a class (Q23), `indel_class`:
+
+- **slippage**: whole copies of the tract's motif, in any rotation, on either
+  strand: `AC`, `CA`, `GT`, `TG` or `ACAC` in an `AC` tract;
+- **other**: everything else, such as `C`, `ACA` or `GG` in an `AC` tract.
+
+Each class gets its own rate over the same opportunities. Before, InDels whose
+size isn't a multiple of k were counted nowhere, and multiples were kept
+whatever their sequence (R5 in [the workflow 4 review](documents/workflow4_review.md)).
 
 ### Homopolymer rule
 
@@ -714,7 +722,7 @@ The opportunity counter applies the same rule to the k-mer at each read position
 together with the base on each side of it. It counts an insertion opportunity
 at every gap: whatever the bases around a gap, some inserted sequence passes
 the rule there (a base differing from both). Workflow 4 has no homopolymer rule:
-its periods start at 2, and a 1 bp InDel is never a multiple of k.
+its periods start at 2, and a 1 bp InDel is never slippage.
 
 ### kmerQ
 
@@ -1003,6 +1011,7 @@ positions in the read; the position on the contig is `position`.
 | `diploid_direction` | strand of the read's alignment to the diploid assembly |
 | `flank_sequence` | the assembly from `scan.flank_width` bases before the anchor to as many after it, for comparing sites between individuals |
 | `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity`, `model` | workflow 4 only: the tract the call is counted in |
+| `indel_class`, `size` | workflow 4 only: `slippage` or `other` (see [InDel size](#indel-size)), and the InDel's length |
 | `tract_copies_bin`, `tract_purity_bin`, `left_flank_bin`, `right_flank_bin` | workflow 4 only, keys: see [Keys](#keys) |
 | the keys | `tissue`, `kmerQ` and the other keys, the same columns as in the opportunity table: see [Keys](#keys) |
 | `bitflag_hap`, `contig_hap`, `pos_1based_hap`, `map_mapq` | the read's alignment to the haploid assembly: flag, contig, position and mapping quality |
@@ -1169,7 +1178,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
-| [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract |
+| [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
 | [tests/test_classification_bins.py](tests/test_classification_bins.py) | the two classification scripts binning reads the same way |

@@ -96,20 +96,23 @@ def test_pacbio_tags_are_carried_through(small_indel_calls):
 # -- workflow C: InDels inside repeats --------------------------------------
 
 
-def test_tandem_repeat_caller_keeps_only_period_multiples(tr_indel_calls):
+def test_tandem_repeat_caller_classes_every_indel_in_a_tract(tr_indel_calls):
     """
-    Inside a k=2 repeat, the 2 bp deletion is a whole-motif contraction and is
-    kept; the 1 bp deletion is not a multiple of the period and is dropped.
+    Inside a k=2 repeat, the 2 bp deletion is a whole-motif contraction,
+    slippage; the 1 bp deletion is not a multiple of the period, other. Both
+    are written (ticket 23).
     """
-    assert {call["readID"] for call in tr_indel_calls} == {"read_tr_del2"}
+    assert {call["readID"]: call["indel_class"] for call in tr_indel_calls} == {
+        "read_tr_del2": "slippage", "read_tr_del1": "other"}
 
 
 def test_tandem_repeat_calls_carry_the_repeat_annotation(tr_indel_calls):
-    call = tr_indel_calls[0]
-    assert call["canonical_motif"] == "AC"
-    assert call["k"] == "2"
-    assert call["model"] == "M1"
-    assert float(call["model_purity"]) == 100.0
+    for call in tr_indel_calls:
+        assert call["canonical_motif"] == "AC"
+        assert call["k"] == "2"
+        assert call["model"] == "M1"
+        assert float(call["model_purity"]) == 100.0
+        assert call["size"] == str(len(call["indel_string"]))
 
 
 def test_tandem_repeat_caller_ignores_positions_outside_the_bed(tr_indel_calls):
@@ -124,8 +127,8 @@ def test_homopolymer_filter_is_not_applied_inside_repeats(tr_indel_calls):
     workflow B's homopolymer filter. The (CA)n call surviving with a fully
     repetitive context demonstrates the filter is off.
     """
-    assert tr_indel_calls
-    assert tr_indel_calls[0]["indel_string"] in {"CA", "AC"}
+    slippage = [call for call in tr_indel_calls if call["readID"] == "read_tr_del2"]
+    assert [call["indel_string"] in {"CA", "AC"} for call in slippage] == [True]
 
 
 # -- opportunities ----------------------------------------------------------
@@ -215,7 +218,8 @@ def test_scan_windows_add_up_to_the_whole_contig(three_model_beds, fixture_paths
     # calls in two windows: the workflow keeps each read once when it joins
     # the windows' FASTQs.
     for model in three_model_beds:
-        assert sorted(row for calls, _, _ in parts for row in rows_of(calls[model])) == sorted(rows_of(whole_calls[model]))
+        assert sorted(map(str, (row for calls, _, _ in parts for row in rows_of(calls[model])))) \
+            == sorted(map(str, rows_of(whole_calls[model])))
         assert summed(opportunities[model] for _, opportunities, _ in parts) == summed([whole_opportunities[model]])
 
     def records(fastq):

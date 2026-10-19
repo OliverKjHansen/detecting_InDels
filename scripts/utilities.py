@@ -496,6 +496,19 @@ def load_tracts(bedfile, window_start, window_end, reach):
     return window_tracts, tree
 
 
+def indel_class(indel_string, motif, k):
+    """
+    A repeat InDel's class (Q23): "slippage" if it is whole copies of the
+    tract's motif, in any rotation, on either strand, else "other". Case is
+    ignored: assemblies can be soft-masked.
+    """
+    copies, rest = divmod(len(indel_string), k)
+    if rest or not copies:
+        return "other"
+    same = canonical_repeat_indel(indel_string.upper()) == canonical_repeat_indel(motif.upper() * copies)
+    return "slippage" if same else "other"
+
+
 def assigned_tract(tree, anchor, size, reach):
     """
     The tract an InDel of `size` bases anchored at `anchor` is counted in, as
@@ -540,10 +553,11 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     tract keys (the tract's copies and purity, the read's flank on each side)
     and the read and site keys of strata.py.
 
-    Calls: the InDels of a spanning read that are counted in the tract
-    (assigned_tract(): anchored in it, or up to `reach` bases before it), of a
-    size that is a multiple of its k, with the tract's columns and the same
-    keys as its opportunity. No homopolymer rule: k = 1 slippage is the signal.
+    Calls: every InDel of a spanning read that is counted in the tract
+    (assigned_tract(): anchored in it, or up to `reach` bases before it), of
+    any size, with its class (indel_class(): slippage or other) and size, the
+    tract's columns and the same keys as its opportunity. No homopolymer rule:
+    k = 1 slippage is the signal.
 
     A tract's call and opportunity on a read are tested on the same bases
     (R7): kmerQ and subread support over the read's bases from two before
@@ -586,7 +600,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
               "indel_type", "unique", "indel_string", "canonical_indel", "read_length",
               "np", "ec", "rq", "fn", "rn", "mapQ", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
               "position", "readID", "diploid_direction", "flank_sequence",
-              "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
+              "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model", "indel_class", "size",
               *strata.tract_columns, *strata.columns,
               sep="\t", file=out)
 
@@ -675,8 +689,6 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     if model not in calls_out:
                         continue
                     for indel in own[iv.begin]:
-                        if indel.length % k:
-                            continue
                         position, read_pos, indel_length = indel.anchor, indel.read_pos, indel.length
                         seen = "unique" if at_base[position] <= 1 else "non-unique"
                         ToreadEnd = min(position - read_start, read_end - position)
@@ -691,19 +703,20 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
                         if indel.deletion:
                             hcheck = fasta.fetch(contig, position, position + indel_length + 2)
-                            deletion_context = hcheck[1:-1]
+                            indel_string = hcheck[1:-1]
                             row = (contig, read_pos + 1, read_pos + 1, hcheck[0:-1], hcheck[0],
-                                   "deletion", seen, deletion_context, canonical_repeat_indel(deletion_context))
+                                   "deletion", seen, indel_string, canonical_repeat_indel(indel_string))
                         else:
-                            insertion_context = read_seq[read_pos + 1:read_pos + indel_length + 1]
+                            indel_string = read_seq[read_pos + 1:read_pos + indel_length + 1]
                             row = (contig, read_pos + 1, read_pos + indel_length + 1,
                                    read_seq[read_pos], read_seq[read_pos:read_pos + indel_length + 1],
-                                   "insertion", seen, insertion_context, canonical_repeat_indel(insertion_context))
+                                   "insertion", seen, indel_string, canonical_repeat_indel(indel_string))
                         print(*row, len(read_seq),
                               *read_tag_columns(alignment), sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
                               position + 1, query_name, diploid_strand, flank,
                               tr['canonical_motif'], tr['k'], tr['copies'],
                               tr['trf_purity'], tr['model_purity'], tr['model'],
+                              indel_class(indel_string, tr['canonical_motif'], k), indel_length,
                               *keys, sep="\t", file=calls_out[model])
                         carries_call = True
 

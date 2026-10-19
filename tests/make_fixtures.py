@@ -76,7 +76,7 @@ PLANTED = [
     ("read_ins1",     "ins", 1003, 1, "called by workflow B"),
     ("read_del2",     "del", 1500, 2, "called by workflow B"),
     ("read_del_homo", "del", 2050, 1, "dropped: homopolymer context"),
-    ("read_tr_del1",  "del", 2200, 1, "masked from B; not a multiple of k=2 in C"),
+    ("read_tr_del1",  "del", 2200, 1, "masked from B; other in C: not a multiple of k=2"),
     ("read_tr_del2",  "del", 2204, 2, "masked from B; called by workflow C"),
 ]
 

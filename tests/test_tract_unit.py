@@ -112,3 +112,30 @@ def test_windows_add_up_with_each_tract_in_the_window_of_its_first_base(tmp_path
              for i, window in enumerate([(0, split), (split, len(REFERENCE))])]
     assert sorted(map(str, whole[0])) == sorted(map(str, parts[0][0] + parts[1][0]))
     assert count(whole[1]) == count(parts[0][1]) + count(parts[1][1]) == 3
+
+
+# -- classes (ticket 23) ------------------------------------------------------
+
+
+@pytest.mark.parametrize("kind, position, length, size, indel_class", [
+    ("del", 1031, 2, "2", "slippage"),       # one CA unit
+    ("del", 1032, 4, "4", "slippage"),       # two units, starting on the A: ACAC
+    ("ins", 1030, 2, "2", "other"),          # a multiple of 2, but two copies of one base
+    ("del", 1031, 1, "1", "other"),          # not a multiple of the period
+    ("del", 1031, 3, "3", "other"),
+])
+def test_every_indel_counted_in_a_tract_is_written_with_its_class_and_size(
+        tmp_path, kind, position, length, size, indel_class):
+    calls, _ = scan(tmp_path, [mf.make_read("read", REFERENCE, kind, position, length, start=900, end=1160)])
+    assert [(call["size"], call["indel_class"]) for call in calls] == [(size, indel_class)]
+
+
+def test_slippage_is_the_motif_on_either_strand_whatever_the_case(tmp_path):
+    # A lower-case (soft-masked) tract of (TG)n is the same tract as (CA)n.
+    reference = FLANK + "A" + "tg" * 30 + FLANK
+    paths = mf.write_dataset(str(tmp_path), reference,
+                             [mf.make_read("read", reference.upper(), "del", 1031, 2, start=900, end=1160)])
+    bed = str(tmp_path / "tracts.bed")
+    mf.write_tr_bed(bed, [TRACT])
+    calls, _, _ = tandem_repeat_scan({"M1": bed}, paths)
+    assert [call["indel_class"] for call in rows_of(calls["M1"])] == ["slippage"]
