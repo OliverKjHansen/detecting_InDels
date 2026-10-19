@@ -37,6 +37,15 @@ methylation_samples:
 sperm_samples:
   human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
 
+# Samples sequenced on Sequel II; the others are Revio (Q12, Q15). Their reads
+# have no sm, sx or sa tags, and mbewe's and samson's no np either, so final
+# filtering skips the filters on those keys for them. Final tables carry the
+# platform on every row.
+sequel_ii_samples:
+  human: [da1, ob2v]
+  chimp: [stephan, carl]
+  gorilla: [mbewe, samson]
+
 # Age of the individual in years, from the sample sheet. One age per animal, so
 # a sample sequenced from several tissues has a single entry. Samples with no
 # age on the sheet are absent here: human/aa_sperm, marmoset/lambiek and
@@ -314,9 +323,20 @@ strata:
   tract_copies_bins: [5, 10, 20, 50]
   tract_purity_bins: [90, 95, 99, 100]
 
+# The definition of a final call (Q7), applied by final_filtering.py to the
+# calls and the opportunities alike. Each filter keeps the rows whose key has
+# one of the values listed. A filter on a key that is NA throughout a sample,
+# a tag its platform lacks, is skipped for it and noted in the filter report
+# (Q15). The thresholds are to be tuned after the rerun (Q13).
 final_filters:
-  # Workflow 4: InDels nearer a read end than this many bp are dropped.
-  min_read_end_distance: 100
+  keep:
+    kmerQ_pass: [pass]
+  # Workflow 4 also: tracts at least 100 bp from the read's ends.
+  repeat_keep:
+    read_end_distance_bin: ["100-300", "300-1000", ">=1000"]
+  # SMRT Cells whose calls never have a kmerQ above this are taken to be
+  # capped at it, and dropped from both tables (Q12, Q17).
+  capped_quality: 40
 
 # Germline/somatic classification of reads with methylation scores, by
 # join_read_classification.sh (a bin on every call) and

@@ -31,7 +31,7 @@
    "{ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.tsv",
    "{ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv \\\n            -o {ROOT}/results/nonrepetitive_indels/ape/s1/indels.tsv \\\n            --keep kmerQ_pass=pass \\\n            --report {ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv\n        python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.tsv \\\n            -o {ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.tsv \\\n            --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv \\\n            --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
  },
  "non_rep_FinalFiltering_ape_s2_diploid": {
   "inputs": [
@@ -49,7 +49,7 @@
    "{ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.tsv",
    "{ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv \\\n            -o {ROOT}/results/nonrepetitive_indels/ape/s2/indels.tsv \\\n            --keep kmerQ_pass=pass \\\n            --report {ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv\n        python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.tsv \\\n            -o {ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.tsv \\\n            --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s2/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv \\\n            --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
  },
  "non_rep_FinalFiltering_monkey_s3_diploid": {
   "inputs": [
@@ -67,7 +67,7 @@
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.tsv",
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv \\\n            -o {ROOT}/results/nonrepetitive_indels/monkey/s3/indels.tsv \\\n            --keep kmerQ_pass=pass \\\n            --report {ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv\n        python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.tsv \\\n            -o {ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.tsv \\\n            --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/monkey/s3/indels.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv \\\n            --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
  },
  "non_rep_HaploidFilter_ape_s1_diploid": {
   "inputs": [

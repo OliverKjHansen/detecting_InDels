@@ -20,7 +20,7 @@ import yaml
 
 import make_fixtures as mf
 import utilities
-from pipeline import Pipeline
+from pipeline import Pipeline, final_filtering_options
 from workflow_config import REPO_ROOT
 
 SCRIPTS = os.path.join(REPO_ROOT, "scripts")
@@ -72,9 +72,11 @@ def haploid_check(calls, locations, reads, merged, species, sample):
         out.writelines(f"{row}\t{species}\t{sample}\n" for row in rows)
 
 
-def final_filtering(merged, final_calls, report, *extra):
-    run_script("filtering_small_indels.py", merged, "-o", final_calls,
-               "--keep", "kmerQ_pass=pass", *map(str, extra), "--report", report)
+def final_filtering(pipeline, species, sample, merged, opportunities, final_calls, final_opportunities, report,
+                    repeats=False):
+    """The final filtering step, as the workflows run it."""
+    run_script("final_filtering.py", merged, opportunities, final_calls, final_opportunities, report,
+               *final_filtering_options(pipeline.config, species, sample, repeats=repeats))
 
 
 def made(path):
@@ -109,7 +111,6 @@ def cluster(tmp_path_factory, fixture_paths):
     with open(f"{root}/config.yaml", "w") as handle:
         yaml.safe_dump(config, handle)
     pipeline = Pipeline(f"{root}/config.yaml", base=root)
-    filters = pipeline.config["final_filters"]
     coverage_band = pipeline.config["scan"]["coverage_band"]
 
     for species, sample in SAMPLES:
@@ -152,7 +153,9 @@ def cluster(tmp_path_factory, fixture_paths):
         write_haploid_records(bam, calls, locations)
         merged = made(path("nonrepetitive_merged_calls"))
         haploid_check(calls, locations, path("nonrepetitive_window_reads", **window), merged, species, sample)
-        final_filtering(merged, made(path("nonrepetitive_results_calls")), path("nonrepetitive_results_report"))
+        final_filtering(pipeline, species, sample, merged, path("nonrepetitive_window_opportunities", **window),
+                        made(path("nonrepetitive_results_calls")), path("nonrepetitive_results_opportunities"),
+                        path("nonrepetitive_results_report"))
 
         # Workflow 4: the tracts measured, then the scan.
         for model in MODELS:
@@ -185,9 +188,11 @@ def cluster(tmp_path_factory, fixture_paths):
             merged = made(path("repetitive_merged_calls", model=model))
             haploid_check(path("repetitive_calls", contig=mf.CONTIG, model=model), locations,
                           path("repetitive_window_reads", **window), merged, species, sample)
-            final_filtering(merged, made(path("repetitive_results_calls", model=model)),
-                            path("repetitive_results_report", model=model),
-                            "--min-read-end-distance", filters["min_read_end_distance"])
+            final_filtering(pipeline, species, sample, merged,
+                            path("repetitive_window_opportunities", **window, model=model),
+                            made(path("repetitive_results_calls", model=model)),
+                            path("repetitive_results_opportunities", model=model),
+                            path("repetitive_results_report", model=model), repeats=True)
     return root
 
 

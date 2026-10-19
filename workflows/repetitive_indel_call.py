@@ -3,7 +3,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import Pipeline, remapping, summed_counts
+from pipeline import Pipeline, final_filtering_options, remapping, shell, summed_counts
 
 # ---------------------------------------------------------------------------
 # InDels inside repetitive DNA. For every repeat model written by
@@ -48,9 +48,6 @@ scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_ba
                 f"--reach {max(config['repeats']['periods'])} "
                 f"--min-tract-flank {config['scan']['min_tract_flank']} "
                 f"--key-parameters {pipeline.key_parameters()}")
-
-# Final filtering thresholds.
-min_read_end_distance = config["final_filters"]["min_read_end_distance"]
 
 
 # Resource requests.
@@ -331,14 +328,9 @@ for species, samples in config["samples"].items():
                 walltime="01:00:00",
             ) << f"""
             mkdir -p {resultsdir}
-            python {scripts}/filtering_small_indels.py {merged_indels} \\
-                -o {results_calls} \\
-                --keep kmerQ_pass=pass \\
-                --min-read-end-distance {min_read_end_distance} \\
-                --report {results_report}
-            python {scripts}/filtering_opportunities.py {merged_opportunities} \\
-                -o {results_opportunities} \\
-                --keep kmerQ_pass=pass
+            python {scripts}/final_filtering.py {merged_indels} {merged_opportunities} \\
+                {results_calls} {results_opportunities} {results_report} \\
+                {shell(final_filtering_options(config, species, sample, repeats=True))}
             """
 
             # Step 7 — cell-type classification, for the samples listed under

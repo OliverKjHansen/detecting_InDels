@@ -105,6 +105,26 @@ class Pipeline:
         return contigs
 
 
+def final_filtering_options(config, species, sample, repeats=False):
+    """
+    final_filtering.py's options for one sample, as arguments: its platform
+    and the `final_filters` block of the config, with workflow 4's own filters
+    when `repeats`.
+    """
+    filters = config["final_filters"]
+    sequel_ii = sample in ((config.get("sequel_ii_samples") or {}).get(species) or [])
+    options = ["--platform", "Sequel II" if sequel_ii else "Revio",
+               "--capped-quality", str(filters["capped_quality"])]
+    for column, values in {**filters["keep"], **(filters["repeat_keep"] if repeats else {})}.items():
+        options += ["--keep", f"{column}={','.join(map(str, values))}"]
+    return options
+
+
+def shell(arguments):
+    """Arguments as one string for a shell command."""
+    return " ".join(shlex.quote(argument) for argument in arguments)
+
+
 def remapping(reference, reads, bam, locations):
     """
     A shell command that aligns reads (FASTQ) to a reference with pbmm2 and

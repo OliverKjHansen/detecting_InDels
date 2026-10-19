@@ -1,0 +1,117 @@
+"""
+The final filtering stage (ticket 24, Q7): one definition of a final call,
+applied by scripts/final_filtering.py to a sample's calls and opportunities
+alike, so a filter never lowers the rate by what it removes from the calls
+alone. SMRT Cells whose base qualities top out at Q40 are dropped (Q12, Q17); a
+filter on a tag the sample lacks is skipped and recorded (Q15); every row
+carries its platform.
+"""
+
+import os
+import subprocess
+import sys
+
+from scans import rows_of
+
+SCRIPT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "final_filtering.py")
+
+
+def table(path, header, rows):
+    path.write_text("\t".join(header) + "\n" + "".join("\t".join(map(str, row)) + "\n" for row in rows))
+    return path
+
+
+def calls(tmp_path, rows):
+    """Calls: (readID, smrt_cell, kmerQ, kmerQ_pass, depth_bin, subread_support, haploid_check)."""
+    return table(tmp_path / "calls.tsv", ["#contig", "readID", "smrt_cell", "kmerQ", "kmerQ_pass", "depth_bin",
+                                          "subread_support", "haploid_check"], [("c1", *row) for row in rows])
+
+
+def opportunities(tmp_path, rows):
+    """Opportunities: (smrt_cell, kmerQ_pass, depth_bin, subread_support, count)."""
+    return table(tmp_path / "opportunities.tsv", ["contig", "smrt_cell", "kmerQ_pass", "depth_bin",
+                                                  "subread_support", "count"], [("c1", *row) for row in rows])
+
+
+def final(tmp_path, call_table, opportunity_table, *options, platform="Revio"):
+    """(final calls, final opportunities, report), as row dicts."""
+    out = [tmp_path / name for name in ("final_calls.tsv", "final_opportunities.tsv", "report.tsv")]
+    subprocess.run([sys.executable, SCRIPT, str(call_table), str(opportunity_table), *map(str, out),
+                    "--platform", platform, "--capped-quality", "40", *options], check=True, capture_output=True)
+    return [rows_of(path.read_text()) for path in out]
+
+
+def rate(final_calls, final_opportunities):
+    return len(final_calls) / sum(int(row["count"]) for row in final_opportunities)
+
+
+def test_a_filter_on_a_feature_spread_alike_leaves_the_rate_unchanged(tmp_path):
+    # Calls and opportunities split 3:1 between two values of a feature.
+    call_rows = [(f"r{i}", "m1", 93, "pass", "low" if i % 4 else "high", ">=1", "True") for i in range(40)]
+    opportunity_rows = [("m1", "pass", "low", ">=1", 3000), ("m1", "pass", "high", ">=1", 1000)]
+    before = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows))
+    after = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows),
+                  "--keep", "depth_bin=low")
+    assert len(after[0]) == 30
+    assert rate(*after[:2]) == rate(*before[:2]) == 0.01
+
+
+def test_a_filter_keeps_the_rows_with_any_of_its_values(tmp_path):
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "mid", ">=1", "True"),
+                 ("c", "m1", 93, "pass", "high", ">=1", "True")]
+    opportunity_rows = [("m1", "pass", value, ">=1", 10) for value in ("low", "mid", "high")]
+    final_calls, final_opportunities, _ = final(tmp_path, calls(tmp_path, call_rows),
+                                                opportunities(tmp_path, opportunity_rows), "--keep", "depth_bin=low,high")
+    assert [row["readID"] for row in final_calls] == ["a", "c"]
+    assert sorted(row["depth_bin"] for row in final_opportunities) == ["high", "low"]
+
+
+def test_smrt_cells_capped_at_q40_are_dropped_from_both_tables_and_listed(tmp_path):
+    call_rows = [("a", "m_capped", 40, "fail", "low", ">=1", "True"), ("b", "m_capped", 31, "fail", "low", ">=1", "NA"),
+                 ("c", "m_full", 93, "pass", "low", ">=1", "True"), ("d", "m_full", 40, "fail", "low", ">=1", "True")]
+    opportunity_rows = [("m_capped", "fail", "low", ">=1", 500), ("m_full", "pass", "low", ">=1", 400),
+                        ("m_full", "fail", "low", ">=1", 100)]
+    final_calls, final_opportunities, report = final(tmp_path, calls(tmp_path, call_rows),
+                                                     opportunities(tmp_path, opportunity_rows))
+    assert [row["readID"] for row in final_calls] == ["c", "d"]
+    assert {row["smrt_cell"] for row in final_opportunities} == {"m_full"}
+    step = next(row for row in report if row["filter"] == "capped_smrt_cells")
+    assert (step["calls_before"], step["calls_after"], step["opportunities_before"], step["opportunities_after"],
+            step["note"]) == ("4", "2", "1000", "500", "m_capped")
+
+
+def test_a_filter_on_a_tag_the_sample_lacks_is_skipped_and_recorded(tmp_path):
+    # Sequel II: no subread tags, so subread_support is NA throughout.
+    call_rows = [("a", "m1", 93, "pass", "low", "NA", "True"), ("b", "m1", 93, "pass", "low", "NA", "True")]
+    opportunity_rows = [("m1", "pass", "low", "NA", 200)]
+    final_calls, final_opportunities, report = final(
+        tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows),
+        "--keep", "subread_support=>=1", "--keep", "kmerQ_pass=pass", platform="Sequel II")
+    assert len(final_calls) == 2 and sum(int(row["count"]) for row in final_opportunities) == 200
+    step = next(row for row in report if row["filter"] == "subread_support=>=1")
+    assert (step["calls_after"], step["note"]) == ("2", "skipped: NA throughout the sample")
+
+
+def test_every_row_carries_its_platform(tmp_path):
+    call_rows = [("a", "m1", 93, "pass", "low", "NA", "True")]
+    final_calls, final_opportunities, _ = final(tmp_path, calls(tmp_path, call_rows),
+                                                opportunities(tmp_path, [("m1", "pass", "low", "NA", 5)]),
+                                                platform="Sequel II")
+    assert {row["platform"] for row in final_calls + final_opportunities} == {"Sequel II"}
+
+
+def test_the_report_lists_every_step_with_rows_before_and_after(tmp_path):
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "high", ">=1", "False"),
+                 ("c", "m1", 93, "pass", "high", ">=1", "NA"), ("d", "m1", 10, "fail", "high", ">=1", "NA")]
+    opportunity_rows = [("m1", "pass", "low", ">=1", 30), ("m1", "pass", "high", ">=1", 60),
+                        ("m1", "fail", "high", ">=1", 10)]
+    _, _, report = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows),
+                         "--keep", "kmerQ_pass=pass", "--keep", "depth_bin=high")
+    columns = ("filter", "calls_before", "calls_after", "opportunities_before", "opportunities_after",
+               "haploid_check_missing")
+    assert [tuple(row[column] for column in columns) for row in report] == [
+        ("input", "4", "4", "100", "100", "2"),
+        ("capped_smrt_cells", "4", "4", "100", "100", "2"),
+        ("kmerQ_pass=pass", "4", "3", "100", "90", "1"),
+        ("depth_bin=high", "3", "2", "90", "60", "1"),
+    ]

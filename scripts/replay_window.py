@@ -24,7 +24,7 @@ from compare_tables import compare, report
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(SCRIPTS)
 sys.path.insert(0, os.path.join(REPO, "workflows"))
-from pipeline import Pipeline  # noqa: E402
+from pipeline import Pipeline, final_filtering_options  # noqa: E402
 
 
 def main():
@@ -34,7 +34,7 @@ def main():
     contig, start, end = os.path.basename(window).rsplit("_", 2)
     with open(os.path.join(REPO, "config.yaml")) as handle:
         current = yaml.safe_load(handle)
-    models, filters = current["repeats"]["models"], current["final_filters"]
+    models = current["repeats"]["models"]
     scan_options = ["--coverage-band", *current["scan"]["coverage_band"],
                     "--flank-width", current["scan"]["flank_width"],
                     "--key-parameters", json.dumps(current["strata"])]
@@ -60,7 +60,7 @@ def main():
         subprocess.run([sys.executable, os.path.join(SCRIPTS, script), *map(str, args)],
                        stdout=stdout or log, stderr=log, check=True)
 
-    def replay(workflow, calls, reads, results, *options):
+    def replay(workflow, calls, reads, results):
         """
         The haploid check and the final filters, from a scan's calls,
         opportunities and reads (the FASTQ the workflows remap), with the
@@ -75,11 +75,9 @@ def main():
         with open(f"{results}/merged_indels.tsv", "w") as merged:
             run("filtering_haploid_mappping.py", calls, data.path(f"{workflow}_haploid_locations", species, sample),
                 reads, *haplotypes, stdout=merged)
-        run("filtering_small_indels.py", f"{results}/merged_indels.tsv", "-o", f"{results}/indels.tsv",
-            "--keep", "kmerQ_pass=pass", *options,
-            "--report", f"{results}/filter_report.tsv")
-        run("filtering_opportunities.py", f"{results}/opportunities.tsv",
-            "-o", f"{results}/opportunities_pass.tsv", "--keep", "kmerQ_pass=pass")
+        run("final_filtering.py", f"{results}/merged_indels.tsv", f"{results}/opportunities.tsv",
+            f"{results}/indels.tsv", f"{results}/final_opportunities.tsv", f"{results}/filter_report.tsv",
+            *final_filtering_options(current, species, sample, repeats=workflow == "repetitive"))
 
     # Workflow 3: the scan (step 2), the haploid check (5), final filtering (7).
     w3 = f"{local}/nonrepetitive_indels"
@@ -113,8 +111,7 @@ def main():
             "--reach", max(current["repeats"]["periods"]), "--min-tract-flank", current["scan"]["min_tract_flank"],
             *model_args)
         for model in models:
-            replay("repetitive", f"{w4}/{model}/calls.tsv", f"{w4}/reads.fastq", f"{w4}/{model}",
-                   "--min-read-end-distance", filters["min_read_end_distance"])
+            replay("repetitive", f"{w4}/{model}/calls.tsv", f"{w4}/reads.fastq", f"{w4}/{model}")
             tables.append((f"workflow 4 {model}", f"{w4}/{model}", f"{cluster}/repetitive_indels/{model}"))
 
     # Opportunities only for a whole scan job: the cluster counts them per job.

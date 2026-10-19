@@ -200,6 +200,7 @@ def mirror_config(config, species, sample, root):
         "tissue_samples": only_this("tissue_samples"),
         "methylation_samples": only_this("methylation_samples"),
         "sperm_samples": only_this("sperm_samples"),
+        "sequel_ii_samples": only_this("sequel_ii_samples"),
         "sample_age": {species: {sample: config["sample_age"][species][sample]}}
                       if sample in ((config.get("sample_age") or {}).get(species) or {}) else {},
         "alignment_overrides": {},

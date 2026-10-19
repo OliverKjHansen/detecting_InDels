@@ -224,7 +224,9 @@ Parameters:
 | Bins of read length and of distance to the read end, keys on calls and opportunities | 4, 8, 12, 16, 20 kb; 25, 100, 300, 1000 bp | `strata.read_length_bins`, `strata.read_end_distance_bins` |
 | Bins of mapping quality, passes, predicted accuracy, passes on the weaker strand, and distance to the nearest other event in the read | 1, 20, 60; 5, 10, 15, 20, 30; 0.99, 0.999, 0.9999; 2, 5, 10; 5, 25, 100 bp | `strata.mapq_bins`, `.passes_bins`, `.accuracy_bins`, `.strand_passes_bins`, `.nearby_event_bins` |
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
-| Minimum distance to the read end (workflow 4) | 100 bp | `final_filters.min_read_end_distance` |
+| The definition of a final call: the values each key keeps, on calls and opportunities alike | `kmerQ_pass` = `pass`; workflow 4 also `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `final_filters.repeat_keep` |
+| SMRT Cells taken to be capped, and dropped, if no call's kmerQ is above | Q40 | `final_filters.capped_quality` |
+| Sequel II samples (the others are Revio) | da1, ob2v, stephan, carl, mbewe, samson | `sequel_ii_samples` |
 | Bases a read must cover on each side of a tract to count for it (workflow 4) | 25 bp | `scan.min_tract_flank` |
 | Bins of a tract's copies and purity, keys of workflow 4 | 5, 10, 20, 50; 90, 95, 99, 100% | `strata.tract_copies_bins`, `strata.tract_purity_bins` |
 | Bins of subread support, a key on calls and opportunities | 0.8, 0.9, 1 | `strata.subread_support_bins` |
@@ -518,8 +520,11 @@ and every unresolved-haplotype region. Intermediates go to
    diagnostics of the calls before final filtering: kmerQ, the 20 most common
    InDel sequences, distance to the read end, the unique flag, the haploid
    check, tissue, kmerQ against haploid distance, and subread coverage.
-7. **Final filtering.** Calls and opportunities must have `kmerQ_pass` =
-   `pass`. The haploid check stays a column of the calls.
+7. **Final filtering.** [final_filtering.py](scripts/final_filtering.py)
+   applies the definition of a final call to the calls and the opportunities
+   alike (see [Final filtering and the filter
+   report](#final-filtering-and-the-filter-report)). The haploid check stays a
+   column of the calls.
 8. **Germline/somatic.** See [Tissue and cell-type labels](#tissue-and-cell-type-labels).
 
 ---
@@ -595,7 +600,7 @@ How the two callers differ:
 | Homopolymer rule | applied | not applied |
 | `canonical_indel` | the smaller of the sequence and its reverse complement | the smallest rotation of the sequence or its reverse complement, like the tract motif |
 | Opportunity unit | read position × deletion size, by canonical k-mer; gap between two read bases × insertion size, by the canonical pair around it | tract × read spanning it with 25 bp on each side, by tract motif, k, copies, purity and flanks |
-| Final filters | kmerQ ≥ 93 | kmerQ ≥ 93, ≥ 100 bp from the read end |
+| Final filters, on calls and opportunities alike | capped SMRT Cells, kmerQ ≥ 93 | capped SMRT Cells, kmerQ ≥ 93, tract ≥ 100 bp from the read's ends |
 | Runs | once per sample | once per model per sample |
 
 ---
@@ -626,7 +631,8 @@ Filters act at four points:
 | Homopolymer rule | scan | ✓ | – | ✓ in workflow 3, deletions |
 | Same InDel in the haploid alignment | not applied, a column (`haploid_check`) | – | – | – |
 | kmerQ ≥ 93 | final | ✓ | ✓ | ✓ |
-| At least 100 bp from a read end | final | – | ✓ | – |
+| SMRT Cell not capped at Q40 | final | ✓ | ✓ | ✓ |
+| Tract at least 100 bp from the read's ends | final | – | ✓ | ✓ in workflow 4 |
 | No other InDel at the position (`unique`) | notebooks | ✓ | ✓ | – |
 
 Nothing is filtered on read flags (secondary, supplementary and duplicate
@@ -820,9 +826,11 @@ column, not a filter.
 
 `ToreadEnd` is the distance from the anchor to the nearer end of the read's
 alignment to the diploid assembly, in assembly bases (soft-clipped bases are not
-counted). Workflow 4 requires at least 100 bp. Workflow 3 records it without
-filtering; [nonrepetitive_indels.ipynb](plotting/nonrepetitive_indels.ipynb) can
-apply a threshold (`min_read_end_distance`).
+counted). The key `read_end_distance_bin` bins it for calls and opportunities
+alike; in workflow 4 it is the distance from the tract, the nearer flank.
+Workflow 4's final filter keeps the bins from 100 bp on. Workflow 3 records it
+without filtering; [nonrepetitive_indels.ipynb](plotting/nonrepetitive_indels.ipynb)
+can apply a threshold (`min_read_end_distance`).
 
 ### The unique flag
 
@@ -830,50 +838,47 @@ During the scan, before any other filter, each position counts the reads that
 have an InDel of any size anchored there or a deletion spanning it. A call is
 `unique` if at most one read qualifies, and `non-unique` otherwise. The
 workflows keep both. The notebooks drop non-unique calls by default
-(`unique_only`), and `filtering_small_indels.py --unique-only` can do the same.
+(`unique_only`).
 
 ### Final filtering and the filter report
 
-[filtering_small_indels.py](scripts/filtering_small_indels.py) filters the calls
-and [filtering_opportunities.py](scripts/filtering_opportunities.py) the
-opportunities. Each option adds one step, the steps run in a fixed order (the
-order of the table below), and `--report` writes how many rows each step removed.
+There is one definition of a final call (Q7), applied in the pipeline by
+[final_filtering.py](scripts/final_filtering.py) to a sample's calls and its
+opportunities alike, so a filter never lowers the rate by what it removes from
+the calls alone. Its steps, in order, each on both tables:
 
-| Option (calls) | Keeps rows where | Used by |
-|---|---|---|
-| `--haploid-check True` | `haploid_check` is True | – |
-| `--softclip True` or `False` | `softclip_haploid` equals the value | – |
-| `--min-distance N`, `--max-distance N` | `distance_to_indel_in_hap` ≥ N, ≤ N | – |
-| `--indel-type insertion` or `deletion` | `indel_type` equals the value | – |
-| `--tissue a,b` | `tissue` is in the list | – |
-| `--unique-only` | `unique` is `unique` | – |
-| `--min-quality N` | `kmerQ` ≥ N | – |
-| `--min-read-end-distance N` | `ToreadEnd` ≥ N | workflow 4 (100) |
-| `--keep COLUMN=VALUE` | `COLUMN` equals `VALUE`; repeatable, applied last | workflows 3 and 4 (`kmerQ_pass=pass`) |
+1. **Capped SMRT Cells** (Q12, Q17). A SMRT Cell none of whose calls has a kmerQ
+   above `final_filters.capped_quality` (40) has base qualities that top out
+   there; its calls and opportunities are dropped. The report's note lists
+   the cells.
+2. **The kept values.** Each key under `final_filters.keep`, and for workflow 4
+   under `final_filters.repeat_keep`, keeps the rows whose value is one of
+   those listed: `kmerQ_pass` = `pass`; in workflow 4 also
+   `read_end_distance_bin` from `100-300` on. A filter on a key that is `NA`
+   throughout the sample, a tag its platform lacks (Sequel II reads have no
+   subread tags, and mbewe's and samson's no `np`), is skipped for it and
+   noted (Q15).
 
-The opportunities take `--keep` (used, `kmerQ_pass=pass`), `--tissue`,
-`--context` and `--min-count`. Their `--min-kmerq`, `--max-kmerq`,
-`--min-mapq` and `--max-mapq` read raw `kmerQ` and `mapQ` columns, which the
-scans no longer write (they write the keys `kmerQ_pass` and `mapQ_bin`).
+Every row of both outputs gets a `platform` column: `Sequel II` for the samples
+under `sequel_ii_samples`, else `Revio`. Changing a filter or a threshold is a
+change to `final_filters` and a rerun of this step: a labelled sensitivity
+analysis.
 
-`filter_report.tsv` has one row for the calls read and one per step
-(tab-separated):
+`filter_report.tsv` has one row per step (tab-separated): the calls and the
+opportunities (summed counts) before and after it, the calls left without a
+haploid check, and a note:
 
 ```
-filter                 rows_before  rows_after  rows_removed  haploid_check_missing
-input                  …            …           0             …
-min_read_end_distance  …            …           …             …         (workflow 4 only)
-kmerQ_pass=pass        …            …           …             …
+filter              calls_before  calls_after  opportunities_before  opportunities_after  haploid_check_missing  note
+input               …             …            …                     …                    …
+capped_smrt_cells   …             …            …                     …                    …                      the cells dropped
+kmerQ_pass=pass     …             …            …                     …                    …
 ```
 
-`haploid_check_missing` counts the rows left after the step that have no
+`haploid_check_missing` counts the calls left after the step that have no
 haploid check (`NA`): their read had no usable haploid alignment, or the
 alignment clipped the call off. The haploid check drops no call, so the `input`
-row counts every call.
-
-Adding a filter takes one new option and one entry in `filter_steps`; the
-comparisons (`eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `notin`) already exist.
-Values the callers write as `NA` stay `NA` in the output.
+row counts every call. Values the callers write as `NA` stay `NA` in the output.
 
 ### What the opportunities go through
 
@@ -1102,8 +1107,9 @@ need no approximation.
   unresolved-haplotype regions; `bp`, their bases; `contigs_bp`, the bases of
   the contigs analysed; and `share`, `bp` over `contigs_bp`, the share of the
   genome both InDel workflows leave out for them; then `species` and `sample`.
-- `filter_report.tsv`: `filter`, `rows_before`, `rows_after`, `rows_removed`,
-  `haploid_check_missing`, see [the report](#final-filtering-and-the-filter-report).
+- `filter_report.tsv`: `filter`, `calls_before`, `calls_after`,
+  `opportunities_before`, `opportunities_after`, `haploid_check_missing`,
+  `note`, see [the report](#final-filtering-and-the-filter-report).
 - `indels_classified.tsv`: `indels.tsv` plus the five columns under
   [Germline or somatic](#tissue-and-cell-type-labels).
 
@@ -1178,6 +1184,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
+| [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report |
 | [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
@@ -1265,8 +1272,7 @@ scripts/
   merge_regions.py                 the merged union of BEDs: the mask, the excluded group
   drop_excluded_tracts.py          the tracts workflow 4 measures
   filtering_haploid_mappping.py    haploid concordance check
-  filtering_small_indels.py        final filters on the calls, with the report
-  filtering_opportunities.py       final filters on the opportunities
+  final_filtering.py               the definition of a final call, on calls and opportunities, with the report
   join_read_classification.sh      germline/somatic columns
   plot_indels.R                    diagnostic PDF
   export_local_subset.py           copy windows of samples from the cluster, to replay locally

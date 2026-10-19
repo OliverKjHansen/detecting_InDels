@@ -199,24 +199,3 @@ def test_a_call_without_a_usable_alignment_or_read_is_kept_unchecked(checked, re
 def test_the_primary_record_is_used_whichever_comes_first(checked):
     row = checked["primary_second"]
     assert (row["bitflag_hap"], row["contig_hap"], row["haploid_check"]) == ("16", "h1", "True")
-
-
-# -- final filtering: the check is a column, its gaps are counted -------------
-
-
-def test_the_filter_report_counts_the_calls_without_a_haploid_check(tmp_path):
-    (tmp_path / "merged.tsv").write_text(
-        "readID\tkmerQ\thaploid_check\n"
-        "a\t93\tTrue\n"
-        "b\t93\tFalse\n"
-        "c\t93\tNA\n"
-        "d\t10\tNA\n")
-    script = os.path.join(os.path.dirname(SCRIPT), "filtering_small_indels.py")
-    subprocess.run([sys.executable, script, str(tmp_path / "merged.tsv"), "-o", str(tmp_path / "final.tsv"),
-                    "--min-quality", "93", "--report", str(tmp_path / "report.tsv")],
-                   capture_output=True, check=True)
-    assert [row["readID"] for row in rows_of((tmp_path / "final.tsv").read_text())] == ["a", "b", "c"]
-    assert rows_of((tmp_path / "report.tsv").read_text()) == [
-        {"filter": "input", "rows_before": "4", "rows_after": "4", "rows_removed": "0", "haploid_check_missing": "2"},
-        {"filter": "min_kmerQ", "rows_before": "4", "rows_after": "3", "rows_removed": "1", "haploid_check_missing": "1"},
-    ]

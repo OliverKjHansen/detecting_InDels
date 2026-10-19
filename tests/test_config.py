@@ -17,7 +17,7 @@ import yaml
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SAMPLE_TABLES = ["samples", "tissue_samples", "methylation_samples", "sperm_samples"]
+SAMPLE_TABLES = ["samples", "tissue_samples", "methylation_samples", "sperm_samples", "sequel_ii_samples"]
 
 
 @pytest.fixture(scope="module")

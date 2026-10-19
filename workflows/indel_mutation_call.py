@@ -2,7 +2,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import Pipeline, remapping, summed_counts
+from pipeline import Pipeline, final_filtering_options, remapping, shell, summed_counts
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -295,13 +295,9 @@ for species, samples in config["samples"].items():
             walltime="01:00:00",
         ) << f"""
         mkdir -p {resultsdir}
-        python {scripts}/filtering_small_indels.py {merged_indels} \\
-            -o {results_calls} \\
-            --keep kmerQ_pass=pass \\
-            --report {results_report}
-        python {scripts}/filtering_opportunities.py {merged_opportunities} \\
-            -o {results_opportunities} \\
-            --keep kmerQ_pass=pass
+        python {scripts}/final_filtering.py {merged_indels} {merged_opportunities} \\
+            {results_calls} {results_opportunities} {results_report} \\
+            {shell(final_filtering_options(config, species, sample))}
         """
 
         # Step 8 — cell-type classification, for the samples listed under

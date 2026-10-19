@@ -104,3 +104,18 @@ def test_the_key_parameters_are_the_strata_block_as_one_shell_word(pipeline):
     words = shlex.split(f"--key-parameters {pipeline.key_parameters()}")
     assert len(words) == 2
     assert json.loads(words[1]) == pipeline.config["strata"]
+
+
+def test_final_filtering_gets_the_platform_and_the_filters_of_its_workflow():
+    import shlex
+    from pipeline import final_filtering_options, shell
+    config = {"sequel_ii_samples": {"ape": ["s2"]},
+              "final_filters": {"keep": {"kmerQ_pass": ["pass"]}, "repeat_keep": {"read_end_distance_bin": [">=1000"]},
+                                "capped_quality": 40}}
+    revio = final_filtering_options(config, "ape", "s1")
+    assert revio == ["--platform", "Revio", "--capped-quality", "40", "--keep", "kmerQ_pass=pass"]
+    sequel = final_filtering_options(config, "ape", "s2", repeats=True)
+    assert sequel[:2] == ["--platform", "Sequel II"]
+    assert sequel[-2:] == ["--keep", "read_end_distance_bin=>=1000"]
+    # The shell sees each argument as one word, so ">=" is no redirection.
+    assert shlex.split(shell(sequel)) == sequel
