@@ -21,7 +21,7 @@ import pysam
 import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
-from filtering_haploid_mappping import check_call  # noqa: E402
+from filtering_haploid_mapping import check_call  # noqa: E402
 from old_haploid_walk import find_indel_position_in_read  # noqa: E402
 from utilities import reverse_complement, subread_array  # noqa: E402
 

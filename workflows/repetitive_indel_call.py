@@ -286,7 +286,7 @@ for species, samples in config["samples"].items():
                 walltime="12:00:00",
             ) << f"""
             mkdir -p {merged_dir[model]}
-            python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} {combined_fastq} {haplotype_options} > {merged_indels}.tmp
+            python {scripts}/filtering_haploid_mapping.py {calls_list} {haploid_locations} {combined_fastq} {haplotype_options} > {merged_indels}.tmp
             awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {merged_indels}.tmp > {merged_indels}
             rm -f {merged_indels}.tmp
             """

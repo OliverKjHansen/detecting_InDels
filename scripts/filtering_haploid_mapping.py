@@ -2,7 +2,7 @@
 The haploid check: is each call also in its read's alignment to the haploid
 assembly?
 
-    python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>
+    python filtering_haploid_mapping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>
         [--haplotype hap1=<hap1_locations.tsv> --haplotype hap2=<hap2_locations.tsv>]
 
 locations.tsv holds the reads' haploid alignment records (read, flag, contig,

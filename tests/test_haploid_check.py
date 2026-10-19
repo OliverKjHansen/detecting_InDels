@@ -1,5 +1,5 @@
 """
-The haploid check, scripts/filtering_haploid_mappping.py: is a call also in its
+The haploid check, scripts/filtering_haploid_mapping.py: is a call also in its
 read's alignment to the haploid assembly?
 
 Findings H1-H4 of documents/nonrepetitive_indel_review.md each have tests here,
@@ -14,11 +14,11 @@ import sys
 
 import pytest
 
-from filtering_haploid_mappping import check_call
+from filtering_haploid_mapping import check_call
 from scans import rows_of
 
 SCRIPT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                      "scripts", "filtering_haploid_mappping.py")
+                      "scripts", "filtering_haploid_mapping.py")
 
 # Nothing in it can slide at the calls below: the bases on either side of
 # each InDel differ from the bases that would have to repeat.

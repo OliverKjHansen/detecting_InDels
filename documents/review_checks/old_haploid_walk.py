@@ -1,7 +1,7 @@
 """
 The haploid check's CIGAR walk as the review found it, at commit 542fa20, with
 findings H1-H4 of ../nonrepetitive_indel_review.md in it. The pipeline's check
-(scripts/filtering_haploid_mappping.py) has since been fixed; this copy keeps
+(scripts/filtering_haploid_mapping.py, then filtering_haploid_mappping.py) has since been fixed; this copy keeps
 the review's numbers reproducible, since they are what the cluster's tables
 recorded.
 

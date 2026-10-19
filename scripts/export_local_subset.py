@@ -43,7 +43,7 @@ config.yaml points into it with relative paths:
   fasta/             the window's contig; the sequence outside the window and a
                      100 kb margin is N, so coordinates match the cluster
   bam/               every alignment overlapping the window, indexed
-  output/precomute/  mean coverage, unresolved regions, tissue labels
+  output/precompute/  mean coverage, unresolved regions, tissue labels
   output/repetitive_dna/
                      the M0, M1 and M2 tracts near the window
   output/nonrepetitive_indels/, output/repetitive_indels/

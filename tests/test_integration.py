@@ -241,7 +241,7 @@ def test_haploid_filter_checks_several_call_tables_against_one_remapping(tmp_pat
     (tmp_path / "reads.fastq").write_text("".join(f"@{name}\n{'ACGT' * 25}\n+\n{'~' * 100}\n"
                                                   for name in ("r1", "r2", "r3")))
 
-    script = os.path.join(os.path.dirname(utilities.__file__), "filtering_haploid_mappping.py")
+    script = os.path.join(os.path.dirname(utilities.__file__), "filtering_haploid_mapping.py")
 
     def run(*tables):
         return subprocess.run([sys.executable, script, *[str(tmp_path / t) for t in tables],

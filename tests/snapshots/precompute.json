@@ -11,10 +11,10 @@
    "walltime": "08:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/long_contigs.bed",
-   "{ROOT}/output/precomute/ape/s1/avg_coverage.txt"
+   "{ROOT}/output/precompute/ape/s1/long_contigs.bed",
+   "{ROOT}/output/precompute/ape/s1/avg_coverage.txt"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/precomute/ape/s1\n        awk -v min=1000000 'BEGIN {OFS=\"\\t\"} $2 > min {print $1, 0, $2}' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai > {ROOT}/output/precomute/ape/s1/long_contigs.bed\n        samtools depth -b {ROOT}/output/precomute/ape/s1/long_contigs.bed {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam | awk '{sum += $3; count++} END {print sum / count}' > {ROOT}/output/precomute/ape/s1/avg_coverage.txt\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/ape/s1\n        awk -v min=1000000 'BEGIN {OFS=\"\\t\"} $2 > min {print $1, 0, $2}' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai > {ROOT}/output/precompute/ape/s1/long_contigs.bed\n        samtools depth -b {ROOT}/output/precompute/ape/s1/long_contigs.bed {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam | awk '{sum += $3; count++} END {print sum / count}' > {ROOT}/output/precompute/ape/s1/avg_coverage.txt\n        "
  },
  "average_coverage_ape_s2": {
   "inputs": [
@@ -28,10 +28,10 @@
    "walltime": "08:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s2/long_contigs.bed",
-   "{ROOT}/output/precomute/ape/s2/avg_coverage.txt"
+   "{ROOT}/output/precompute/ape/s2/long_contigs.bed",
+   "{ROOT}/output/precompute/ape/s2/avg_coverage.txt"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/precomute/ape/s2\n        awk -v min=1000000 'BEGIN {OFS=\"\\t\"} $2 > min {print $1, 0, $2}' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa.fai > {ROOT}/output/precomute/ape/s2/long_contigs.bed\n        samtools depth -b {ROOT}/output/precomute/ape/s2/long_contigs.bed {ROOT}/override/s2_diploid.bam | awk '{sum += $3; count++} END {print sum / count}' > {ROOT}/output/precomute/ape/s2/avg_coverage.txt\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/ape/s2\n        awk -v min=1000000 'BEGIN {OFS=\"\\t\"} $2 > min {print $1, 0, $2}' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa.fai > {ROOT}/output/precompute/ape/s2/long_contigs.bed\n        samtools depth -b {ROOT}/output/precompute/ape/s2/long_contigs.bed {ROOT}/override/s2_diploid.bam | awk '{sum += $3; count++} END {print sum / count}' > {ROOT}/output/precompute/ape/s2/avg_coverage.txt\n        "
  },
  "average_coverage_monkey_s3": {
   "inputs": [
@@ -45,10 +45,10 @@
    "walltime": "08:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/monkey/s3/long_contigs.bed",
-   "{ROOT}/output/precomute/monkey/s3/avg_coverage.txt"
+   "{ROOT}/output/precompute/monkey/s3/long_contigs.bed",
+   "{ROOT}/output/precompute/monkey/s3/avg_coverage.txt"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/precomute/monkey/s3\n        awk -v min=1000000 'BEGIN {OFS=\"\\t\"} $2 > min {print $1, 0, $2}' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa.fai > {ROOT}/output/precomute/monkey/s3/long_contigs.bed\n        samtools depth -b {ROOT}/output/precomute/monkey/s3/long_contigs.bed {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam | awk '{sum += $3; count++} END {print sum / count}' > {ROOT}/output/precomute/monkey/s3/avg_coverage.txt\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/monkey/s3\n        awk -v min=1000000 'BEGIN {OFS=\"\\t\"} $2 > min {print $1, 0, $2}' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa.fai > {ROOT}/output/precompute/monkey/s3/long_contigs.bed\n        samtools depth -b {ROOT}/output/precompute/monkey/s3/long_contigs.bed {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam | awk '{sum += $3; count++} END {print sum / count}' > {ROOT}/output/precompute/monkey/s3/avg_coverage.txt\n        "
  },
  "faSplit_ape_s1_diploid": {
   "inputs": [
@@ -61,10 +61,10 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa",
-   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+   "{ROOT}/output/precompute/ape/s1/contigs/c1.fa",
+   "{ROOT}/output/precompute/ape/s1/contigs/c2.fa"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/precomute/ape/s1/contigs\n        faSplit byname {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/contigs/\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/ape/s1/contigs\n        faSplit byname {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/contigs/\n        "
  },
  "faSplit_ape_s2_diploid": {
   "inputs": [
@@ -77,9 +77,9 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+   "{ROOT}/output/precompute/ape/s2/contigs/c2.fa"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/precomute/ape/s2/contigs\n        faSplit byname {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precomute/ape/s2/contigs/\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/ape/s2/contigs\n        faSplit byname {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precompute/ape/s2/contigs/\n        "
  },
  "faSplit_monkey_s3_diploid": {
   "inputs": [
@@ -92,9 +92,9 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+   "{ROOT}/output/precompute/monkey/s3/contigs/c2.fa"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/precomute/monkey/s3/contigs\n        faSplit byname {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precomute/monkey/s3/contigs/\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/monkey/s3/contigs\n        faSplit byname {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precompute/monkey/s3/contigs/\n        "
  },
  "haplotypes_ape_s1_diploid": {
   "inputs": [
@@ -107,10 +107,10 @@
    "walltime": "04:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/haplotypes/hap1.fa",
-   "{ROOT}/output/precomute/ape/s1/haplotypes/hap2.fa"
+   "{ROOT}/output/precompute/ape/s1/haplotypes/hap1.fa",
+   "{ROOT}/output/precompute/ape/s1/haplotypes/hap2.fa"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precomute/ape/s1/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa > {ROOT}/output/precomute/ape/s1/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa > {ROOT}/output/precomute/ape/s1/haplotypes/hap2.fa\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precompute/ape/s1/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa > {ROOT}/output/precompute/ape/s1/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa > {ROOT}/output/precompute/ape/s1/haplotypes/hap2.fa\n        "
  },
  "haplotypes_ape_s2_diploid": {
   "inputs": [
@@ -123,10 +123,10 @@
    "walltime": "04:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s2/haplotypes/hap1.fa",
-   "{ROOT}/output/precomute/ape/s2/haplotypes/hap2.fa"
+   "{ROOT}/output/precompute/ape/s2/haplotypes/hap1.fa",
+   "{ROOT}/output/precompute/ape/s2/haplotypes/hap2.fa"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precomute/ape/s2/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa > {ROOT}/output/precomute/ape/s2/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa > {ROOT}/output/precomute/ape/s2/haplotypes/hap2.fa\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precompute/ape/s2/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa > {ROOT}/output/precompute/ape/s2/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa > {ROOT}/output/precompute/ape/s2/haplotypes/hap2.fa\n        "
  },
  "haplotypes_monkey_s3_diploid": {
   "inputs": [
@@ -139,14 +139,14 @@
    "walltime": "04:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/monkey/s3/haplotypes/hap1.fa",
-   "{ROOT}/output/precomute/monkey/s3/haplotypes/hap2.fa"
+   "{ROOT}/output/precompute/monkey/s3/haplotypes/hap1.fa",
+   "{ROOT}/output/precompute/monkey/s3/haplotypes/hap2.fa"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precomute/monkey/s3/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa > {ROOT}/output/precomute/monkey/s3/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa > {ROOT}/output/precomute/monkey/s3/haplotypes/hap2.fa\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precompute/monkey/s3/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa > {ROOT}/output/precompute/monkey/s3/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa > {ROOT}/output/precompute/monkey/s3/haplotypes/hap2.fa\n        "
  },
  "merge_unresolved_ape_s1_c1_diploid": {
   "inputs": [
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed"
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -155,13 +155,13 @@
    "walltime": "00:30:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c1.bed"
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c1.bed"
   ],
-  "spec": "\n            cat {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c1.bed\n            "
+  "spec": "\n            cat {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c1.bed\n            "
  },
  "merge_unresolved_ape_s1_c2_diploid": {
   "inputs": [
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed"
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -170,13 +170,13 @@
    "walltime": "00:30:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c2.bed"
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c2.bed"
   ],
-  "spec": "\n            cat {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c2.bed\n            "
+  "spec": "\n            cat {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c2.bed\n            "
  },
  "merge_unresolved_ape_s2_c2_diploid": {
   "inputs": [
-   "{ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed"
+   "{ROOT}/output/precompute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -185,13 +185,13 @@
    "walltime": "00:30:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s2/unresolved_haplotypes/c2.bed"
+   "{ROOT}/output/precompute/ape/s2/unresolved_haplotypes/c2.bed"
   ],
-  "spec": "\n            cat {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/c2.bed\n            "
+  "spec": "\n            cat {ROOT}/output/precompute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precompute/ape/s2/unresolved_haplotypes/c2.bed\n            "
  },
  "merge_unresolved_monkey_s3_c2_diploid": {
   "inputs": [
-   "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed"
+   "{ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -200,9 +200,9 @@
    "walltime": "00:30:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed"
+   "{ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/c2.bed"
   ],
-  "spec": "\n            cat {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed\n            "
+  "spec": "\n            cat {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/c2.bed\n            "
  },
  "read_classification_ape_s1_diploid": {
   "inputs": [
@@ -215,9 +215,9 @@
    "walltime": "06:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/read_classification.tsv"
+   "{ROOT}/output/precompute/ape/s1/read_classification.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/precomute/ape/s1\n            bash {ROOT}/scripts/read_classification.sh {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv {ROOT}/output/precomute/ape/s1/read_classification.tsv Sperm. Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial -10,-8,-6,-4,-2,-1,0,1,2,4,6,8,10 -12,-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,12\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/precompute/ape/s1\n            bash {ROOT}/scripts/read_classification.sh {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv {ROOT}/output/precompute/ape/s1/read_classification.tsv Sperm. Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial -10,-8,-6,-4,-2,-1,0,1,2,4,6,8,10 -12,-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,12\n            "
  },
  "sorting_tissue_classification_ape_s1_diploid": {
   "inputs": [
@@ -230,15 +230,15 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/sorted_tissue_classification.tsv"
+   "{ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/precomute/ape/s1\n            printf \"readID\\ttissue\\n\" > {ROOT}/output/precomute/ape/s1/sorted_tissue_classification.tsv\n            awk -v OFS=\"\\t\" '{gsub(/[ \\t]+/, \"\\t\"); print $1, $2}' {ROOT}/read_labels/ape/s1/s1_read_labels.txt | sort -k1,1 >> {ROOT}/output/precomute/ape/s1/sorted_tissue_classification.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/precompute/ape/s1\n            printf \"readID\\ttissue\\n\" > {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv\n            awk -v OFS=\"\\t\" '{gsub(/[ \\t]+/, \"\\t\"); print $1, $2}' {ROOT}/read_labels/ape/s1/s1_read_labels.txt | sort -k1,1 >> {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv\n            "
  },
  "unresolved_haplotype_ape_s1_c1_0_diploid": {
   "inputs": [
    "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
    "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
-   "{ROOT}/output/precomute/ape/s1/avg_coverage.txt"
+   "{ROOT}/output/precompute/ape/s1/avg_coverage.txt"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -247,15 +247,15 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed"
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c1 0 12000000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c1 0 12000000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed\n                "
  },
  "unresolved_haplotype_ape_s1_c2_0_diploid": {
   "inputs": [
    "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
    "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
-   "{ROOT}/output/precomute/ape/s1/avg_coverage.txt"
+   "{ROOT}/output/precompute/ape/s1/avg_coverage.txt"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -264,15 +264,15 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed"
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
  },
  "unresolved_haplotype_ape_s2_c2_0_diploid": {
   "inputs": [
    "{ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa",
    "{ROOT}/override/s2_diploid.bam",
-   "{ROOT}/output/precomute/ape/s2/avg_coverage.txt"
+   "{ROOT}/output/precompute/ape/s2/avg_coverage.txt"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -281,15 +281,15 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed"
+   "{ROOT}/output/precompute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/override/s2_diploid.bam {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precomute/ape/s2/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precompute/ape/s2/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/override/s2_diploid.bam {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precompute/ape/s2/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precompute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
  },
  "unresolved_haplotype_monkey_s3_c2_0_diploid": {
   "inputs": [
    "{ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa",
    "{ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam",
-   "{ROOT}/output/precomute/monkey/s3/avg_coverage.txt"
+   "{ROOT}/output/precompute/monkey/s3/avg_coverage.txt"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -298,14 +298,14 @@
    "walltime": "12:00:00"
   },
   "outputs": [
-   "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed"
+   "{ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precomute/monkey/s3/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precompute/monkey/s3/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
  },
  "unresolved_summary_ape_s1_diploid": {
   "inputs": [
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c1.bed",
-   "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c2.bed"
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c1.bed",
+   "{ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c2.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -316,11 +316,11 @@
   "outputs": [
    "{ROOT}/results/precompute/ape/s1/unresolved_summary.tsv"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/ape/s1\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 13500000, bp / 13500000, \"ape\", \"s1\"}' \\\n            {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c1.bed {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/ape/s1\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 13500000, bp / 13500000, \"ape\", \"s1\"}' \\\n            {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c1.bed {ROOT}/output/precompute/ape/s1/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv.tmp {ROOT}/results/precompute/ape/s1/unresolved_summary.tsv\n        "
  },
  "unresolved_summary_ape_s2_diploid": {
   "inputs": [
-   "{ROOT}/output/precomute/ape/s2/unresolved_haplotypes/c2.bed"
+   "{ROOT}/output/precompute/ape/s2/unresolved_haplotypes/c2.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -331,11 +331,11 @@
   "outputs": [
    "{ROOT}/results/precompute/ape/s2/unresolved_summary.tsv"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/ape/s2\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 1500000, bp / 1500000, \"ape\", \"s2\"}' \\\n            {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/ape/s2\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 1500000, bp / 1500000, \"ape\", \"s2\"}' \\\n            {ROOT}/output/precompute/ape/s2/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv.tmp {ROOT}/results/precompute/ape/s2/unresolved_summary.tsv\n        "
  },
  "unresolved_summary_monkey_s3_diploid": {
   "inputs": [
-   "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed"
+   "{ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/c2.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -346,6 +346,6 @@
   "outputs": [
    "{ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/monkey/s3\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 1500000, bp / 1500000, \"monkey\", \"s3\"}' \\\n            {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/precompute/monkey/s3\n        printf \"regions\\tbp\\tcontigs_bp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print n + 0, bp + 0, 1500000, bp / 1500000, \"monkey\", \"s3\"}' \\\n            {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/c2.bed >> {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp\n        mv {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv.tmp {ROOT}/results/precompute/monkey/s3/unresolved_summary.tsv\n        "
  }
 }

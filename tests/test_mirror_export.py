@@ -65,7 +65,7 @@ def write_haploid_records(bam, calls, path):
 def haploid_check(calls, locations, reads, merged, species, sample):
     """The haploid-check step, with species and sample appended as the workflow's awk does."""
     checked = io.StringIO()
-    run_script("filtering_haploid_mappping.py", calls, locations, reads, stdout=checked)
+    run_script("filtering_haploid_mapping.py", calls, locations, reads, stdout=checked)
     header, *rows = checked.getvalue().splitlines()
     with open(merged, "w") as out:
         out.write(header + "\tspecies\tsample\n")

@@ -155,15 +155,15 @@ layout:
   read_labels:  "{read_labels}/{species}/{sample}/{sample}_read_labels.txt"
 
   # Written by precompute.py.
-  contig_fasta: "{output}/precomute/{species}/{sample}/contigs/{contig}.fa"
-  long_contigs: "{output}/precomute/{species}/{sample}/long_contigs.bed"
-  coverage:     "{output}/precomute/{species}/{sample}/avg_coverage.txt"
-  unresolved_window: "{output}/precomute/{species}/{sample}/unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed"
-  unresolved:   "{output}/precomute/{species}/{sample}/unresolved_haplotypes/{contig}.bed"
+  contig_fasta: "{output}/precompute/{species}/{sample}/contigs/{contig}.fa"
+  long_contigs: "{output}/precompute/{species}/{sample}/long_contigs.bed"
+  coverage:     "{output}/precompute/{species}/{sample}/avg_coverage.txt"
+  unresolved_window: "{output}/precompute/{species}/{sample}/unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed"
+  unresolved:   "{output}/precompute/{species}/{sample}/unresolved_haplotypes/{contig}.bed"
   unresolved_summary: "{results}/precompute/{species}/{sample}/unresolved_summary.tsv"
-  tissue:       "{output}/precomute/{species}/{sample}/sorted_tissue_classification.tsv"
-  read_classification: "{output}/precomute/{species}/{sample}/read_classification.tsv"
-  haplotype_assembly: "{output}/precomute/{species}/{sample}/haplotypes/{haplotype}.fa"
+  tissue:       "{output}/precompute/{species}/{sample}/sorted_tissue_classification.tsv"
+  read_classification: "{output}/precompute/{species}/{sample}/read_classification.tsv"
+  haplotype_assembly: "{output}/precompute/{species}/{sample}/haplotypes/{haplotype}.fa"
 
   # Written by repetitive_dna.py: per period k (M1 also per window), then one
   # BED per contig per model, and per sample. repeat_bases is every base in a

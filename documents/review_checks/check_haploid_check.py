@@ -1,6 +1,6 @@
 """
 Findings H1-H4 of ../nonrepetitive_indel_review.md: how
-scripts/filtering_haploid_mappping.py matched a call to its read's alignment
+scripts/filtering_haploid_mapping.py (then filtering_haploid_mappping.py) matched a call to its read's alignment
 to the haploid assembly when the review was written, and, in section 1, how
 it does since the fix. Sections 2-5 read results/, which the walk as reviewed
 produced.
@@ -10,7 +10,7 @@ produced.
 import pandas as pd
 
 from common import load_calls, show
-from filtering_haploid_mappping import check_call
+from filtering_haploid_mapping import check_call
 from old_haploid_walk import find_indel_position_in_read
 
 # ---------------------------------------------------------------------------

@@ -30,9 +30,9 @@ def test_paths_come_from_the_layout_templates(pipeline, root):
     assert pipeline.path("assembly", "ape", "s1") == f"{root}/fasta/ape/s1/diploid_assembly/s1_diploid.fa"
     # `output` is relative in the config, so it is made absolute from the
     # directory gwf runs in.
-    assert pipeline.path("coverage", "ape", "s1") == f"{root}/output/precomute/ape/s1/avg_coverage.txt"
+    assert pipeline.path("coverage", "ape", "s1") == f"{root}/output/precompute/ape/s1/avg_coverage.txt"
     assert pipeline.path("contig_fasta", "monkey", "s3", contig="c2") == \
-        f"{root}/output/precomute/monkey/s3/contigs/c2.fa"
+        f"{root}/output/precompute/monkey/s3/contigs/c2.fa"
 
 
 def test_an_override_replaces_the_standard_alignment(pipeline, root):
@@ -54,9 +54,9 @@ def test_a_sample_is_listed_in_a_table_only_under_its_own_species(pipeline):
 
 
 def test_a_templates_folder_needs_no_per_file_fields(pipeline, root):
-    assert pipeline.folder("contig_fasta", "ape", "s1") == f"{root}/output/precomute/ape/s1/contigs"
+    assert pipeline.folder("contig_fasta", "ape", "s1") == f"{root}/output/precompute/ape/s1/contigs"
     assert pipeline.folder("unresolved_window", "ape", "s1") == \
-        f"{root}/output/precomute/ape/s1/unresolved_haplotypes/chunks"
+        f"{root}/output/precompute/ape/s1/unresolved_haplotypes/chunks"
 
 
 def test_relative_paths_can_resolve_against_another_folder(tmp_path, monkeypatch):
@@ -66,7 +66,7 @@ def test_relative_paths_can_resolve_against_another_folder(tmp_path, monkeypatch
     monkeypatch.chdir(tmp_path)
     from pipeline import Pipeline
     pipeline = Pipeline(f"{root}/config.yaml", base=root)
-    assert pipeline.path("coverage", "ape", "s1") == f"{root}/output/precomute/ape/s1/avg_coverage.txt"
+    assert pipeline.path("coverage", "ape", "s1") == f"{root}/output/precompute/ape/s1/avg_coverage.txt"
 
 
 def test_a_folder_takes_the_fields_its_own_path_needs(pipeline, root):

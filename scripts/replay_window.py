@@ -73,7 +73,7 @@ def main():
             if os.path.exists(records):
                 haplotypes += ["--haplotype", f"{haplotype}={records}"]
         with open(f"{results}/merged_indels.tsv", "w") as merged:
-            run("filtering_haploid_mappping.py", calls, data.path(f"{workflow}_haploid_locations", species, sample),
+            run("filtering_haploid_mapping.py", calls, data.path(f"{workflow}_haploid_locations", species, sample),
                 reads, *haplotypes, stdout=merged)
         run("final_filtering.py", f"{results}/merged_indels.tsv", f"{results}/opportunities.tsv",
             f"{results}/indels.tsv", f"{results}/final_opportunities.tsv", f"{results}/filter_report.tsv",

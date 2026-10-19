@@ -64,7 +64,7 @@ def checked_calls(tmp_path, reverse):
     haploid = write_records(tmp_path / "haploid.tsv", [from_hap2[1], mutated[1]], "hap")
     hap1 = write_records(tmp_path / "hap1.tsv", [from_hap2[1], mutated[1]], "h1tg000001l")
     hap2 = write_records(tmp_path / "hap2.tsv", [from_hap2[2], mutated[2]], "h2tg000001l")
-    done = subprocess.run([sys.executable, os.path.join(SCRIPTS, "filtering_haploid_mappping.py"),
+    done = subprocess.run([sys.executable, os.path.join(SCRIPTS, "filtering_haploid_mapping.py"),
                            str(tmp_path / "calls.tsv"), str(haploid), str(tmp_path / "reads.fastq"),
                            "--haplotype", f"hap1={hap1}", "--haplotype", f"hap2={hap2}"],
                           capture_output=True, text=True, check=True)
@@ -81,7 +81,7 @@ def test_a_read_missing_from_a_haplotypes_alignment_is_unchecked_there(tmp_path)
     checks = checked_calls(tmp_path, False)
     # Rewrite hap2's records without the mutated read and check again.
     write_records(tmp_path / "hap2.tsv", [from_hap2[2]], "h2tg000001l")
-    done = subprocess.run([sys.executable, os.path.join(SCRIPTS, "filtering_haploid_mappping.py"),
+    done = subprocess.run([sys.executable, os.path.join(SCRIPTS, "filtering_haploid_mapping.py"),
                            str(tmp_path / "calls.tsv"), str(tmp_path / "haploid.tsv"), str(tmp_path / "reads.fastq"),
                            "--haplotype", f"hap1={tmp_path / 'hap1.tsv'}", "--haplotype", f"hap2={tmp_path / 'hap2.tsv'}"],
                           capture_output=True, text=True, check=True)

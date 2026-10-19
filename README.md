@@ -83,7 +83,7 @@ bases belong to.
 
 | # | Workflow | What it does | Needs | Writes |
 |---|---|---|---|---|
-| 1 | [precompute.py](workflows/precompute.py) | Per-contig FASTAs, mean coverage, unresolved-haplotype regions, read → tissue table | the inputs | `output/precomute/`, `results/precompute/` |
+| 1 | [precompute.py](workflows/precompute.py) | Per-contig FASTAs, mean coverage, unresolved-haplotype regions, read → tissue table | the inputs | `output/precompute/`, `results/precompute/` |
 | 2 | [repetitive_dna.py](workflows/repetitive_dna.py) | Tandem repeat tracts with periods 2–6, under three models (M0, M1, M2); the excluded group | 1 | `output/repetitive_dna/`, `results/repetitive_dna/` |
 | 3 | [indel_mutation_call.py](workflows/indel_mutation_call.py) | 1–3 bp InDels outside every repeat tract, excluded region and unresolved region | 1, 2 | `results/nonrepetitive_indels/` |
 | 4 | [repetitive_indel_call.py](workflows/repetitive_indel_call.py) | InDels inside the tracts of each model that overlap no excluded or unresolved region, classed as slippage or other | 1, 2 | `results/repetitive_indels/` |
@@ -281,9 +281,9 @@ targets whose outputs are missing or out of date.
 ## Workflow 1: precompute
 
 [workflows/precompute.py](workflows/precompute.py) prepares what the other
-workflows share. Outputs go to `output/precomute/{species}/{sample}/` (the
-directory is spelled `precomute` in the code), and the one summary to
-`results/precompute/{species}/{sample}/`.
+workflows share. Outputs go to `output/precompute/{species}/{sample}/` (spelled
+`precomute` before the rerun; mirror windows exported then keep that name), and
+the one summary to `results/precompute/{species}/{sample}/`.
 
 | Step | Target | Runs per | Output |
 |---|---|---|---|
@@ -511,7 +511,7 @@ and every unresolved-haplotype region. Intermediates go to
    flag, contig, position, mapping quality and CIGAR, sorted by read ID. The
    same reads are aligned the same way to hap1 alone and to hap2 alone (4b),
    for the [hap1/hap2 test](#the-hap1hap2-test).
-5. **Haploid check.** [filtering_haploid_mappping.py](scripts/filtering_haploid_mappping.py)
+5. **Haploid check.** [filtering_haploid_mapping.py](scripts/filtering_haploid_mapping.py)
    checks every call against its read's haploid alignment and its sequence in
    `haploid/all.fastq` (see [Haploid concordance](#haploid-concordance)) and
    writes one table for the sample, with `species` and `sample` columns added.
@@ -772,7 +772,7 @@ A real InDel is part of the read, so it should appear wherever the read is
 aligned. One that appears only in the alignment to the diploid assembly is more
 likely an artefact of that alignment or assembly. Each call is therefore checked
 against an independent alignment of its read to the haploid assembly, in
-[filtering_haploid_mappping.py](scripts/filtering_haploid_mappping.py):
+[filtering_haploid_mapping.py](scripts/filtering_haploid_mapping.py):
 
 1. Every read carrying a call (before final filtering) is written to FASTQ in its
    original orientation and aligned with `pbmm2 align --preset HIFI`. The check
@@ -938,7 +938,7 @@ PDFs.
 
 ```
 output/
-├── precomute/{species}/{sample}/
+├── precompute/{species}/{sample}/
 │   ├── contigs/{contig}.fa
 │   ├── long_contigs.bed
 │   ├── avg_coverage.txt
@@ -1271,7 +1271,7 @@ scripts/
   find_homopolymers.py             homopolymer runs of a FASTA (the excluded group)
   merge_regions.py                 the merged union of BEDs: the mask, the excluded group
   drop_excluded_tracts.py          the tracts workflow 4 measures
-  filtering_haploid_mappping.py    haploid concordance check
+  filtering_haploid_mapping.py    haploid concordance check
   final_filtering.py               the definition of a final call, on calls and opportunities, with the report
   join_read_classification.sh      germline/somatic columns
   plot_indels.R                    diagnostic PDF
