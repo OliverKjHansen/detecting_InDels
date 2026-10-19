@@ -919,13 +919,16 @@ Two approximations to keep in mind when reading the rates:
 |---|---|
 | [tests/test_pure_functions.py](tests/test_pure_functions.py) | canonicalisation, the homopolymer rule, reading the `sa` tag, Hamming purity, walking the haploid CIGAR |
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
+| [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve |
 | [tests/test_strip_notebook_outputs.py](tests/test_strip_notebook_outputs.py) | the notebook clean filter, alone and through git |
 
-The fixtures in `tests/fixtures/` come from
-[tests/make_fixtures.py](tests/make_fixtures.py), which `conftest.py` runs when
-they are missing. The planted InDels and the expected outcome for each are in
-`tests/fixtures/truth.tsv`. The tests need no cluster and no external binaries.
+The fixtures come from [tests/make_fixtures.py](tests/make_fixtures.py), which
+`conftest.py` runs into a temporary directory at the start of every test
+session; `python tests/make_fixtures.py` writes the same files to
+`tests/fixtures/` to look at. The planted InDels and the expected outcome for
+each are `PLANTED` in that file, and its `make_read()` builds the other read
+shapes. The tests need no cluster and no external binaries.
 
 ---
 
@@ -960,7 +963,7 @@ tests/                             pytest suite and fixture generator
 
 Not tracked by git: `results/`, `mirror/`, `plots/`, `figs/` and `papers/`
 (local data, figures and papers), `TRF/` and `mreps/` (tool sources, see
-*Requirements*), and `tests/fixtures/`, which `make_fixtures.py` rebuilds.
+*Requirements*), and `tests/fixtures/`, which `make_fixtures.py` writes.
 
 The planned changes, and the reason for each, are in
 [documents/decisions_2026-10-19.md](documents/decisions_2026-10-19.md). Where it

@@ -1,21 +1,21 @@
 """
 Shared pytest setup.
 
-Puts the repository root and scripts/ on sys.path so tests can import both
-`config` and the analysis modules, which use flat imports
+Puts the repository root and scripts/ on sys.path so tests can import the
+analysis modules, which use flat imports
 (``from utilities import nonrepetitive_scan``) because they are normally run as
 standalone scripts.
 """
 
 import os
-import subprocess
 import sys
 
 import pytest
 
+import make_fixtures
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "scripts")
-FIXTURES = os.path.join(REPO_ROOT, "tests", "fixtures")
 
 for path in (REPO_ROOT, SCRIPTS_DIR):
     if path not in sys.path:
@@ -23,18 +23,14 @@ for path in (REPO_ROOT, SCRIPTS_DIR):
 
 
 @pytest.fixture(scope="session")
-def fixtures():
-    """Path to tests/fixtures/, generating it first if it is missing."""
-    diploid = os.path.join(
-        FIXTURES, "fasta", "testspecies", "testsample",
-        "diploid_assembly", "testsample_diploid.fa",
-    )
-    if not os.path.exists(diploid):
-        subprocess.run(
-            [sys.executable, os.path.join(REPO_ROOT, "tests", "make_fixtures.py")],
-            check=True,
-        )
-    return FIXTURES
+def fixtures(tmp_path_factory):
+    """
+    The miniature dataset of make_fixtures.py, built afresh for the session so
+    a change to the generator can never leave stale fixtures behind.
+    """
+    directory = str(tmp_path_factory.mktemp("fixtures"))
+    make_fixtures.build(directory)
+    return directory
 
 
 @pytest.fixture(scope="session")

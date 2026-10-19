@@ -25,6 +25,6 @@ unit_tests/
 
 ### Generated ###
 __pycache__/
-# Rebuilt by tests/make_fixtures.py, which conftest.py runs when they're missing.
+# Written by `python tests/make_fixtures.py`; the tests build their own copy.
 /tests/fixtures/
 

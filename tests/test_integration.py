@@ -8,7 +8,6 @@ external binaries - it is the part of the pipeline that can genuinely be
 developed on a laptop.
 """
 
-import io
 import os
 import subprocess
 import sys
@@ -17,41 +16,10 @@ import pysam
 import pytest
 
 import utilities
+from scans import nonrepetitive_scan, rows_of
+from scans import tandem_repeat_scan as scan
 
 CONTIG = "testcontig1"
-
-
-def rows_of(text):
-    """Parse a scan's TSV output into one dict per row."""
-    lines = text.strip().split("\n")
-    header = lines[0].lstrip("#").split("\t")
-    return [dict(zip(header, line.split("\t"))) for line in lines[1:] if line]
-
-
-def nonrepetitive_scan(fixture_paths, window_start=None, window_end=None):
-    """Run nonrepetitive_scan() into strings: (calls, opportunities, FASTQ)."""
-    calls, opportunities, fastq = io.StringIO(), io.StringIO(), io.StringIO()
-    utilities.nonrepetitive_scan(
-        fixture_paths["filters"], CONTIG, fixture_paths["bam"], fixture_paths["assembly"],
-        fixture_paths["coverage"], fixture_paths["tissue"], window_start, window_end,
-        calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
-    )
-    return calls.getvalue(), opportunities.getvalue(), fastq.getvalue()
-
-
-def scan(beds, fixture_paths, window_start=None, window_end=None):
-    """Run tandem_repeat_scan() into strings: (calls per model, opportunities per model, FASTQ)."""
-    calls = {model: io.StringIO() for model in beds}
-    opportunities = {model: io.StringIO() for model in beds}
-    fastq = io.StringIO()
-    utilities.tandem_repeat_scan(
-        beds, CONTIG, fixture_paths["bam"], fixture_paths["assembly"],
-        fixture_paths["coverage"], fixture_paths["tissue"], window_start, window_end,
-        calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
-    )
-    return ({model: out.getvalue() for model, out in calls.items()},
-            {model: out.getvalue() for model, out in opportunities.items()},
-            fastq.getvalue())
 
 
 @pytest.fixture(scope="module")
