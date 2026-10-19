@@ -344,8 +344,7 @@ chromosome can run for days, so M1 runs per window:
 [parse_trf.py](scripts/parse_trf.py) shifts the coordinates back onto the contig
 and makes them 0-based half-open. `copies` is TRF's copy number, and `trf_purity`
 its percent matches, which comes from an alignment and so forgives indels
-between copies. [trf_diagnose.sh](scripts/trf_diagnose.sh) reports what makes TRF
-slow in a given region.
+between copies.
 
 **Purity.** `model_purity` compares every base of the tract with the consensus
 motif tiled from the tract's first base, and reports the percentage that match.
@@ -355,10 +354,7 @@ it for every base after. For M0 both measures are 100.
 **Canonical motif.** A motif is labelled by the smallest of its rotations and the
 rotations of its reverse complement, so `AC`, `CA`, `GT` and `TG` are all `AC`:
 the same repeat, read from either strand and starting anywhere. Both parsers use
-`canonicalise()` from parse_trf.py. Files written with the older rotation-only
-labels can be converted in place with
-[recanonicalise_motifs.py](scripts/recanonicalise_motifs.py) (`--dry-run` shows
-what would change).
+`canonicalise()` from parse_trf.py.
 
 **Overlap resolution.**
 [resolve_repeat_overlaps.py](scripts/resolve_repeat_overlaps.py) leaves every
@@ -889,11 +885,15 @@ Without the first line, git commits notebooks with their outputs. The second
 makes `git add` stop with an error if the filter fails, for instance on a
 notebook that isn't valid JSON, rather than staging it unfiltered.
 
-`results/` is small enough to copy from the cluster with rsync.
-[scripts/fetch_results.py](scripts/fetch_results.py) automates that, but it was
-written for an earlier layout: it expects `paths.output_root` and a `remote`
-block (`host`, `workdir`, `local_dir`) in config.yaml, which the current config
-does not define.
+`results/` is small enough to copy from the cluster with rsync. From the
+repository root of the local checkout, with `CLUSTER` the cluster login and
+`REPO` the checkout there:
+
+```bash
+rsync -av CLUSTER:REPO/results/ results/
+```
+
+This shape has not been checked against the command used in practice.
 
 Two approximations to keep in mind when reading the rates:
 
@@ -919,7 +919,7 @@ Two approximations to keep in mind when reading the rates:
 |---|---|
 | [tests/test_pure_functions.py](tests/test_pure_functions.py) | canonicalisation, the homopolymer rule, reading the `sa` tag, Hamming purity, walking the haploid CIGAR |
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
-| [tests/test_config.py](tests/test_config.py) | config.yaml and the workflow sources, read as text |
+| [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve |
 | [tests/test_strip_notebook_outputs.py](tests/test_strip_notebook_outputs.py) | the notebook clean filter, alone and through git |
 
 The fixtures in `tests/fixtures/` come from
@@ -953,9 +953,6 @@ scripts/
   filtering_opportunities.py       final filters on the opportunities
   join_read_classification.sh      germline/somatic columns
   plot_indels.R                    diagnostic PDF
-  recanonicalise_motifs.py         relabel motifs in files from before strands were collapsed
-  trf_diagnose.sh                  what makes TRF slow in a region
-  fetch_results.py                 rsync results/ from the cluster (earlier layout)
   strip_notebook_outputs.py        git clean filter: notebooks are committed without outputs
 plotting/                          analysis notebooks (R)
 tests/                             pytest suite and fixture generator
@@ -965,23 +962,9 @@ Not tracked by git: `results/`, `mirror/`, `plots/`, `figs/` and `papers/`
 (local data, figures and papers), `TRF/` and `mreps/` (tool sources, see
 *Requirements*), and `tests/fixtures/`, which `make_fixtures.py` rebuilds.
 
-Scripts the workflows no longer use:
-
-- `small_indels.py`, `opportunities.py`, `tandem_repeat_indels.py`,
-  `tandem_repeat_opportunities.py`: command-line wrappers that write only the
-  calls or only the opportunities, for one model. The scan jobs replaced them.
-- `build_mutation_fastq.py`: pulled the reads carrying a call out of the BAM. The
-  scans now write that FASTQ themselves.
-- `large_indels.py`, `small_indels_summary.py`: earlier analyses (InDels of 10 bp
-  or more, and per-context summary counts) built on an older microsatellite
-  annotation.
-- `impurity_models.py`: an earlier M0 builder, with an inactive model that
-  merges tracts split by a single base.
-- `plotting_quality.py`: empty.
-
-[InDel_call_plan.md](InDel_call_plan.md) and
-[tandem_repeat_plan.md](tandem_repeat_plan.md) are design notes from earlier
-stages. Where they differ from the workflows, the workflows are current.
+The planned changes, and the reason for each, are in
+[documents/decisions_2026-10-19.md](documents/decisions_2026-10-19.md). Where it
+and this README disagree, the decisions document is the intent.
 
 ## License
 

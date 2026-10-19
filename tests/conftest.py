@@ -3,7 +3,7 @@ Shared pytest setup.
 
 Puts the repository root and scripts/ on sys.path so tests can import both
 `config` and the analysis modules, which use flat imports
-(``from utilities import small_indels``) because they are normally run as
+(``from utilities import nonrepetitive_scan``) because they are normally run as
 standalone scripts.
 """
 

@@ -154,9 +154,10 @@ In the order they are likely to matter:
 
    Apply the same rules to the k-mer at each opportunity.
 4. **Distance to the nearest other InDel or mismatch in the same read.**
-   Alignment artefacts come in clusters. [`closest_indel()`](../scripts/utilities.py#L301)
-   already measures this from the CIGAR but is not called by the scan. For the
-   denominator, record the same distance bin at each opportunity.
+   Alignment artefacts come in clusters. A helper that measured this from the
+   CIGAR, `closest_indel()`, was never called by the scan and has since been
+   deleted. For the denominator, record the same distance bin at each
+   opportunity.
 5. **A wider all-Q93 window**, say five bases on each side, for calls and
    opportunities alike. The current window is three or four bases, and not the
    same ones on both sides (D4).

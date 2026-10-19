@@ -12,7 +12,6 @@ import io
 import os
 import subprocess
 import sys
-from contextlib import redirect_stdout
 
 import pysam
 import pytest
@@ -22,41 +21,49 @@ import utilities
 CONTIG = "testcontig1"
 
 
-def run_caller(function, *args):
-    """Call one of the stdout-printing analysis functions and parse its TSV."""
-    buffer = io.StringIO()
-    with redirect_stdout(buffer):
-        function(*args)
-
-    lines = buffer.getvalue().strip().split("\n")
+def rows_of(text):
+    """Parse a scan's TSV output into one dict per row."""
+    lines = text.strip().split("\n")
     header = lines[0].lstrip("#").split("\t")
     return [dict(zip(header, line.split("\t"))) for line in lines[1:] if line]
 
 
+def nonrepetitive_scan(fixture_paths, window_start=None, window_end=None):
+    """Run nonrepetitive_scan() into strings: (calls, opportunities, FASTQ)."""
+    calls, opportunities, fastq = io.StringIO(), io.StringIO(), io.StringIO()
+    utilities.nonrepetitive_scan(
+        fixture_paths["filters"], CONTIG, fixture_paths["bam"], fixture_paths["assembly"],
+        fixture_paths["coverage"], fixture_paths["tissue"], window_start, window_end,
+        calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
+    )
+    return calls.getvalue(), opportunities.getvalue(), fastq.getvalue()
+
+
+def scan(beds, fixture_paths, window_start=None, window_end=None):
+    """Run tandem_repeat_scan() into strings: (calls per model, opportunities per model, FASTQ)."""
+    calls = {model: io.StringIO() for model in beds}
+    opportunities = {model: io.StringIO() for model in beds}
+    fastq = io.StringIO()
+    utilities.tandem_repeat_scan(
+        beds, CONTIG, fixture_paths["bam"], fixture_paths["assembly"],
+        fixture_paths["coverage"], fixture_paths["tissue"], window_start, window_end,
+        calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
+    )
+    return ({model: out.getvalue() for model, out in calls.items()},
+            {model: out.getvalue() for model, out in opportunities.items()},
+            fastq.getvalue())
+
+
 @pytest.fixture(scope="module")
 def small_indel_calls(fixture_paths):
-    return run_caller(
-        utilities.small_indels,
-        fixture_paths["filters"],
-        CONTIG,
-        fixture_paths["bam"],
-        fixture_paths["assembly"],
-        fixture_paths["coverage"],
-        fixture_paths["tissue"],
-    )
+    calls, _, _ = nonrepetitive_scan(fixture_paths)
+    return rows_of(calls)
 
 
 @pytest.fixture(scope="module")
 def tr_indel_calls(fixture_paths):
-    return run_caller(
-        utilities.tandem_repeat_indels,
-        fixture_paths["tr_bed"],
-        CONTIG,
-        fixture_paths["bam"],
-        fixture_paths["assembly"],
-        fixture_paths["coverage"],
-        fixture_paths["tissue"],
-    )
+    calls, _, _ = scan({"M1": fixture_paths["tr_bed"]}, fixture_paths)
+    return rows_of(calls["M1"])
 
 
 # -- workflow B: InDels outside repeats -------------------------------------
@@ -157,30 +164,16 @@ def test_homopolymer_filter_is_not_applied_inside_repeats(tr_indel_calls):
 
 
 def test_opportunities_are_counted_outside_the_mask(fixture_paths):
-    rows = run_caller(
-        utilities.indel_opportunities,
-        fixture_paths["filters"],
-        CONTIG,
-        fixture_paths["bam"],
-        fixture_paths["assembly"],
-        fixture_paths["coverage"],
-        fixture_paths["tissue"],
-    )
+    _, opportunities, _ = nonrepetitive_scan(fixture_paths)
+    rows = rows_of(opportunities)
     assert rows
     assert {"context", "tissue", "mapQ", "kmerQ", "count"} <= set(rows[0])
     assert sum(int(row["count"]) for row in rows) > 0
 
 
 def test_tandem_repeat_opportunities_are_binned_by_motif(fixture_paths):
-    rows = run_caller(
-        utilities.tandem_repeat_opportunities,
-        fixture_paths["tr_bed"],
-        CONTIG,
-        fixture_paths["bam"],
-        fixture_paths["assembly"],
-        fixture_paths["coverage"],
-        fixture_paths["tissue"],
-    )
+    _, opportunities, _ = scan({"M1": fixture_paths["tr_bed"]}, fixture_paths)
+    rows = rows_of(opportunities["M1"])
     counted = [row for row in rows if int(row["count"]) > 0]
     assert counted
     assert all(row["canonical_motif"] == "AC" and row["k"] == "2" for row in counted)
@@ -211,27 +204,6 @@ def three_model_beds(tmp_path_factory):
         with open(beds[model], "w") as bed:
             bed.write(header + "".join(lines))
     return beds
-
-
-def scan(beds, fixture_paths, window_start=None, window_end=None):
-    """Run tandem_repeat_scan() into strings: (calls per model, opportunities per model, FASTQ)."""
-    calls = {model: io.StringIO() for model in beds}
-    opportunities = {model: io.StringIO() for model in beds}
-    fastq = io.StringIO()
-    utilities.tandem_repeat_scan(
-        beds, CONTIG, fixture_paths["bam"], fixture_paths["assembly"],
-        fixture_paths["coverage"], fixture_paths["tissue"], window_start, window_end,
-        calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
-    )
-    return ({model: out.getvalue() for model, out in calls.items()},
-            {model: out.getvalue() for model, out in opportunities.items()},
-            fastq.getvalue())
-
-
-def rows_of(text):
-    lines = text.strip().split("\n")
-    header = lines[0].lstrip("#").split("\t")
-    return [dict(zip(header, line.split("\t"))) for line in lines[1:] if line]
 
 
 def test_scanning_models_together_matches_scanning_each_alone(three_model_beds, fixture_paths):
@@ -300,31 +272,6 @@ def test_haploid_filter_checks_several_call_tables_against_one_remapping(tmp_pat
 
 
 # -- one pass over the BAM outside repeats ----------------------------------
-
-
-def nonrepetitive_scan(fixture_paths, window_start=None, window_end=None):
-    """Run nonrepetitive_scan() into strings: (calls, opportunities, FASTQ)."""
-    calls, opportunities, fastq = io.StringIO(), io.StringIO(), io.StringIO()
-    utilities.nonrepetitive_scan(
-        fixture_paths["filters"], CONTIG, fixture_paths["bam"], fixture_paths["assembly"],
-        fixture_paths["coverage"], fixture_paths["tissue"], window_start, window_end,
-        calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
-    )
-    return calls.getvalue(), opportunities.getvalue(), fastq.getvalue()
-
-
-def test_nonrepetitive_scan_matches_the_separate_callers(fixture_paths):
-    calls, opportunities, _ = nonrepetitive_scan(fixture_paths)
-    args = (fixture_paths["filters"], CONTIG, fixture_paths["bam"], fixture_paths["assembly"],
-            fixture_paths["coverage"], fixture_paths["tissue"])
-    buffer = io.StringIO()
-    with redirect_stdout(buffer):
-        utilities.small_indels(*args)
-    assert calls == buffer.getvalue()
-    buffer = io.StringIO()
-    with redirect_stdout(buffer):
-        utilities.indel_opportunities(*args)
-    assert opportunities == buffer.getvalue()
 
 
 def test_nonrepetitive_scan_writes_each_read_carrying_a_call_once(fixture_paths):

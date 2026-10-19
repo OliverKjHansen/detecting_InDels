@@ -1,11 +1,10 @@
 """
 Unit tests for the pure helper functions in the analysis code.
 
-These had no coverage at all before. Two of them behave differently from what
-their names and docstrings promise; those tests are marked BEHAVIOUR LOCK and
-assert what the code does today rather than what it arguably should do, so that
-changing them shows up as a deliberate test edit instead of a silent shift in
-published mutation rates. See incomplete.md sections 2.5 and 2.6.
+One of them behaves differently from what its name promises; that test is
+marked BEHAVIOUR LOCK and asserts what the code does today rather than what it
+arguably should do, so that changing it shows up as a deliberate test edit
+instead of a silent shift in published mutation rates.
 """
 
 import pytest
@@ -17,9 +16,7 @@ from filtering_haploid_mappping import (
     find_previous_op_with_distance,
 )
 from utilities import (
-    find_lowest_substring,
     homopolymer_check,
-    lexicographically,
     reverse_complement,
     subread_array,
 )
@@ -34,37 +31,6 @@ from utilities import (
 )
 def test_reverse_complement(sequence, expected):
     assert reverse_complement(sequence) == expected
-
-
-# -- lexicographically ------------------------------------------------------
-
-
-def test_lexicographically_picks_the_smaller_of_sequence_and_complement():
-    # "GT" -> complement "CA"; "CA" sorts first.
-    assert lexicographically("GT") == "CA"
-    assert lexicographically("AC") == "AC"
-
-
-def test_lexicographically_does_not_reverse_complement():
-    """
-    BEHAVIOUR LOCK - incomplete.md 2.5.
-
-    The docstring says "reverse complement" but the implementation only
-    complements, with no reversal. For "GT" the two disagree:
-
-        complement("GT")         == "CA"  -> current result
-        reverse_complement("GT") == "AC"  -> what the docstring implies
-
-    Locking this in because it decides how InDel contexts are grouped, and
-    therefore the shape of every published spectrum.
-    """
-    assert lexicographically("GT") == "CA"
-    assert lexicographically("GT") != min("GT", reverse_complement("GT"))
-
-
-def test_find_lowest_substring_does_use_reverse_complement():
-    """The sibling function canonicalises properly, which is the inconsistency."""
-    assert find_lowest_substring("GT") == "AC"
 
 
 # -- homopolymer_check ------------------------------------------------------
@@ -83,7 +49,7 @@ def test_homopolymer_check_false_when_two_or_more_breaks(sequence):
 @pytest.mark.parametrize("sequence", ["AC", "AAC", "ACC", "AAACCC"])
 def test_homopolymer_check_treats_single_break_sequences_as_homopolymers(sequence):
     """
-    BEHAVIOUR LOCK - incomplete.md 2.6.
+    BEHAVIOUR LOCK.
 
     The function returns True (-> the call is discarded) for anything with at
     most one change in base identity, so a plain 2-mer like "AC" is filtered as

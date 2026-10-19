@@ -31,7 +31,8 @@ import sys
 # Coordinate convention: TRF 1-based inclusive → 0-based half-open
 #   start = start_1based - 1,  end = end_1based (already exclusive)
 #
-# Output TSV columns (unified format shared with M0 from impurity_models.py):
+# Output TSV columns (unified format shared with M0 and M2 from
+# parse_mreps_canonical.py):
 #   contig, start, end, canonical_motif, k, copies,
 #   trf_purity, model_purity, model, species, sample
 
