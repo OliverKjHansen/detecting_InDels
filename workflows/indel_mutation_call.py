@@ -214,19 +214,20 @@ for species, samples in config["samples"].items():
         plots_pdf            = path("nonrepetitive_plots")
 
         # Step 5 — haploid concordance for all contigs: is the same InDel also
-        # in the read's alignment to the haploid assembly? locations.tsv is read
+        # in the read's alignment to the haploid assembly? locations.tsv and the
+        # reads, whose sequence says how far each InDel can slide, are read
         # once for every contig. The contigs are merged into one table (header
         # kept once) with species/sample added.
         gwf.target(
             f"non_rep_HaploidFilter_{species}_{sample}_{assembly_type}",
-            inputs=list(calls.values()) + [haploid_locations],
+            inputs=list(calls.values()) + [haploid_locations, combined_fastq],
             outputs=[merged_indels],
             cores=1,
             memory="20g",
             walltime="12:00:00",
         ) << f"""
         mkdir -p {merged_dir}
-        python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} > {merged_indels}.tmp
+        python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} {combined_fastq} > {merged_indels}.tmp
         awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {merged_indels}.tmp > {merged_indels}
         rm -f {merged_indels}.tmp
         """

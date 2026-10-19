@@ -1,6 +1,5 @@
 import sys
 import pysam
-import csv
 from collections import defaultdict
 import pandas
 import re
@@ -147,86 +146,92 @@ def find_indel_position_in_read(cigar, position_in_read, indel_type, indel_strin
     else:
         return False, None, softclipped_haploid, others
   
+def check_call(read, flag, cigar, start, indel_type, indel_string, diploid_direction):
+  """
+  Whether a call is also in its read's alignment to the haploid assembly, as
+  (haploid_check, distance_to_indel_in_hap, softclip_haploid, other_ops).
+
+  read is the read's sequence as sequenced, from the FASTQ that was remapped;
+  flag and cigar are the read's haploid alignment record; start, indel_type,
+  indel_string and diploid_direction are the call's columns.
+  """
+  haploid_direction = "-" if flag == 16 else "+"
+  position = start
+  if diploid_direction != haploid_direction:
+    position = len(read) - start - 1
+  return find_indel_position_in_read(cigar, position, indel_type, indel_string)
+
+
+# The columns of a call that check_call() needs.
+CALL_COLUMNS = ["readID", "start", "indel_type", "indel_string", "diploid_direction", "read_length"]
+
+
+def check_tables(calls_files, records, reads_file):
+  """
+  check_call() for every call of every table, one list per table in row order.
+
+  The FASTQ holds every read carrying a call, which can be most of a sample's
+  reads, so it is streamed once and each read's calls are checked as it
+  passes. A call is None when its read has no haploid record of flag 0 or 16;
+  check_calls() leaves it out.
+  """
+  checks, waiting = [], defaultdict(list)
+  for number, calls_file in enumerate(calls_files):
+    calls = pandas.read_csv(calls_file, sep="\t", usecols=CALL_COLUMNS, dtype=str, keep_default_na=False)
+    checks.append([None] * len(calls))
+    for row, call in enumerate(calls.itertuples(index=False)):
+      waiting[call.readID].append((number, row, call))
+
+  flags = dict(zip(records.index, records.bitflag_hap))
+  cigars = dict(zip(records.index, records.cigar_hap))
+  with pysam.FastxFile(reads_file) as reads:
+    for read in reads:
+      calls = waiting.pop(read.name, None)
+      if calls is None or flags.get(read.name) not in (0, 16):
+        continue
+      for number, row, call in calls:
+        checks[number][row] = check_call(read.sequence, flags[read.name], cigars[read.name], int(call.start),
+                                         call.indel_type, call.indel_string, call.diploid_direction)
+  return checks
+
+
 def main():
-  # Usage: python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv>
-  # Several call tables (e.g. one per contig) are checked against the locations,
-  # which are read only once, and written out as one table with one header.
-  if len(sys.argv) < 3:
-    sys.exit("Usage: filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv>")
-  *calls_files, locations_file = sys.argv[1:]
+  # Usage: python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>
+  # Several call tables (e.g. one per contig) are checked against the locations
+  # and the reads, which are read only once, and written out as one table with
+  # one header. The reads are the FASTQ that was remapped to the haploid
+  # assembly.
+  if len(sys.argv) < 4:
+    sys.exit("Usage: filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>")
+  *calls_files, locations_file, reads_file = sys.argv[1:]
 
   haploid_alignment = pandas.read_csv(locations_file, sep='\t', names=haploid_header)
-  haploid_alignment = haploid_alignment.set_index("readID")
+  # One record per read: the first, which is the primary alignment as it sorts first.
+  haploid_alignment = haploid_alignment.drop_duplicates(subset="readID").set_index("readID")
 
+  checks = check_tables(calls_files, haploid_alignment, reads_file)
   for file_number, calls_file in enumerate(calls_files):
-    check_calls(calls_file, haploid_alignment, print_header=(file_number == 0))
+    check_calls(calls_file, haploid_alignment, checks[file_number], print_header=(file_number == 0))
 
 
-def check_calls(calls_file, haploid_alignment, print_header):
+def check_calls(calls_file, haploid_alignment, checks, print_header):
   """Join one call table to the haploid alignments and print the checked calls."""
   indels = pandas.read_csv(calls_file, sep='\t')
 
   merged = indels.join(haploid_alignment, on="readID")
-  merged = merged.drop_duplicates(subset=["readID","start"]) # filter when a read maps to multiple locations in the haploid assembly
   merged = merged.rename(columns=lambda c: c.lstrip("#"))
 
   new_columns = ["haploid_check","distance_to_indel_in_hap","softclip_haploid", "other_ops"]
-  header_cols = [col for col in merged.columns if col != "cigar_hap"] + new_columns
+  out_cols = [col for col in merged.columns if col != "cigar_hap"]
   if print_header:
-    print("\t".join(header_cols))
+    print("\t".join(out_cols + new_columns))
 
-  for row in merged.itertuples(index=False):
-    read_id = row.readID
-    read_position = row.start # prettysure i make it 1 base when i print it: check #1-based
-    cigar = row.cigar_hap
-    indel_type = row.indel_type
-    indel_string = row.indel_string
-    diploid_direction = row.diploid_direction #change
-    bitflag_hap = row.bitflag_hap
-    read_length = row.read_length
-    # quality = int(row.kmerQ)
-    # if quality < 93:
-    #   continue 
-
-    if bitflag_hap == 16:
-      haploid_direction = "-"
-    elif bitflag_hap == 0:
-      haploid_direction = "+"
-    else:
-      #print("low quality mapping, skipping read:", read_id, bitflag_hap)
+  for row, check in zip(merged.itertuples(index=False), checks):
+    if check is None:
       continue
-    #if pandas.isna(row.cigar_hap): #should not exist
-      #print(row)
-    #if read_id == "m84108_251007_135540_s2/186516316/ccs":
-    if diploid_direction != haploid_direction:
-      read_position = read_length - read_position - 1
-
-    res,target,softclip,thers = find_indel_position_in_read(cigar, read_position, indel_type, indel_string)
-  
-    out_cols = [col for col in merged.columns if col != "cigar_hap"]
     values = [getattr(row, col) for col in out_cols]
-
-    print(*values,res,target,softclip,thers, sep="\t")
-    #print(res,target,softclip,thers,read_id,row.start, read_position, diploid_direction, haploid_direction, sep=" ")
-    # if res != "no_indel_found":
-    #   print(res,target,softclip,thers,read_id,diploid_direction, haploid_direction,sep=" ")
-      
-      
-    # headers = merged.headers
-    # new = ["distance_to_diploid_indel", softclip_haploid]
-    #print(row,res,target,softclip,thers, sep="\t")
-
-
-
-  #print(merged)
-
-
+    print(*values, *check, sep="\t")
 
 
 if __name__ == "__main__":
   main()
-
-#   cigar = [(10, 'M'), (2, 'D'), (5, 'M'), (3, 'I'), (8, 'D')]
-# # Search backwards from index 3 (the 'D')
-#   result = find_previous_op_with_distance(cigar, len(cigar)-2, 'D')
-#   print(result)

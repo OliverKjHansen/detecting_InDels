@@ -192,18 +192,19 @@ for species, samples in config["samples"].items():
 
             # Step 4 — haploid concordance for all contigs of the model: is the
             # same InDel also in the read's alignment to the haploid assembly?
-            # locations.tsv is read once for every contig. The contigs are
+            # locations.tsv and the reads, whose sequence says how far each
+            # InDel can slide, are read once for every contig. The contigs are
             # merged into one table (header kept once) with species/sample added.
             gwf.target(
                 f"TRHaploidFilter_{species}_{sample}_{model}",
-                inputs=calls_files + [haploid_locations],
+                inputs=calls_files + [haploid_locations, combined_fastq],
                 outputs=[merged_indels],
                 cores=1,
                 memory="20g",
                 walltime="12:00:00",
             ) << f"""
             mkdir -p {merged_dir[model]}
-            python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} > {merged_indels}.tmp
+            python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} {combined_fastq} > {merged_indels}.tmp
             awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {merged_indels}.tmp > {merged_indels}
             rm -f {merged_indels}.tmp
             """
