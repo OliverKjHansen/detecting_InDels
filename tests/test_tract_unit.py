@@ -139,3 +139,16 @@ def test_slippage_is_the_motif_on_either_strand_whatever_the_case(tmp_path):
     mf.write_tr_bed(bed, [TRACT])
     calls, _, _ = tandem_repeat_scan({"M1": bed}, paths)
     assert [call["indel_class"] for call in rows_of(calls["M1"])] == ["slippage"]
+
+
+def test_a_deletion_over_the_whole_tract_and_its_test_bases_is_tested_on_the_bases_around_it(tmp_path):
+    # Bases 999-1063 deleted: no read base is aligned from two before the tract
+    # to two after it, so the read is tested on the two read bases on each
+    # side of the deletion, 997, 998 and 1064, 1065.
+    def gone(name, **kwargs):
+        return mf.make_read(name, REFERENCE, "del", 999, 65, start=900, end=1160, **kwargs)
+    calls, opportunities = scan(tmp_path, [gone("gone"), gone("low", qualities={1065: 30}),
+                                           gone("beyond", qualities={1066: 30})])
+    assert {call["readID"]: (call["size"], call["kmerQ_pass"]) for call in calls} == {
+        "gone": ("65", "pass"), "low": ("65", "fail"), "beyond": ("65", "pass")}
+    assert count(opportunities) == 3

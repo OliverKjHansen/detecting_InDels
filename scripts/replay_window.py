@@ -77,7 +77,13 @@ def main():
                 reads, *haplotypes, stdout=merged)
         run("final_filtering.py", f"{results}/merged_indels.tsv", f"{results}/opportunities.tsv",
             f"{results}/indels.tsv", f"{results}/final_opportunities.tsv", f"{results}/filter_report.tsv",
+            "--smrt-cells", smrt_cells,
             *final_filtering_options(current, species, sample, repeats=workflow == "repetitive"))
+
+    # Each SMRT Cell's highest base quality, from the window's reads (workflow 1, step 2b).
+    smrt_cells = f"{local}/smrt_cells.tsv"
+    run("smrt_cell_qualities.py", data.alignment(species, sample), smrt_cells,
+        "--reads", current["precompute"]["smrt_cell_reads"])
 
     # Workflow 3: the scan (step 2), the haploid check (5), final filtering (7).
     w3 = f"{local}/nonrepetitive_indels"

@@ -120,20 +120,6 @@ def canonical_repeat_indel(sequence):
     strands = (sequence, reverse_complement(sequence))
     return min(strand[i:] + strand[:i] for strand in strands for i in range(len(strand)))
 
-def subread_array(array,readposition):
-    """
-    takes the array for subreads coverage and find the position of the read in the array
-    this script might change with time when we better understand the sa tag
-    """
-    arrayposition = 0
-    for i in range(0,len(array),2):
-        previous_position = arrayposition
-        arrayposition += array[i]
-        coverage = array[i + 1]
-        if previous_position <= readposition < arrayposition:
-            #return [previous_position,readposition,arrayposition,coverage]
-            return coverage
-
 def homopolymer_check(seq):
     """
     Checks if a sequence is mostly a homopolymer.

@@ -115,7 +115,8 @@ def has_shorter_period(motif, shorter_than):
 def main():
     input_file = sys.argv[1]
     # One period k, or a range MIN-MAX.
-    low, is_range, high = sys.argv[2].partition("-")
+    low, dash, high = sys.argv[2].partition("-")
+    is_range = bool(dash)
     low, high  = int(low), int(high or low)
     species    = sys.argv[3]
     sample     = sys.argv[4]

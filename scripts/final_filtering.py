@@ -4,13 +4,16 @@ a sample's calls and its opportunities alike, so a filter never lowers the rate
 by what it removes from the calls alone. Writes the tables the notebooks read.
 
     python final_filtering.py <calls.tsv> <opportunities.tsv> <final_calls.tsv> <final_opportunities.tsv> \\
-        <filter_report.tsv> --platform <Revio | "Sequel II"> --capped-quality <Q> [--keep COLUMN=VALUE[,VALUE...] ...]
+        <filter_report.tsv> --platform <Revio | "Sequel II"> --smrt-cells <smrt_cells.tsv> --capped-quality <Q> \\
+        [--keep COLUMN=VALUE[,VALUE...] ...]
 
 The steps, in order, each on both tables:
 
-  capped_smrt_cells  drop the SMRT Cells whose calls never have a kmerQ above
-                     --capped-quality: their base qualities top out there
-                     (Q12, Q17). The report's note lists them.
+  capped_smrt_cells  drop the SMRT Cells whose reads never have a base quality
+                     above --capped-quality, by smrt_cell_qualities.py's table
+                     of the sample (--smrt-cells): their base qualities top
+                     out there (Q12, Q17). The same cells for every table of
+                     the sample. The report's note lists them.
   COLUMN=VALUES      keep the rows whose COLUMN, a key of both tables, has one
                      of the values. Skipped, and noted, for a sample whose rows
                      are NA in the column throughout: a tag its platform lacks
@@ -33,6 +36,7 @@ def main():
     parser.add_argument("final_opportunities")
     parser.add_argument("report")
     parser.add_argument("--platform", required=True)
+    parser.add_argument("--smrt-cells", required=True, metavar="TSV")
     parser.add_argument("--capped-quality", type=int, required=True, metavar="Q")
     parser.add_argument("--keep", action="append", default=[], metavar="COLUMN=VALUE[,VALUE...]")
     args = parser.parse_args()
@@ -59,9 +63,8 @@ def main():
 
     step("input", everything(calls), everything(opportunities))
 
-    kmerq = pandas.to_numeric(calls["kmerQ"], errors="coerce")
-    best = kmerq.groupby(calls["smrt_cell"]).max()
-    capped = sorted(best[best <= args.capped_quality].index)
+    cells = pandas.read_csv(args.smrt_cells, sep="\t", dtype={"smrt_cell": str})
+    capped = sorted(cells.smrt_cell[cells.max_quality <= args.capped_quality])
     step("capped_smrt_cells", ~calls["smrt_cell"].isin(capped), ~opportunities["smrt_cell"].isin(capped),
          ",".join(capped))
 

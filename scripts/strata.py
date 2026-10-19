@@ -44,6 +44,11 @@ Site = namedtuple("Site", "qualities support read_end_distance nearest_event")
 Tract = namedtuple("Tract", "copies purity left_flank right_flank")
 
 
+def smrt_cell(read_name):
+    """The SMRT Cell (movie) a read comes from: the first part of a PacBio read name."""
+    return read_name.split("/", 1)[0]
+
+
 def binned_or_missing(edges, missing="NA"):
     """As binned(), with `missing` for a value of None."""
     bin_of = binned(edges)
@@ -80,7 +85,7 @@ def keys(**parameters):
         # The strand of the assembly the read is aligned to.
         ("aligned_strand", lambda read: "-" if read.reverse else "+"),
         # The SMRT Cell: the movie, the first part of a PacBio read name.
-        ("smrt_cell", lambda read: read.name.split("/", 1)[0]),
+        ("smrt_cell", lambda read: smrt_cell(read.name)),
         # The read's mapping quality to the diploid assembly (N1).
         ("mapQ_bin", lambda read: mapq_bin(read.mapq)),
         ("np_bin", lambda read: passes_bin(read.passes)),

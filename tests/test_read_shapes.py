@@ -12,7 +12,7 @@ import pysam
 
 import make_fixtures as mf
 from scans import nonrepetitive_scan, rows_of
-from utilities import subread_array
+from read_tags import decode_runs
 
 REFERENCE = mf.build_reference()
 N_CLEAN = 10
@@ -55,9 +55,9 @@ def test_subread_tags_of_a_reverse_strand_read_run_in_sequencing_order(tmp_path)
     i = next(query for query, reference in aligned if reference == 1000)
     own = stored.query_length - 1 - i
     assert (stored.get_tag("sm")[own], stored.get_tag("sx")[own],
-            subread_array(stored.get_tag("sa"), own)) == (4, 6, 12)
+            decode_runs(stored.get_tag("sa"))[own]) == (4, 6, 12)
     assert (stored.get_tag("sm")[i], stored.get_tag("sx")[i],
-            subread_array(stored.get_tag("sa"), i)) == (mf.SUBREADS, 0, mf.SUBREADS)
+            decode_runs(stored.get_tag("sa"))[i]) == (mf.SUBREADS, 0, mf.SUBREADS)
 
 
 # -- base qualities below 93 --------------------------------------------------

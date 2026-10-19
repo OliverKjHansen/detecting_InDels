@@ -7,8 +7,8 @@ from pipeline import Pipeline, final_filtering_options, remapping, shell, summed
 
 # ---------------------------------------------------------------------------
 # InDels inside repetitive DNA. For every repeat model written by
-# repetitive_dna.py (M0, M1, M2), scans the positions inside that model's
-# repeat tracts and calls InDels whose size is a multiple of the period k.
+# repetitive_dna.py (M0, M1, M2), counts each tract in each read that spans it
+# and calls every InDel in it, classed as slippage or other.
 # Tracts that overlap the excluded group (homopolymer runs, tracts with longer
 # periods) or an unresolved-haplotype region are dropped whole first, so they
 # are in neither InDel workflow. In an unresolved region a read can align to
@@ -176,10 +176,10 @@ for species, samples in config["samples"].items():
                 model_args = " ".join(f"--model {model} {repeat_beds[model]} {w_calls[model]} {w_opportunities[model]}"
                                       for model in models)
 
-                # Step 1 — one pass over the window for every model: call InDels
-                # inside the repeat tracts whose size is a multiple of the
-                # period, count the opportunities (the denominator of the rate),
-                # and write the reads carrying a call, for haploid remapping.
+                # Step 1 — one scan of the window for every model: call the
+                # InDels in the repeat tracts of the reads that span them, count
+                # the opportunities (the denominator of the rate), and write the
+                # reads carrying a call, for haploid remapping.
                 gwf.target(
                     f"TRScan_{contig}_{start}_{species}_{sample}",
                     inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs + classification_inputs,
@@ -206,7 +206,8 @@ for species, samples in config["samples"].items():
 
             gwf.target(
                 f"TRMergeWindows_{contig}_{species}_{sample}",
-                inputs=[path for model in models for path in window_calls[model] + window_opportunities[model]] + window_fastqs,
+                inputs=[window_file for model in models for window_file in window_calls[model] + window_opportunities[model]]
+                       + window_fastqs,
                 outputs=list(calls.values()) + list(opportunities.values()) + [fastq],
                 cores=1,
                 memory="16g",
@@ -319,7 +320,7 @@ for species, samples in config["samples"].items():
 
             gwf.target(
                 f"TRFinalFiltering_{species}_{sample}_{model}",
-                inputs=[merged_indels, merged_opportunities],
+                inputs=[merged_indels, merged_opportunities, path("smrt_cells")],
                 outputs=[results_calls,
                          results_opportunities,
                          results_report],
@@ -330,7 +331,7 @@ for species, samples in config["samples"].items():
             mkdir -p {resultsdir}
             python {scripts}/final_filtering.py {merged_indels} {merged_opportunities} \\
                 {results_calls} {results_opportunities} {results_report} \\
-                {shell(final_filtering_options(config, species, sample, repeats=True))}
+                --smrt-cells {path("smrt_cells")} {shell(final_filtering_options(config, species, sample, repeats=True))}
             """
 
             # Step 7 — cell-type classification, for the samples listed under

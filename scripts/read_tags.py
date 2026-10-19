@@ -150,8 +150,10 @@ class Blocks:
     def span(self, start, end):
         """
         The read bases aligned in [start, end) of the assembly, and those
-        inserted between them, as a slice (first, last + 1) of the read; None
-        if no base is aligned there.
+        inserted between them, as a slice (first, last + 1) of the read. If a
+        deletion takes all of [start, end), the two read bases on each side of
+        it instead, as a call of that deletion is tested on. None if the
+        stretch is before or after the read.
         """
         i = bisect_right(self.positions, start) - 1
         if i < 0 or self.positions[i] + self.lengths[i] <= start:
@@ -162,8 +164,10 @@ class Blocks:
         else:
             first = self.queries[i] + start - self.positions[i]
         j = bisect_left(self.positions, end) - 1
-        if j < i:
+        if j < 0:
             return None
+        if j < i:   # all in the gap between stretches j and i
+            return max(0, self.queries[j] + self.lengths[j] - 2), self.queries[i] + 2
         last = self.queries[j] + min(self.lengths[j], end - self.positions[j])
         return first, last
 

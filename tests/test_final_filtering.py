@@ -33,11 +33,19 @@ def opportunities(tmp_path, rows):
                                                   "subread_support", "count"], [("c1", *row) for row in rows])
 
 
-def final(tmp_path, call_table, opportunity_table, *options, platform="Revio"):
+def smrt_cells(tmp_path, best):
+    """The sample's SMRT Cells, as precompute writes them: {cell: its reads' highest base quality}."""
+    return table(tmp_path / "smrt_cells.tsv", ["smrt_cell", "reads", "max_quality"],
+                 [(cell, 100, quality) for cell, quality in best.items()])
+
+
+def final(tmp_path, call_table, opportunity_table, *options, platform="Revio", cells=None):
     """(final calls, final opportunities, report), as row dicts."""
     out = [tmp_path / name for name in ("final_calls.tsv", "final_opportunities.tsv", "report.tsv")]
+    cells = smrt_cells(tmp_path, cells or {"m1": 93})
     subprocess.run([sys.executable, SCRIPT, str(call_table), str(opportunity_table), *map(str, out),
-                    "--platform", platform, "--capped-quality", "40", *options], check=True, capture_output=True)
+                    "--platform", platform, "--smrt-cells", str(cells), "--capped-quality", "40", *options],
+                   check=True, capture_output=True)
     return [rows_of(path.read_text()) for path in out]
 
 
@@ -67,17 +75,35 @@ def test_a_filter_keeps_the_rows_with_any_of_its_values(tmp_path):
 
 
 def test_smrt_cells_capped_at_q40_are_dropped_from_both_tables_and_listed(tmp_path):
-    call_rows = [("a", "m_capped", 40, "fail", "low", ">=1", "True"), ("b", "m_capped", 31, "fail", "low", ">=1", "NA"),
+    # Capped or not is the cell's reads' highest base quality, the same for
+    # every table of the sample, whatever its calls show: m_silent has none.
+    call_rows = [("a", "m_capped", 93, "pass", "low", ">=1", "True"), ("b", "m_capped", 31, "fail", "low", ">=1", "NA"),
                  ("c", "m_full", 93, "pass", "low", ">=1", "True"), ("d", "m_full", 40, "fail", "low", ">=1", "True")]
     opportunity_rows = [("m_capped", "fail", "low", ">=1", 500), ("m_full", "pass", "low", ">=1", 400),
-                        ("m_full", "fail", "low", ">=1", 100)]
+                        ("m_full", "fail", "low", ">=1", 100), ("m_silent", "fail", "low", ">=1", 50)]
     final_calls, final_opportunities, report = final(tmp_path, calls(tmp_path, call_rows),
-                                                     opportunities(tmp_path, opportunity_rows))
+                                                     opportunities(tmp_path, opportunity_rows),
+                                                     cells={"m_capped": 40, "m_full": 93, "m_silent": 39})
     assert [row["readID"] for row in final_calls] == ["c", "d"]
     assert {row["smrt_cell"] for row in final_opportunities} == {"m_full"}
     step = next(row for row in report if row["filter"] == "capped_smrt_cells")
     assert (step["calls_before"], step["calls_after"], step["opportunities_before"], step["opportunities_after"],
-            step["note"]) == ("4", "2", "1000", "500", "m_capped")
+            step["note"]) == ("4", "2", "1050", "500", "m_capped,m_silent")
+
+
+def test_the_smrt_cells_highest_base_quality_comes_from_its_reads(tmp_path):
+    import make_fixtures as mf
+    reference = mf.build_reference()
+    capped = {p: 40 for p in range(1000)}
+    reads = [mf.make_read("m_capped/1/ccs", reference, end=1000, qualities=capped),
+             mf.make_read("m_capped/2/ccs", reference, start=10, end=1000, qualities={**capped, 500: 30}),
+             mf.make_read("m_full/1/ccs", reference, end=1000, qualities={500: 30})]
+    paths = mf.write_dataset(str(tmp_path), reference, reads)
+    out = tmp_path / "smrt_cells.tsv"
+    subprocess.run([sys.executable, SCRIPT.replace("final_filtering.py", "smrt_cell_qualities.py"),
+                    paths["bam"], str(out), "--reads", "10"], check=True, capture_output=True)
+    assert {row["smrt_cell"]: (row["reads"], row["max_quality"]) for row in rows_of(out.read_text())} == {
+        "m_capped": ("2", "40"), "m_full": ("1", "93")}
 
 
 def test_a_filter_on_a_tag_the_sample_lacks_is_skipped_and_recorded(tmp_path):

@@ -181,8 +181,8 @@ for species, samples in config["samples"].items():
 
         gwf.target(
             f"non_rep_MergeWindows_{species}_{sample}_{assembly_type}",
-            inputs=[path for contig in long_contigs
-                    for path in window_calls[contig] + window_opportunities[contig] + window_fastqs[contig]],
+            inputs=[window_file for contig in long_contigs
+                    for window_file in window_calls[contig] + window_opportunities[contig] + window_fastqs[contig]],
             outputs=list(calls.values()) + list(opportunities.values()) + list(fastqs.values()),
             cores=1,
             memory="16g",
@@ -286,7 +286,7 @@ for species, samples in config["samples"].items():
 
         gwf.target(
             f"non_rep_FinalFiltering_{species}_{sample}_{assembly_type}",
-            inputs=[merged_indels, merged_opportunities],
+            inputs=[merged_indels, merged_opportunities, path("smrt_cells")],
             outputs=[results_calls,
                      results_opportunities,
                      results_report],
@@ -297,7 +297,7 @@ for species, samples in config["samples"].items():
         mkdir -p {resultsdir}
         python {scripts}/final_filtering.py {merged_indels} {merged_opportunities} \\
             {results_calls} {results_opportunities} {results_report} \\
-            {shell(final_filtering_options(config, species, sample))}
+            --smrt-cells {path("smrt_cells")} {shell(final_filtering_options(config, species, sample))}
         """
 
         # Step 8 — cell-type classification, for the samples listed under

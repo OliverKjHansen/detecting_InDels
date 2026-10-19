@@ -225,7 +225,7 @@ Parameters:
 | Bins of mapping quality, passes, predicted accuracy, passes on the weaker strand, and distance to the nearest other event in the read | 1, 20, 60; 5, 10, 15, 20, 30; 0.99, 0.999, 0.9999; 2, 5, 10; 5, 25, 100 bp | `strata.mapq_bins`, `.passes_bins`, `.accuracy_bins`, `.strand_passes_bins`, `.nearby_event_bins` |
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
 | The definition of a final call: the values each key keeps, on calls and opportunities alike | `kmerQ_pass` = `pass`; workflow 4 also `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `final_filters.repeat_keep` |
-| SMRT Cells taken to be capped, and dropped, if no call's kmerQ is above | Q40 | `final_filters.capped_quality` |
+| SMRT Cells taken to be capped, and dropped, if none of their reads' base qualities is above; reads looked at per sample | Q40; 100,000 | `final_filters.capped_quality`, `precompute.smrt_cell_reads` |
 | Sequel II samples (the others are Revio) | da1, ob2v, stephan, carl, mbewe, samson | `sequel_ii_samples` |
 | Bases a read must cover on each side of a tract to count for it (workflow 4) | 25 bp | `scan.min_tract_flank` |
 | Bins of a tract's copies and purity, keys of workflow 4 | 5, 10, 20, 50; 90, 95, 99, 100% | `strata.tract_copies_bins`, `strata.tract_purity_bins` |
@@ -290,6 +290,7 @@ the one summary to `results/precompute/{species}/{sample}/`.
 | 1. Split the assembly | `faSplit_{species}_{sample}_diploid` | sample | `contigs/{contig}.fa` |
 | 1b. Haplotypes alone | `haplotypes_{species}_{sample}_diploid` | sample | `haplotypes/hap1.fa`, `haplotypes/hap2.fa` |
 | 2. Mean coverage | `average_coverage_{species}_{sample}` | sample | `long_contigs.bed`, `avg_coverage.txt` |
+| 2b. SMRT Cells | `smrt_cells_{species}_{sample}_diploid` | sample | `smrt_cells.tsv`: each SMRT Cell's highest base quality, by [smrt_cell_qualities.py](scripts/smrt_cell_qualities.py), for final filtering's Q40 rule |
 | 3a. Unresolved haplotypes | `unresolved_haplotype_{species}_{sample}_{contig}_{start}_diploid` | 40 Mb window | `unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed` |
 | 3b. Join the windows | `merge_unresolved_{species}_{sample}_{contig}_diploid` | contig | `unresolved_haplotypes/{contig}.bed` |
 | 3c. Share masked | `unresolved_summary_{species}_{sample}_diploid` | sample | `results/precompute/{species}/{sample}/unresolved_summary.tsv` |
@@ -847,10 +848,13 @@ There is one definition of a final call (Q7), applied in the pipeline by
 opportunities alike, so a filter never lowers the rate by what it removes from
 the calls alone. Its steps, in order, each on both tables:
 
-1. **Capped SMRT Cells** (Q12, Q17). A SMRT Cell none of whose calls has a kmerQ
-   above `final_filters.capped_quality` (40) has base qualities that top out
-   there; its calls and opportunities are dropped. The report's note lists
-   the cells.
+1. **Capped SMRT Cells** (Q12, Q17). A SMRT Cell none of whose reads has a base
+   quality above `final_filters.capped_quality` (40) had its qualities capped
+   there; its calls and opportunities are dropped. Precompute's
+   `smrt_cells.tsv` gives each cell's highest base quality, over the sample's
+   first `precompute.smrt_cell_reads` alignments, so every table of a sample
+   drops the same cells; a cell not among those reads is kept. The report's
+   note lists the cells dropped.
 2. **The kept values.** Each key under `final_filters.keep`, and for workflow 4
    under `final_filters.repeat_keep`, keeps the rows whose value is one of
    those listed: `kmerQ_pass` = `pass`; in workflow 4 also
@@ -944,6 +948,7 @@ output/
 │   ├── avg_coverage.txt
 │   ├── unresolved_haplotypes/{contig}.bed        per-window pieces in chunks/
 │   ├── haplotypes/                               hap1.fa, hap2.fa
+│   ├── smrt_cells.tsv                            each SMRT Cell's highest base quality
 │   ├── sorted_tissue_classification.tsv          tissue_samples only
 │   └── read_classification.tsv                   methylation_samples only
 ├── repetitive_dna/{species}/{sample}/
@@ -1184,7 +1189,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
-| [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report |
+| [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells (from their reads' base qualities) dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report |
 | [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
@@ -1273,6 +1278,7 @@ scripts/
   drop_excluded_tracts.py          the tracts workflow 4 measures
   filtering_haploid_mapping.py    haploid concordance check
   final_filtering.py               the definition of a final call, on calls and opportunities, with the report
+  smrt_cell_qualities.py           each SMRT Cell's highest base quality (the Q40 rule)
   join_read_classification.sh      germline/somatic columns
   plot_indels.R                    diagnostic PDF
   export_local_subset.py           copy windows of samples from the cluster, to replay locally

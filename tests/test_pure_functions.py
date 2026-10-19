@@ -10,10 +10,10 @@ instead of a silent shift in published mutation rates.
 import pytest
 
 from parse_trf import canonicalise, hamming_pct_matches
+from read_tags import decode_runs
 from utilities import (
     homopolymer_check,
     reverse_complement,
-    subread_array,
 )
 
 
@@ -53,17 +53,13 @@ def test_homopolymer_check_treats_single_break_sequences_as_homopolymers(sequenc
     assert homopolymer_check(sequence) is True
 
 
-# -- subread_array ----------------------------------------------------------
+# -- decode_runs: the sa tag ------------------------------------------------
 
 
-def test_subread_array_returns_coverage_for_the_containing_block():
-    # (length, coverage) pairs: block 0 covers [0,10), block 1 covers [10,30).
-    assert subread_array([10, 3, 20, 7], 5) == 3
-    assert subread_array([10, 3, 20, 7], 15) == 7
-
-
-def test_subread_array_returns_none_past_the_end():
-    assert subread_array([10, 3], 50) is None
+def test_decode_runs_gives_each_base_the_coverage_of_its_run():
+    # (length, coverage) pairs: the first run covers bases 0-9, the second 10-29.
+    coverage = decode_runs([10, 3, 20, 7])
+    assert (len(coverage), coverage[5], coverage[15]) == (30, 3, 7)
 
 
 # -- parse_trf helpers ------------------------------------------------------

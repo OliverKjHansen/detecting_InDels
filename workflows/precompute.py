@@ -89,6 +89,22 @@ for species, samples in pipeline.config["samples"].items():
         samtools depth -b {long_contigs_bed} {alignment} | awk '{{sum += $3; count++}} END {{print sum / count}}' > {coverage}
         """
 
+        # Step 2b — each SMRT Cell's highest base quality, for the Q40 rule of
+        # final filtering in both InDel workflows.
+        smrt_cells = pipeline.path("smrt_cells", species, sample)
+
+        gwf.target(
+            f"smrt_cells_{species}_{sample}_{assembly_type}",
+            inputs=[alignment],
+            outputs=[smrt_cells],
+            cores=1,
+            memory="4g",
+            walltime="02:00:00",
+        ) << f"""
+        mkdir -p {pipeline.folder("smrt_cells", species, sample)}
+        python {scripts}/smrt_cell_qualities.py {alignment} {smrt_cells} --reads {pipeline.config["precompute"]["smrt_cell_reads"]}
+        """
+
         # Step 3 — unresolved haplotypes, per contig, split into windows.
         #
         # The windows [0, chunk_size), [chunk_size, 2*chunk_size), ... tile the

@@ -219,6 +219,51 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/precompute/ape/s1\n            bash {ROOT}/scripts/read_classification.sh {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv {ROOT}/output/precompute/ape/s1/read_classification.tsv Sperm. Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial -10,-8,-6,-4,-2,-1,0,1,2,4,6,8,10 -12,-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,12\n            "
  },
+ "smrt_cells_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
+  ],
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/ape/s1\n        python {ROOT}/scripts/smrt_cell_qualities.py {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --reads 100000\n        "
+ },
+ "smrt_cells_ape_s2_diploid": {
+  "inputs": [
+   "{ROOT}/override/s2_diploid.bam"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
+  ],
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/ape/s2\n        python {ROOT}/scripts/smrt_cell_qualities.py {ROOT}/override/s2_diploid.bam {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --reads 100000\n        "
+ },
+ "smrt_cells_monkey_s3_diploid": {
+  "inputs": [
+   "{ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
+  ],
+  "spec": "\n        mkdir -p {ROOT}/output/precompute/monkey/s3\n        python {ROOT}/scripts/smrt_cell_qualities.py {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --reads 100000\n        "
+ },
  "sorting_tissue_classification_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/read_labels/ape/s1/s1_read_labels.txt"

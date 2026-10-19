@@ -80,11 +80,11 @@ class Pipeline:
         block = self.config["classification"]
         values = [block["germline_prefix"], ",".join(block["somatic_types"]),
                   ",".join(map(str, block["bin_edges"])), ",".join(map(str, block["bin_labels"]))]
-        return " ".join(shlex.quote(value) for value in values)
+        return shell(values)
 
     def key_parameters(self):
         """The scans' --key-parameters: the `strata` block, as JSON quoted for the shell."""
-        return shlex.quote(json.dumps(self.config["strata"], separators=(",", ":")))
+        return shell([json.dumps(self.config["strata"], separators=(",", ":"))])
 
     @property
     def haplotypes(self):

@@ -163,6 +163,7 @@ layout:
   unresolved_summary: "{results}/precompute/{species}/{sample}/unresolved_summary.tsv"
   tissue:       "{output}/precompute/{species}/{sample}/sorted_tissue_classification.tsv"
   read_classification: "{output}/precompute/{species}/{sample}/read_classification.tsv"
+  smrt_cells:   "{output}/precompute/{species}/{sample}/smrt_cells.tsv"
   haplotype_assembly: "{output}/precompute/{species}/{sample}/haplotypes/{haplotype}.fa"
 
   # Written by repetitive_dna.py: per period k (M1 also per window), then one
@@ -252,6 +253,9 @@ precompute:
   haplotype_prefixes:
     hap1: h1tg
     hap2: h2tg
+  # Each SMRT Cell's highest base quality is taken from this many of the
+  # sample's first alignments, for final filtering's Q40 rule.
+  smrt_cell_reads: 100_000
 
 # Workflow 2.
 repeats:

@@ -18,7 +18,8 @@
  "non_rep_FinalFiltering_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.tsv"
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -31,12 +32,13 @@
    "{ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.tsv",
    "{ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv \\\n            --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
  },
  "non_rep_FinalFiltering_ape_s2_diploid": {
   "inputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv",
-   "{ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.tsv"
+   "{ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -49,12 +51,13 @@
    "{ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.tsv",
    "{ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s2/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv \\\n            --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s2/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
  },
  "non_rep_FinalFiltering_monkey_s3_diploid": {
   "inputs": [
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv",
-   "{ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.tsv"
+   "{ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -67,7 +70,7 @@
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.tsv",
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/monkey/s3/indels.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv \\\n            --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.tsv \\\n            {ROOT}/results/nonrepetitive_indels/monkey/s3/indels.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
  },
  "non_rep_HaploidFilter_ape_s1_diploid": {
   "inputs": [

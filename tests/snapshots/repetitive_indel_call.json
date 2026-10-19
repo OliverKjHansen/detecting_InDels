@@ -50,7 +50,8 @@
  "TRFinalFiltering_ape_s1_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -63,12 +64,13 @@
    "{ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/ape/s1/M0/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s1/M0/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s1/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s1_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -81,12 +83,13 @@
    "{ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/ape/s1/M1/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s1/M1/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s1/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s1_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -99,12 +102,13 @@
    "{ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/ape/s1/M2/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s1/M2/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s1/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s2_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -117,12 +121,13 @@
    "{ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/ape/s2/M0/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s2/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s2/M0/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s2/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s2/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s2_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -135,12 +140,13 @@
    "{ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/ape/s2/M1/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s2/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s2/M1/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s2/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s2/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s2_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -153,12 +159,13 @@
    "{ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/ape/s2/M2/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s2/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s2/M2/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/ape/s2/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.tsv {ROOT}/results/repetitive_indels/ape/s2/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_monkey_s3_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -171,12 +178,13 @@
    "{ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/monkey/s3/M0/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M0/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.tsv {ROOT}/results/repetitive_indels/monkey/s3/M0/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M0/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.tsv {ROOT}/results/repetitive_indels/monkey/s3/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_monkey_s3_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -189,12 +197,13 @@
    "{ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/monkey/s3/M1/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M1/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.tsv {ROOT}/results/repetitive_indels/monkey/s3/M1/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M1/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.tsv {ROOT}/results/repetitive_indels/monkey/s3/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRFinalFiltering_monkey_s3_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv"
+   "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv",
+   "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -207,7 +216,7 @@
    "{ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.tsv",
    "{ROOT}/results/repetitive_indels/monkey/s3/M2/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M2/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.tsv {ROOT}/results/repetitive_indels/monkey/s3/M2/filter_report.tsv \\\n                --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M2/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.tsv {ROOT}/results/repetitive_indels/monkey/s3/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-1000,>=1000'\n            "
  },
  "TRHaploidFilter_ape_s1_M0": {
   "inputs": [

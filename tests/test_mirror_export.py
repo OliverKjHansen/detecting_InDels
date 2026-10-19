@@ -75,7 +75,12 @@ def haploid_check(calls, locations, reads, merged, species, sample):
 def final_filtering(pipeline, species, sample, merged, opportunities, final_calls, final_opportunities, report,
                     repeats=False):
     """The final filtering step, as the workflows run it."""
+    smrt_cells = pipeline.path("smrt_cells", species, sample)
+    if not os.path.exists(smrt_cells):
+        run_script("smrt_cell_qualities.py", pipeline.alignment(species, sample), made(smrt_cells),
+                   "--reads", str(pipeline.config["precompute"]["smrt_cell_reads"]))
     run_script("final_filtering.py", merged, opportunities, final_calls, final_opportunities, report,
+               "--smrt-cells", smrt_cells,
                *final_filtering_options(pipeline.config, species, sample, repeats=repeats))
 
 
