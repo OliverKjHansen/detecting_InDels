@@ -141,6 +141,11 @@ def test_a_call_the_haploid_alignment_clips_off_is_not_checked(cigar, flag):
     assert check_call(READ, flag, cigar, 17, "deletion", "G", "+") == (None, None, True, None)
 
 
+def test_a_record_of_another_length_than_the_read_is_not_compared():
+    """A 41 bp alignment of a 40 bp read is of some other sequence by that name."""
+    assert check_call(READ, 16, "24M1D17M", 17, "deletion", "G", "+") == (None, None, False, None)
+
+
 # -- the script: every call comes out, checked or not -----------------------
 
 SITUATIONS = ["ok", "no_record", "supplementary_only", "primary_second", "not_in_fastq", "other_length"]

@@ -644,7 +644,8 @@ against an independent alignment of its read to the haploid assembly, in
    out from the read and, for a deletion, the deleted bases. `haploid_check` is
    True if the haploid alignment has an InDel of the same type and size
    anywhere in that stretch, False otherwise, and `NA` where the haploid
-   alignment clips the call off.
+   alignment clips the call off or spans another number of bases than the
+   read.
 
 `distance_to_indel_in_hap` is the number of read bases from the call to the
 nearest matching haploid InDel: 0 at the same place, more where the two

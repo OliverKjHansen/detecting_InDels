@@ -111,8 +111,10 @@ def check_call(read, flag, cigar, start, indel_type, indel_string, diploid_direc
   bases, and there is none without a match.
 
   Every value is None when the record is not a plain forward or reverse
-  alignment (flag 0 or 16), and haploid_check and the distance are None when
-  the haploid alignment clips the call off: the check cannot tell either way.
+  alignment (flag 0 or 16). haploid_check and the distance are None when the
+  haploid alignment clips the call off, or spans another number of bases than
+  the read and so is of another sequence by that name: the check cannot tell
+  either way.
   """
   if flag not in (0, 16):
     return None, None, None, None
@@ -130,7 +132,7 @@ def check_call(read, flag, cigar, start, indel_type, indel_string, diploid_direc
   if flag == 16:
     events = [(event_op, n, *mirrored(interval, length)) for event_op, n, *interval in events]
     aligned = mirrored(aligned, length)
-  if not aligned[0] <= call[0] <= call[1] <= aligned[1]:
+  if length != len(read) or not aligned[0] <= call[0] <= call[1] <= aligned[1]:
     return None, None, softclip, other_ops
   distances = [abs(event_start - call[0]) for event_op, n, event_start, event_end in events
                if event_op == op and n == size and first <= event_start and event_end <= end]
@@ -193,7 +195,8 @@ def check_tables(calls_files, records, reads_file):
   total = sum(len(table) for table in checks)
   unchecked = sum(check[0] is None for table in checks for check in table)
   print(f"{unchecked:,} of {total:,} calls without a haploid check: {unusable:,} on reads without a "
-        f"flag 0 or 16 haploid record, {clipped:,} clipped off by the haploid alignment, "
+        f"flag 0 or 16 haploid record, {clipped:,} clipped off by the haploid alignment or with one of "
+        f"another length, "
         f"{unchecked - unusable - clipped:,} on reads missing from the FASTQ or of another length there",
         file=sys.stderr)
   return checks
