@@ -1,44 +1,52 @@
 """
 Findings H1-H4 of ../nonrepetitive_indel_review.md: how
-scripts/filtering_haploid_mappping.py matches a call to its read's alignment
-to the haploid assembly.
+scripts/filtering_haploid_mappping.py matched a call to its read's alignment
+to the haploid assembly when the review was written, and, in section 1, how
+it does since the fix. Sections 2-5 read results/, which the walk as reviewed
+produced.
 
     .venv/bin/python documents/review_checks/check_haploid_check.py
 """
 import pandas as pd
 
 from common import load_calls, show
-from filtering_haploid_mappping import find_indel_position_in_read
+from filtering_haploid_mappping import check_call
+from old_haploid_walk import find_indel_position_in_read
 
 # ---------------------------------------------------------------------------
 # 1. The CIGAR walk on reads whose haploid alignment carries the same InDel.
 #
 # A 40 bp read. In the diploid alignment (forward strand) the InDel follows
-# read base 17, so the call's 1-based start is 17. check_calls() hands the walk
-# `start` on the same strand and `read_length - start - 1` on a flipped one.
-# Every CIGAR below holds exactly the called InDel, so the right answer is
-# always (True, 0).
+# read base 17, so the call's 1-based start is 17. The pipeline handed the
+# walk `start` on the same strand and `read_length - start - 1` on a flipped
+# one. Every CIGAR below holds exactly the called InDel, so the right answer
+# is always (True, 0). The walk as reviewed (old_haploid_walk.py) is shown
+# next to the pipeline's check as fixed since, which takes the read itself;
+# nothing in this read can slide.
 # ---------------------------------------------------------------------------
 L, START = 40, 17
 FLIPPED = L - START - 1
+READ = "GATCCAGTGCATGACTCAGTCGATCAAGCTGGTACACGTA"
 cases = [
-    # what is tested,                                  haploid CIGAR,        position, type,        sequence
-    ("same strand, 1 bp deletion",                      "17M1D23M",           START,    "deletion",  "A"),
-    ("same strand, 1 bp deletion, 2 bp insertion before", "5M2I10M1D23M",     START,    "deletion",  "A"),
-    ("  as above, plus a 1 bp deletion further on",     "5M2I10M1D10M1D13M",  START,    "deletion",  "A"),
-    ("flipped strand, 1 bp deletion",                   "23M1D17M",           FLIPPED,  "deletion",  "A"),
-    ("  as above, 1 inserted base before it",           "10M1I12M1D17M",      FLIPPED,  "deletion",  "A"),
-    ("  as above, 2 inserted bases before it",          "10M2I11M1D17M",      FLIPPED,  "deletion",  "A"),
-    ("flipped strand, 1 bp insertion",                  "22M1I17M",           FLIPPED,  "insertion", "C"),
-    ("flipped strand, 2 bp insertion",                  "21M2I17M",           FLIPPED,  "insertion", "CA"),
+    # what is tested,                                  haploid CIGAR,        flipped, type,        sequence
+    ("same strand, 1 bp deletion",                      "17M1D23M",           False,   "deletion",  "G"),
+    ("same strand, 1 bp deletion, 2 bp insertion before", "5M2I10M1D23M",     False,   "deletion",  "G"),
+    ("  as above, plus a 1 bp deletion further on",     "5M2I10M1D10M1D13M",  False,   "deletion",  "G"),
+    ("flipped strand, 1 bp deletion",                   "23M1D17M",           True,    "deletion",  "G"),
+    ("  as above, 1 inserted base before it",           "10M1I12M1D17M",      True,    "deletion",  "G"),
+    ("  as above, 2 inserted bases before it",          "10M2I11M1D17M",      True,    "deletion",  "G"),
+    ("flipped strand, 1 bp insertion",                  "22M1I17M",           True,    "insertion", "A"),
+    ("flipped strand, 2 bp insertion",                  "21M2I17M",           True,    "insertion", "AG"),
 ]
 rows = []
-for what, cigar, position, kind, sequence in cases:
-    check, distance, _, _ = find_indel_position_in_read(cigar, position, kind, sequence)
-    rows.append((what, cigar, check, distance))
-print("1. find_indel_position_in_read() when the haploid alignment has the same InDel")
+for what, cigar, flipped, kind, sequence in cases:
+    check, distance, _, _ = find_indel_position_in_read(cigar, FLIPPED if flipped else START, kind, sequence)
+    fixed, fixed_distance, _, _ = check_call(READ, 16 if flipped else 0, cigar, START, kind, sequence, "+")
+    rows.append((what, cigar, check, distance, fixed, fixed_distance))
+print("1. The haploid check when the haploid alignment has the same InDel, as reviewed and as fixed")
 print("   (correct answer: haploid_check True, distance 0)\n")
-show(pd.DataFrame(rows, columns=["case", "haploid CIGAR", "haploid_check", "distance"]).set_index("case"))
+show(pd.DataFrame(rows, columns=["case", "haploid CIGAR", "haploid_check", "distance",
+                                 "fixed: haploid_check", "fixed: distance"]).set_index("case"))
 
 # ---------------------------------------------------------------------------
 # 2-4. The final calls in results/ (haploid_check True and kmerQ >= 93).
