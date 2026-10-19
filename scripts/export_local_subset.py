@@ -24,6 +24,10 @@ Every alignment that overlaps a window is kept, whatever its flags, because
 that is what the scans see: the coverage test compares each position's depth
 with the sample's mean, so the reads cannot be thinned.
 
+A table missing on the cluster stops the export at that sample; the samples
+before it are exported. The final opportunity tables and filter reports are
+not compared, because the cluster writes them per sample, not per window.
+
 It needs only pysam and pyyaml. A 10 Mb window of a 30x sample is roughly
 0.5 GB without the per-base kinetics tags, which are dropped unless
 --keep-kinetics. Each window gets its own folder,
@@ -157,10 +161,12 @@ def copy_calls_in_window(source, target, contig, start, end):
     return kept
 
 
-def copy_reads_records(source, target, names):
-    """Copy the haploid alignment records (locations.tsv) of the window's reads."""
+def copy_rows_of_reads(source, target, names, header=False):
+    """Copy the rows of a table keyed by read name in its first column, for the window's reads."""
     os.makedirs(os.path.dirname(target), exist_ok=True)
     with open(source) as handle, open(target, "w") as out:
+        if header:
+            out.write(handle.readline())
         out.writelines(line for line in handle if line.split("\t", 1)[0] in names)
 
 
@@ -267,9 +273,7 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     tissue = "NA"
     if source.is_listed("tissue_samples", species, sample):
         source_tissue, tissue = both("tissue")
-        with open(source_tissue) as handle, open(tissue, "w") as copy:
-            copy.write(handle.readline())
-            copy.writelines(line for line in handle if line.split("\t", 1)[0] in names)
+        copy_rows_of_reads(source_tissue, tissue, names, header=True)
     for model in MODELS:
         copy_overlapping(*both("tandem_repeats", contig=contig, model=model), contig, left, right, header=True)
 
@@ -279,7 +283,7 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
                      f"{target_dirs['nonrepetitive']}/mask/{contig}.bed", contig, left, right, header=False)
     workflows = ["nonrepetitive"] + (["repetitive"] if has_workflow4 else [])
     for workflow in workflows:
-        copy_reads_records(f"{source_dirs[workflow]}/haploid/locations.tsv",
+        copy_rows_of_reads(f"{source_dirs[workflow]}/haploid/locations.tsv",
                            f"{target_dirs[workflow]}/haploid/locations.tsv", names)
 
     # The cluster's tables for the window, to compare a local run with.
@@ -334,7 +338,7 @@ def replay_script(contig, start, end, out, species, sample, is_scan_job, has_wor
 # go to local/replay.log.
 set -euo pipefail
 cd "$(dirname "$0")"
-REPO="${{REPO:-$(cd ../../.. && pwd)}}"
+REPO="${{REPO:-$(cd ../../../.. && pwd)}}"
 PYTHON="${{PYTHON:-python}}"
 mkdir -p local
 : > local/replay.log

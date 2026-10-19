@@ -118,7 +118,7 @@ for species, samples in pipeline.config["samples"].items():
                 inputs=[read_labels],
                 outputs=[tissue],
             ) << f"""
-            mkdir -p {outdir}
+            mkdir -p {pipeline.folder("tissue", species, sample)}
             printf "readID\\ttissue\\n" > {tissue}
             awk -v OFS="\\t" '{{gsub(/[ \\t]+/, "\\t"); print $1, $2}}' {read_labels} | sort -k1,1 >> {tissue}
             """

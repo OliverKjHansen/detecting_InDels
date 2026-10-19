@@ -4,7 +4,8 @@
 ([indel_mutation_call.py](../workflows/indel_mutation_call.py)), the haploid
 check ([filtering_haploid_mappping.py](../scripts/filtering_haploid_mappping.py))
 and [nonrepetitive_indels.ipynb](../plotting/nonrepetitive_indels.ipynb). Code
-at commit 542fa20 (the notebook was not yet committed). Data: the tables in
+at commit 542fa20, which the links to lines of code point at (the notebook was
+not yet committed). Data: the tables in
 `results/` copied from the cluster on 30 September 2026, 35 samples. Every
 number here can be reproduced with the scripts in [review_checks/](review_checks/).*
 
@@ -50,20 +51,20 @@ take to reach the expected 1×10⁻⁹, is in [rate_floor.md](rate_floor.md).
 
 | ID | Finding | Where | Effect on the rate | On real reads |
 |---|---|---|---|---|
-| L1 | Repeat InDels counted at the base before a masked tract | [utilities.py:634](../scripts/utilities.py#L634) | too high, 2–3 bp | confirmed: 93% of the window's kmerQ ≥ 93 2 bp calls |
+| L1 | Repeat InDels counted at the base before a masked tract | [utilities.py:634](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L634) | too high, 2–3 bp | confirmed: 93% of the window's kmerQ ≥ 93 2 bp calls |
 | E1 | Sequencing errors still reach kmerQ 93 | the method | too high, all sizes | not testable in one window |
-| S1 | The subread tags are read at the wrong base on reverse-strand reads | [utilities.py:716](../scripts/utilities.py#L716-L722) | none directly; the best artefact filter fails on half the calls | confirmed |
-| D1 | 1 bp insertions get the 1 bp deletion denominator | [utilities.py:669](../scripts/utilities.py#L669-L693) | 1 bp insertions about 2× too high | confirmed: 2.0× |
-| H1 | Insertions do not advance the haploid CIGAR walk | [filtering_haploid_mappping.py:106](../scripts/filtering_haploid_mappping.py#L106) | too low: about three quarters of 2–3 bp calls lost | confirmed |
-| H2 | A strand flip maps the anchor, not the event | [filtering_haploid_mappping.py:201](../scripts/filtering_haploid_mappping.py#L201-L202) | too low | confirmed across samples |
-| H3 | On flipped reads, InDels in repeats land at opposite ends | [filtering_haploid_mappping.py:87](../scripts/filtering_haploid_mappping.py#L87) | too low, mostly 2–3 bp | confirmed across samples |
-| H4 | `haploid_check` passes on a later, unrelated event; the distance mixes two measures | [filtering_haploid_mappping.py:87](../scripts/filtering_haploid_mappping.py#L87) | both ways | confirmed: 0.2% of passing calls once H1–H3 are fixed |
-| D2 | Samples whose base qualities never reach 93 drop out silently | [indel_mutation_call.py:57](../workflows/indel_mutation_call.py#L57) | two samples lost | not testable with chk |
-| D3 | k-mers cut short at read ends are counted under shorter contexts | [utilities.py:660](../scripts/utilities.py#L660) | negligible | confirmed: 1×10⁻⁴ of opportunities |
-| D4 | Calls and opportunities test kmerQ over different bases | [utilities.py:671](../scripts/utilities.py#L671) | small | confirmed: 1 bp deletions low by 12% |
-| U1 | Unresolved-haplotype regions can shrink as they are built | [utilities.py:1228](../scripts/utilities.py#L1228) | too high, slightly | confirmed: 1.4% of unresolved bp lost |
-| M1 | Mask holes: tracts dropped by overlap resolution; repeat classes never annotated | [indel_mutation_call.py:132](../workflows/indel_mutation_call.py#L132-L134) | too high, slightly | 0.7% of exact-repeat bases unmasked |
-| F1 | No alignment-flag filter | [utilities.py:623](../scripts/utilities.py#L623) | probably small | 0.1% of calls on supplementary alignments |
+| S1 | The subread tags are read at the wrong base on reverse-strand reads | [utilities.py:716](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L716-L722) | none directly; the best artefact filter fails on half the calls | confirmed |
+| D1 | 1 bp insertions get the 1 bp deletion denominator | [utilities.py:669](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L669-L693) | 1 bp insertions about 2× too high | confirmed: 2.0× |
+| H1 | Insertions do not advance the haploid CIGAR walk | [filtering_haploid_mappping.py:106](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L106) | too low: about three quarters of 2–3 bp calls lost | confirmed |
+| H2 | A strand flip maps the anchor, not the event | [filtering_haploid_mappping.py:201](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L201-L202) | too low | confirmed across samples |
+| H3 | On flipped reads, InDels in repeats land at opposite ends | [filtering_haploid_mappping.py:87](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L87) | too low, mostly 2–3 bp | confirmed across samples |
+| H4 | `haploid_check` passes on a later, unrelated event; the distance mixes two measures | [filtering_haploid_mappping.py:87](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L87) | both ways | confirmed: 0.2% of passing calls once H1–H3 are fixed |
+| D2 | Samples whose base qualities never reach 93 drop out silently | [indel_mutation_call.py:57](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/workflows/indel_mutation_call.py#L57) | two samples lost | not testable with chk |
+| D3 | k-mers cut short at read ends are counted under shorter contexts | [utilities.py:660](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L660) | negligible | confirmed: 1×10⁻⁴ of opportunities |
+| D4 | Calls and opportunities test kmerQ over different bases | [utilities.py:671](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L671) | small | confirmed: 1 bp deletions low by 12% |
+| U1 | Unresolved-haplotype regions can shrink as they are built | [utilities.py:1228](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L1228) | too high, slightly | confirmed: 1.4% of unresolved bp lost |
+| M1 | Mask holes: tracts dropped by overlap resolution; repeat classes never annotated | [indel_mutation_call.py:132](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/workflows/indel_mutation_call.py#L132-L134) | too high, slightly | 0.7% of exact-repeat bases unmasked |
+| F1 | No alignment-flag filter | [utilities.py:623](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L623) | probably small | 0.1% of calls on supplementary alignments |
 | N1–N5 | Smaller problems in the calls, the notebook and the README | see *Other issues* | small | not testable in one window |
 
 ## How the numbers were made
@@ -100,7 +101,7 @@ unfiltered opportunity table on the cluster (check 2 below).
 ### L1. Repeat InDels counted at the base before a masked tract
 
 The mask is tested at the anchor only
-([utilities.py:634](../scripts/utilities.py#L634)). An InDel of whole repeat
+([utilities.py:634](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L634)). An InDel of whole repeat
 units in a pure tract can be placed at any copy, and pbmm2 places it at the
 leftmost copy. On real reads none of about 48,000 InDels in 3,000 alignments
 could still slide left (*Tested on real reads*). So the anchor is the base before
@@ -190,11 +191,11 @@ They are stored in the order the read was sequenced. When a read aligns to the
 reverse strand, pbmm2 reverse-complements the sequence and reverses the base
 qualities, but leaves these arrays as they are. The scan finds a call's position
 in the aligned read and uses that index into the arrays
-([utilities.py:716–722](../scripts/utilities.py#L716-L722), and
+([utilities.py:716–722](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L716-L722), and
 `subread_array()` for `sa`). On a forward-strand read that is the right base. On
 a reverse-strand read it is base `read_length − 1 − i`: the mirror image of the
 call's position, usually thousands of bases away. The repeat scan does the same
-([utilities.py:1069–1073](../scripts/utilities.py#L1069-L1073)).
+([utilities.py:1069–1073](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L1069-L1073)).
 
 An example from the chk window. A 1 bp insertion of A at h1tg000001l:1,502,222
 sits on a reverse-strand read of 5,983 bases, anchored at aligned base 1,408.
@@ -259,10 +260,10 @@ test at the opportunities so the filter gets an exact denominator.
 ### D1. 1 bp insertions get the 1 bp deletion denominator
 
 A 1 bp opportunity is a read base that differs from both of its neighbours
-([utilities.py:669–693](../scripts/utilities.py#L669-L693)), which is where a
+([utilities.py:669–693](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L669-L693)), which is where a
 1 bp deletion passes the homopolymer rule. A 1 bp insertion passes the rule
 when the inserted base differs from the anchor and from the next base
-([utilities.py:757](../scripts/utilities.py#L757)), which is possible at nearly
+([utilities.py:757](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L757)), which is possible at nearly
 every gap between two bases. On real reads only 50.6% of bases differ from
 both neighbours (the 1 bp opportunities are 60–70% of the size-3 ones, which
 also need one more base at Q93), so 1 bp insertion rates are about 2× too high.
@@ -278,7 +279,7 @@ per-context insertion rates.
 
 The haploid check confirms a call by finding the same InDel in the read's
 alignment to the haploid assembly.
-[find_indel_position_in_read()](../scripts/filtering_haploid_mappping.py#L68)
+[find_indel_position_in_read()](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L68)
 walks the haploid CIGAR from the start of the read and stops at the first event
 of the call's type at or after the call's read position. All four problems
 below make a real InDel fail or match the wrong event.
@@ -302,7 +303,7 @@ base 17):
 
 `I` operations consume read bases, but the walk does not count them: the line
 `current_pos += length` is commented out
-([line 106](../scripts/filtering_haploid_mappping.py#L106)). Every insertion
+([line 106](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L106)). Every insertion
 before the call puts the walk behind by its length. The walk then reaches the
 true event too early, skips it, and decides on whatever event of that type
 comes next. The README describes the walk this way (*Haploid concordance*,
@@ -340,7 +341,7 @@ quarters of 2–3 bp calls, real read events, and very little else.
 ### H2. A strand flip maps the anchor, not the event
 
 On a flipped read the call's position becomes `read_length − start − 1`
-([lines 201–202](../scripts/filtering_haploid_mappping.py#L201-L202)). That maps
+([lines 201–202](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L201-L202)). That maps
 the anchor base, but the event sits on one side of the anchor, and on the other
 strand that side is reversed.
 
@@ -393,7 +394,7 @@ applies it without a distance limit, so `results/*/indels.tsv` and
 
 `distance_to_indel_in_hap` is the smaller of two numbers: the distance from the
 call to that event, and the gap between that event and the previous one of its
-type ([lines 92 and 114](../scripts/filtering_haploid_mappping.py#L92)). The
+type ([lines 92 and 114](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/filtering_haploid_mappping.py#L92)). The
 second is not measured from the call, so only a distance of 0 means what it
 says. The notebook's `max_hap_distance <- 0` removes the wrong matches, but
 because of H1–H3 it removes real calls too.
@@ -404,12 +405,12 @@ because of H1–H3 it removes real calls too.
   human/ob003h have no read position at Q93: zero opportunities, and kmerQ ≥ 93
   removes all 4.7 and 6.5 million of their calls. Their quality scale differs
   (binned, or capped lower), so the fixed threshold
-  ([indel_mutation_call.py:57](../workflows/indel_mutation_call.py#L57)) means
+  ([indel_mutation_call.py:57](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/workflows/indel_mutation_call.py#L57)) means
   something else for them. The notebook calls la4's missing calls "an upstream
   problem"; this is the cause.
 - **D3. k-mers cut short at read ends.** The opportunity test
   `1 <= read_pos <= query_length - 2`
-  ([utilities.py:660](../scripts/utilities.py#L660)) is the same for all three
+  ([utilities.py:660](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L660)) is the same for all three
   sizes. At the last positions of a read, 2 and 3 bp k-mers run past its end
   and are counted under a 1 or 2 bp context, with a short kmerQ window. That is
   about three positions per read, so negligible (at most 1.2×10⁻⁴ of the
@@ -418,9 +419,9 @@ because of H1–H3 it removes real calls too.
 - **D4. Calls and opportunities test kmerQ over different bases.** A 1 bp
   opportunity takes the lowest quality of three read bases: the one before, the
   base itself and the one after
-  ([utilities.py:671](../scripts/utilities.py#L671)). A deletion call takes four
+  ([utilities.py:671](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L671)). A deletion call takes four
   read bases, two on each side of the gap
-  ([utilities.py:743](../scripts/utilities.py#L743)). So 1 bp deletions need one
+  ([utilities.py:743](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L743)). So 1 bp deletions need one
   more base at Q93 than their opportunities. On real reads, 34.9% of three-base
   windows and 30.7% of four-base windows are all Q93, so 1 bp deletion rates
   are low by about 12%. For 2–3 bp both windows have four bases, but not the
@@ -428,7 +429,7 @@ because of H1–H3 it removes real calls too.
 - **U1. Unresolved-haplotype regions can shrink as they are built.** When a new
   region overlaps the current one, the code sets the end to the new region's
   end, not the larger of the two, and never moves the start left
-  ([utilities.py:1228–1229](../scripts/utilities.py#L1228-L1229)). A later site
+  ([utilities.py:1228–1229](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L1228-L1229)). A later site
   whose reads end sooner cuts the region short, and the cut part is never
   masked. The README describes overlapping regions as extending each other.
   Fix: take the smaller start and the larger end, and treat a region that only
@@ -437,19 +438,19 @@ because of H1–H3 it removes real calls too.
   fixed they cover 10,566 bp more (1.4%), which would mask 23 more calls, 2 of
   them at kmerQ ≥ 93.
 - **M1. Holes in the mask.** Overlap resolution drops a tract whole when it
-  overlaps a kept one ([resolve_repeat_overlaps.py:62](../scripts/resolve_repeat_overlaps.py#L62)).
+  overlaps a kept one ([resolve_repeat_overlaps.py:62](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/resolve_repeat_overlaps.py#L62)).
   The mask is built from the resolved BEDs
-  ([indel_mutation_call.py:132–134](../workflows/indel_mutation_call.py#L132-L134)),
+  ([indel_mutation_call.py:132–134](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/workflows/indel_mutation_call.py#L132-L134)),
   so the dropped tract's bases outside the kept one stay unmasked unless another
   model covers them. The mask also never covers homopolymers (k = 1), periods of
   7 or more, satellites or segmental duplications, because TRF output is cut to
-  k = 2–6 ([repetitive_dna.py:168](../workflows/repetitive_dna.py#L168)).
+  k = 2–6 ([repetitive_dna.py:168](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/workflows/repetitive_dna.py#L168)).
   Building the mask from every tract before resolution closes the first kind of
   hole. In the chk window, exact repeats (k = 2–6, at least 3 copies) are
   0.7% unmasked, touching 9 calls and none at kmerQ ≥ 93, so the first kind is
   small. The never-annotated classes were not tested.
 - **F1. No alignment-flag filter.** With `stepper="nofilter"`
-  ([utilities.py:623](../scripts/utilities.py#L623)), secondary, supplementary,
+  ([utilities.py:623](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L623)), secondary, supplementary,
   duplicate and QC-fail alignments enter the calls and the opportunities alike.
   No read in `results/` carries calls at two different read lengths, so no
   calls come from hard-clipped supplementary alignments. In the chk window,
@@ -471,9 +472,9 @@ because of H1–H3 it removes real calls too.
   opportunities (`first(opportunities)`). The plot is correct.
 - **N4. README and notebook disagree.**
   - The README gives `max_hap_distance` a default of `Inf`
-    ([README.md:704](../README.md#L704)); the notebook sets 0.
+    ([README.md:704](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/README.md#L704)); the notebook sets 0.
   - The README lists a `unique_only` setting, default `TRUE`, for both
-    notebooks ([README.md:703](../README.md#L703)), but
+    notebooks ([README.md:703](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/README.md#L703)), but
     nonrepetitive_indels.ipynb has no such setting: it keeps the two classes
     apart instead.
   - The README's step 4 of *Haploid concordance* describes the H1 walk as

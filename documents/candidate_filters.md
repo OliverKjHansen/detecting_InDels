@@ -6,7 +6,8 @@ now). Every number comes from [check_candidate_filters.py](review_checks/check_c
 or [check_rate_floor.py](review_checks/check_rate_floor.py), run on the tables
 in `results/` copied on 30 September 2026. The real-read figures come from
 [check_mirror_window.py](review_checks/check_mirror_window.py), on one human/chk
-window.*
+window. Links to lines of code point at commit 542fa20, the code these
+numbers describe.*
 
 ## Summary
 
@@ -96,7 +97,7 @@ The subread tags `sm`, `sx` and `sa` are per-base arrays. PacBio stores
 per-base tags in the read's own orientation, and pbmm2 does not reverse them for
 a reverse-strand alignment. The scan, however, indexes them with the position in
 the aligned, reverse-complemented read
-([utilities.py:716–722](../scripts/utilities.py#L716-L722), and
+([utilities.py:716–722](https://github.com/OliverKjHansen/detecting_InDels/blob/542fa20/scripts/utilities.py#L716-L722), and
 `subread_array()` for `sa`). On a reverse-strand read it therefore looks at a
 base at the mirrored position, far from the call. The bug changes no call and no
 rate, only these columns; the review's S1 section explains what it does and

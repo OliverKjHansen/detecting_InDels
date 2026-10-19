@@ -84,6 +84,8 @@ def place(source, target):
 def cluster(tmp_path_factory, fixture_paths):
     """A checkout on the cluster that has run workflows 1-4 for both samples."""
     root = os.path.realpath(tmp_path_factory.mktemp("cluster"))
+    # A checkout: the replays run its scripts unless told otherwise.
+    os.symlink(SCRIPTS, f"{root}/scripts")
     with open(os.path.join(REPO_ROOT, "config.yaml")) as handle:
         config = yaml.safe_load(handle)
     config.update({
@@ -180,10 +182,16 @@ def windows(cluster):
     }
 
 
-def replay(window):
-    """Run a window's run_local.sh with this checkout's scripts: (exit code, output)."""
-    done = subprocess.run(["bash", f"{window}/run_local.sh"], capture_output=True, text=True,
-                          env={**os.environ, "REPO": REPO_ROOT, "PYTHON": sys.executable})
+def replay(window, repo=None):
+    """
+    Run a window's run_local.sh: (exit code, output). Without `repo` it runs
+    the scripts of the checkout the window sits in, as it does by default.
+    """
+    env = {key: value for key, value in os.environ.items() if key != "REPO"}
+    env["PYTHON"] = sys.executable
+    if repo:
+        env["REPO"] = repo
+    done = subprocess.run(["bash", f"{window}/run_local.sh"], capture_output=True, text=True, env=env)
     return done.returncode, done.stdout + done.stderr
 
 
@@ -204,7 +212,7 @@ def test_a_replay_that_differs_from_the_cluster_fails(windows, tmp_path):
     header, *rows = final.read_text().splitlines()
     assert rows, "the fixture should leave final calls inside the repeat tract"
     final.write_text("\n".join([header] + rows[1:]) + "\n")
-    code, output = replay(window)
+    code, output = replay(window, repo=REPO_ROOT)
     assert code == 1
     assert [line for line in output.splitlines() if line.startswith("DIFFERENT")] == \
         ["DIFFERENT: workflow 4 M1 final calls"]

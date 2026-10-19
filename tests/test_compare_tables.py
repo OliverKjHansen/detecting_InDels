@@ -53,3 +53,18 @@ def test_a_column_only_the_local_table_has_is_a_difference(tmp_path):
     comparison = compare(local, cluster)
     assert not comparison.same
     assert comparison.local_columns == ["strand"]
+
+
+def test_any_other_column_only_the_cluster_has_is_a_difference(tmp_path):
+    # Local code that stops writing a column must not pass as "same".
+    local = write(tmp_path / "local.tsv", "position\n10\n")
+    cluster = write(tmp_path / "cluster.tsv", "position\tstrand\tspecies\n10\t+\thuman\n")
+    comparison = compare(local, cluster)
+    assert not comparison.same
+    assert comparison.cluster_columns == ["strand"]
+
+
+def test_large_integers_are_compared_exactly(tmp_path):
+    local = write(tmp_path / "local.tsv", "count\n1000000001\n")
+    cluster = write(tmp_path / "cluster.tsv", "count\n1000000002\n")
+    assert not compare(local, cluster).same
