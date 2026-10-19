@@ -68,3 +68,10 @@ def test_large_integers_are_compared_exactly(tmp_path):
     local = write(tmp_path / "local.tsv", "count\n1000000001\n")
     cluster = write(tmp_path / "cluster.tsv", "count\n1000000002\n")
     assert not compare(local, cluster).same
+
+
+def test_opportunity_rows_counting_nothing_are_ignored(tmp_path):
+    # The scans once wrote a row for every kmerQ level, counted or not.
+    local = write(tmp_path / "local.tsv", "context\tkmerQ\tcount\nAC\t93\t5\n")
+    cluster = write(tmp_path / "cluster.tsv", "context\tkmerQ\tcount\nAC\t93\t5\nAC\t92\t0\nAC\t91\t0\n")
+    assert compare(local, cluster).same

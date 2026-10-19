@@ -3,6 +3,8 @@ import csv
 from collections import defaultdict
 from intervaltree import IntervalTree
 
+from strata import Read, Site, Strata
+
 def load_filters_with_tree(bedfile, window_start=None, window_end=None): #for intervals interval trees are quicker then the previous sweep-line approach Ol(og(n)) = O(n)
     """
     Reads bed file and creates an IntervalTree for O(log n) lookups.
@@ -122,8 +124,9 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
     Opportunities: every read position outside the mask, counted once per
     InDel size under the canonical k-mer of that size (the smaller of the
-    k-mer and its reverse complement), per tissue, mapQ and kmerQ, with the
-    same homopolymer rule applied to the k-mer and its flanking bases.
+    k-mer and its reverse complement), per mapQ and per value of the keys in
+    strata.py, with the same homopolymer rule applied to the k-mer and its
+    flanking bases. Each call carries the same keys as columns.
 
     fastq_out gets every read carrying a call, once, as forward-strand FASTQ
     for haploid remapping.
@@ -142,32 +145,26 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     fasta = pysam.FastaFile(fastafile)
     interval_tree = load_filters_with_tree(filters, window_start, window_end) # IntervalTree
     d = load_tissue_classification(tissue_file)
+    strata = Strata()
 
     min_mapping_qual = 0 # to have more contorl over pysam
     min_base_qual = 0 #--||---
 
-    def counts_dict():
-        return {str(i): 0 for i in range(94)}
-
-    # data[context][tissue][mapQ][kmerQ] = count
-    data = defaultdict(
-    lambda: defaultdict(
-        lambda: defaultdict(counts_dict)
-        )
-    )
+    # (context, mapQ, *read keys, *site keys) -> count
+    data = defaultdict(int)
 
     if calls_out is not None:
         print("#contig", "start", "end", "ref", "alt",
-        "indel_type","unique","indel_string","canonical_indel","tissue","read_length",
-        "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
-        "position","readID", "diploid_direction",
+        "indel_type","unique","indel_string","canonical_indel","read_length",
+        "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd",
+        "position","readID", "diploid_direction", *strata.columns,
         sep= "\t", file=calls_out) #header for output
 
-    # Sequence and base qualities of each read, fetched once rather than at
-    # every position it covers: copying a whole HiFi read at each position is
-    # most of the cost of counting opportunities. Keyed by read, start and
-    # flag, with the read's end so reads the scan has passed can be dropped
-    # every 10 kb.
+    # Sequence, base qualities and read keys of each read, fetched once rather
+    # than at every position it covers: copying a whole HiFi read at each
+    # position is most of the cost of counting opportunities. Keyed by read,
+    # start and flag, with the read's end so reads the scan has passed can be
+    # dropped every 10 kb.
     reads = {}
     next_eviction = 0
 
@@ -224,10 +221,10 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     key = (query_name, alignment.reference_start, alignment.flag)
                     cached = reads.get(key)
                     if cached is None:
-                        cached = reads[key] = (alignment.reference_end, alignment.query_sequence, alignment.query_qualities)
-                    _, read_seq, base_qualities = cached
-                    mapQ = str(alignment.mapping_quality)
-                    tissue_type = d.get(query_name, "NA")
+                        cached = reads[key] = (alignment.reference_end, alignment.query_sequence, alignment.query_qualities,
+                                               (alignment.mapping_quality,)
+                                               + strata.of_read(Read(query_name, d.get(query_name, "NA"))))
+                    _, read_seq, base_qualities, read_key = cached
 
                     for indel_length in sizes: #indel lengths here means kmer length
                         run = read_seq[read_pos-1:read_pos+indel_length+1]   #run dependent on indel length # includes kmer + flanking bases
@@ -253,7 +250,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                         if homopolymer == True: # filter out homopolymers
                             continue
 
-                        data[lexi][tissue_type][mapQ][str(min(kmerq))] += 1
+                        data[(lexi,) + read_key + strata.of_site(Site(kmerq))] += 1
 
                 # ---- calls ----
                 if calls_out is None:
@@ -298,17 +295,15 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     if homopolymer == True: # filter out homopolymers
                         continue
 
-                    tissue_type = d.get(query_name, "NA")
-
                     #quality check
                     #AA|ACG|TT
                     #00|xxx|00
                     deletion_qualities_4mer = base_qualities[max(0, read_pos-1):read_pos+1]+base_qualities[read_pos_after+1:read_pos_after+3] # need to dobblet check this
-                    kmerQ = min(deletion_qualities_4mer)
+                    site = Site(deletion_qualities_4mer)
 
                     row = (contig, read_pos+1,read_pos+1,hcheck[0:-1],hcheck[0], #start and end are the same for delettion, becaus its is in the read
-                           "deletion", seen, deletion_context, canonical_context(deletion_context), tissue_type, len(read_seq),
-                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
+                           "deletion", seen, deletion_context, canonical_context(deletion_context), len(read_seq),
+                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,
                            position+1,query_name, diploid_strand)
                 else:
                 # -------------------
@@ -321,20 +316,19 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     if homopolymer == True: # filter out homopolymers
                         continue
 
-                    tissue_type = d.get(query_name, "NA")
-
                     #quality check
                     #AA|ACG|TT
                     #x0|0x0|0x
                     insertion_qualities_4mer = base_qualities[max(0, read_pos):read_pos+2]+base_qualities[max(0, read_pos)+indel_length:read_pos+indel_length+2] # will count the middle base twice in 1 bp, but it doesnt matter
-                    kmerQ = min(insertion_qualities_4mer)
+                    site = Site(insertion_qualities_4mer)
 
                     row = (contig, read_pos+1,read_pos + indel_length +1,read_seq[read_pos],read_seq[read_pos:read_pos + indel_length +1],
-                           "insertion", seen, insertion_context, canonical_context(insertion_context), tissue_type, len(read_seq),
-                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,kmerQ,
+                           "insertion", seen, insertion_context, canonical_context(insertion_context), len(read_seq),
+                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,
                            position+1,query_name, diploid_strand)
 
-                print(*row, sep="\t", file=calls_out)
+                print(*row, *strata.of_read(Read(query_name, d.get(query_name, "NA"))), *strata.of_site(site),
+                      sep="\t", file=calls_out)
 
                 # The read, for remapping to the haploid assembly
                 if fastq_out is not None and query_name not in fastq_reads:
@@ -345,12 +339,9 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     fasta.close()
 
     if opportunities_out is not None:
-        print("contig","context","tissue","mapQ","kmerQ","count", sep= "\t", file=opportunities_out) #header for output
-        for context, tissues in data.items():
-            for tissue, mapQs in tissues.items():
-                for mapQ, kmerQs in mapQs.items():
-                    for kmerQ, count in kmerQs.items():
-                        print(contig,context,tissue,mapQ,kmerQ,count, sep="\t", file=opportunities_out)
+        print("contig", "context", "mapQ", *strata.columns, "count", sep="\t", file=opportunities_out) #header for output
+        for key, count in data.items():
+            print(contig, *key, count, sep="\t", file=opportunities_out)
     return
 
 
@@ -460,34 +451,25 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     min_mapping_qual = 0
     min_base_qual = 0
 
-    def counts_dict():
-        return {str(i): 0 for i in range(94)}
+    strata = Strata()
 
-    # counts[model][canonical_motif][k][tissue][mapQ][kmerQ] = count
-    counts = {
-        model: defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    lambda: defaultdict(counts_dict)
-                )
-            )
-        )
-        for model in opportunities_out
-    }
+    # counts[model][(canonical_motif, k, mapQ, *read keys, *site keys)] = count
+    counts = {model: defaultdict(int) for model in opportunities_out}
 
     for out in calls_out.values():
         print("#contig", "start", "end", "ref", "alt",
-              "indel_type", "unique", "indel_string", "canonical_indel", "tissue", "read_length",
-              "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
+              "indel_type", "unique", "indel_string", "canonical_indel", "read_length",
+              "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd",
               "position", "readID", "diploid_direction",
               "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
+              *strata.columns,
               sep="\t", file=out)
 
-    # Base qualities of each read, fetched once rather than at every tract
-    # position it covers: copying a whole HiFi read's qualities at each
-    # position is most of the cost of counting opportunities. Keyed by read,
-    # start and flag, with the read's end so reads the scan has passed can be
-    # dropped every 10 kb.
+    # Base qualities and read keys of each read, fetched once rather than at
+    # every tract position it covers: copying a whole HiFi read's qualities at
+    # each position is most of the cost of counting opportunities. Keyed by
+    # read, start and flag, with the read's end so reads the scan has passed
+    # can be dropped every 10 kb.
     qualities = {}
     next_eviction = 0
 
@@ -547,10 +529,10 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     key = (query_name, alignment.reference_start, alignment.flag)
                     cached = qualities.get(key)
                     if cached is None:
-                        cached = qualities[key] = (alignment.reference_end, alignment.query_qualities)
-                    base_qualities = cached[1]
+                        cached = qualities[key] = (alignment.reference_end, alignment.query_qualities,
+                                                   strata.of_read(Read(query_name, d.get(query_name, "NA"))))
+                    _, base_qualities, read_key = cached
                     mapQ = alignment.mapping_quality
-                    tissue_type = d.get(query_name, "NA")
 
                     for model, tr in opportunity_tracts:
                         k = tr['k']
@@ -559,7 +541,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                                  + base_qualities[read_pos + k - 1:read_pos + k + 1])
                         if not kmerq:
                             continue
-                        counts[model][tr['canonical_motif']][k][tissue_type][str(mapQ)][str(min(kmerq))] += 1
+                        counts[model][(tr['canonical_motif'], k, mapQ) + read_key + strata.of_site(Site(kmerq))] += 1
 
                 # ---- calls ----
                 if not call_models:
@@ -602,7 +584,6 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     sx_pre = alignment.get_tag("sx")[read_pos]
 
                 diploid_strand = "-" if alignment.is_reverse else "+"
-                tissue_type = d.get(query_name, "NA")
 
                 if indel < 0:
                     # DELETION
@@ -611,14 +592,14 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     deletion_context = hcheck[1:-1]
                     del_q = (base_qualities[max(0, read_pos - 1):read_pos + 1]
                              + base_qualities[read_pos_after + 1:read_pos_after + 3])
-                    kmerQ = min(del_q) if del_q else 0
+                    site = Site(del_q or (0,))   # quality 0 when no base is left to test
 
                     row = (contig,
                            read_pos + 1, read_pos + 1,
                            hcheck[0:-1], hcheck[0],
                            "deletion", seen, deletion_context, canonical_repeat_indel(deletion_context),
-                           tissue_type, len(read_seq),
-                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
+                           len(read_seq),
+                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd,
                            position + 1, query_name, diploid_strand)
                 else:
                     # INSERTION
@@ -626,21 +607,23 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     ins_q = (base_qualities[max(0, read_pos):read_pos + 2]
                              + base_qualities[max(0, read_pos) + indel_length:
                                               read_pos + indel_length + 2])
-                    kmerQ = min(ins_q) if ins_q else 0
+                    site = Site(ins_q or (0,))   # quality 0 when no base is left to test
 
                     row = (contig,
                            read_pos + 1, read_pos + indel_length + 1,
                            read_seq[read_pos],
                            read_seq[read_pos:read_pos + indel_length + 1],
                            "insertion", seen, insertion_context, canonical_repeat_indel(insertion_context),
-                           tissue_type, len(read_seq),
-                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, kmerQ,
+                           len(read_seq),
+                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd,
                            position + 1, query_name, diploid_strand)
 
+                keys = strata.of_read(Read(query_name, d.get(query_name, "NA"))) + strata.of_site(site)
                 for model, tr in call_tracts:
                     print(*row,
                           tr['canonical_motif'], tr['k'], tr['copies'],
                           tr['trf_purity'], tr['model_purity'], tr['model'],
+                          *keys,
                           sep="\t", file=calls_out[model])
 
                 # The read, for remapping to the haploid assembly
@@ -650,15 +633,10 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     fastq_out.write(f"@{query_name}\n{alignment.get_forward_sequence()}\n+\n{qual}\n")
 
     for model, out in opportunities_out.items():
-        print("contig", "canonical_motif", "k", "tissue", "mapQ", "kmerQ", "count",
+        print("contig", "canonical_motif", "k", "mapQ", *strata.columns, "count",
               sep="\t", file=out)
-        for motif, ks in counts[model].items():
-            for period, tissues in ks.items():
-                for tissue, mapQs in tissues.items():
-                    for mapQ, kmerQs in mapQs.items():
-                        for kmerQ, count in kmerQs.items():
-                            print(contig, motif, period, tissue, mapQ, kmerQ, count,
-                                  sep="\t", file=out)
+        for key, count in counts[model].items():
+            print(contig, *key, count, sep="\t", file=out)
 
     fasta.close()
     return

@@ -426,7 +426,7 @@ unresolved-haplotype region. Intermediates go to
    - becomes a call if it carries a 1–3 bp InDel anchored there that passes the
      homopolymer rule, and then goes to the FASTQ.
 3. **Join.** Per contig, the windows' calls are concatenated, their opportunity
-   counts summed per (contig, context, tissue, mapQ, kmerQ), and their FASTQs
+   counts summed per value of every other column, and their FASTQs
    concatenated keeping each read once.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
@@ -807,7 +807,6 @@ positions in the read; the position on the contig is `position`.
 | `unique` | `unique` or `non-unique`, see [The unique flag](#the-unique-flag) |
 | `indel_string` | the inserted or deleted sequence, on the assembly's forward strand |
 | `canonical_indel` | `indel_string` grouped with its reverse complement (workflow 3), or with its rotations too (workflow 4) |
-| `tissue` | the read's tissue label, or `NA` |
 | `read_length` | length of the read |
 | `np` | number of passes (PacBio `np` tag) |
 | `ec` | effective coverage (PacBio `ec` tag) |
@@ -815,11 +814,11 @@ positions in the read; the position on the contig is `position`.
 | `sm_pre`, `sx_pre` | the same at the anchor |
 | `sa` | subread coverage at the anchor, decoded from PacBio's run-length-encoded `sa` tag |
 | `ToreadEnd` | distance from the anchor to the nearer end of the read's alignment |
-| `kmerQ` | lowest base quality in the window around the event, see [kmerQ](#kmerq) |
 | `position` | 1-based coordinate of the anchor on the contig |
 | `readID` | read name |
 | `diploid_direction` | strand of the read's alignment to the diploid assembly |
 | `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity`, `model` | workflow 4 only: the tract the call sits in |
+| the keys | `tissue`, `kmerQ` and the other keys, the same columns as in the opportunity table: see [Keys](#keys) |
 | `bitflag_hap`, `contig_hap`, `pos_1based_hap`, `map_mapq` | the read's alignment to the haploid assembly: flag, contig, position and mapping quality |
 | `haploid_check` | whether the same InDel is in the haploid alignment, see [Haploid concordance](#haploid-concordance) |
 | `distance_to_indel_in_hap` | read bases from the call's read position to the matched haploid event (0 means the same place). Without a match, the distance from a read end to the nearest event of the same type, or `NA` if there is none. |
@@ -829,18 +828,30 @@ positions in the read; the position on the contig is `position`.
 
 ### Opportunities
 
-Workflow 3's `opportunities.tsv` has one row per contig, context, tissue, mapping
-quality and kmerQ:
+Workflow 3's `opportunities.tsv` has one row per contig, context, mapping
+quality and value of the keys:
 
 | Column | Meaning |
 |---|---|
 | `contig` | |
 | `context` | canonical k-mer: the smaller of the k-mer and its reverse complement. Its length is the InDel size it counts for (1, 2 or 3), so 1 bp contexts are only `A` and `C`. |
-| `tissue` | the read's tissue label, or `NA` |
 | `mapQ` | the read's mapping quality to the diploid assembly |
-| `kmerQ` | lowest base quality in the window; only 93 remains after final filtering |
-| `count` | read positions; zero counts are written too |
+| the keys | the same columns, with the same values, as at the end of each call: see [Keys](#keys) |
+| `count` | read positions |
 | `species`, `sample` | |
+
+### Keys
+
+Every feature a call might be filtered on is a key, defined once in
+[scripts/strata.py](scripts/strata.py). Both scans write each key as a column
+at the end of every call, and count the opportunities per value of it, so a
+filter on a key has a matching denominator. Adding a key there adds it to both
+tables.
+
+| Key | Meaning |
+|---|---|
+| `tissue` | the read's tissue label, or `NA` |
+| `kmerQ` | lowest base quality among the bases tested, see [kmerQ](#kmerq); only 93 remains after final filtering |
 
 Every read position is counted once for each size, so the opportunities for one
 size are the rows whose `context` has that length. `canonical_indel` in the

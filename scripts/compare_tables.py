@@ -9,7 +9,8 @@ numbers compared by value, so 20, 20.0 and 2e1 are the same: whole numbers
 exactly, others to 9 significant digits. The species and sample columns are
 ignored when only the cluster's table has them, because the workflows append
 them after the scripts have run. Any other column on one side only is a
-difference.
+difference. In a table with a count column, rows counting 0 carry nothing and
+are ignored: the scans once wrote one for every kmerQ level.
 """
 
 import argparse
@@ -42,7 +43,11 @@ def read_table(path):
     with open(path, newline="") as handle:
         reader = csv.reader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)
         header = [name.lstrip("#") for name in next(reader)]
-        return header, [row for row in reader if row]
+        rows = [row for row in reader if row]
+    if "count" in header:
+        count = header.index("count")
+        rows = [row for row in rows if normalise(row[count]) != "0"]
+    return header, rows
 
 
 def rows_on(columns, header, rows):

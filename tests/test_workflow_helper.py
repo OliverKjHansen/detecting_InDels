@@ -84,3 +84,15 @@ def test_the_classification_scripts_get_their_cell_types_and_bins_from_the_confi
         "-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,10",
         "-12,-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,12",
     ]
+
+
+def test_window_counts_are_summed_on_every_other_column(tmp_path):
+    import subprocess
+    from pipeline import summed_counts
+    first, second, out = tmp_path / "a.tsv", tmp_path / "b.tsv", tmp_path / "sum.tsv"
+    first.write_text("contig\tcontext\tmapQ\ttissue\tkmerQ\tcount\nc1\tA\t60\tliver\t93\t5\nc1\tA\t60\tbrain\t93\t1\n")
+    second.write_text("contig\tcontext\tmapQ\ttissue\tkmerQ\tcount\nc1\tA\t60\tliver\t93\t2\nc1\tC\t5\tliver\t40\t7\n")
+    subprocess.run(summed_counts([first, second], out), shell=True, check=True)
+    header, *rows = out.read_text().splitlines()
+    assert header == "contig\tcontext\tmapQ\ttissue\tkmerQ\tcount"
+    assert sorted(rows) == ["c1\tA\t60\tbrain\t93\t1", "c1\tA\t60\tliver\t93\t7", "c1\tC\t5\tliver\t40\t7"]

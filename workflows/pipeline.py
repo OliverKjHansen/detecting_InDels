@@ -93,3 +93,15 @@ class Pipeline:
                 if int(length) > self.config["min_contig_length"]:
                     contigs[contig] = int(length)
         return contigs
+
+
+def summed_counts(inputs, output):
+    """
+    A shell command that joins count tables from the windows of a contig: the
+    header once, then the last column (count) summed over every distinct value
+    of all the others, whatever keys the scan wrote.
+    """
+    return ("awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} "
+            "{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; n[key] += $NF} "
+            "END {for (key in n) print key, n[key]}' "
+            f"{' '.join(str(path) for path in inputs)} > {output}")

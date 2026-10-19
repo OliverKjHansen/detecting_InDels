@@ -3,7 +3,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import Pipeline
+from pipeline import Pipeline, summed_counts
 
 # ---------------------------------------------------------------------------
 # InDels inside repetitive DNA. For every repeat model written by
@@ -129,18 +129,15 @@ for species, samples in config["samples"].items():
 
             # Step 2 — join the windows back into one file per contig.
             #   calls:         concatenated, header kept from the first window
-            #   opportunities: counts per (contig, motif, k, tissue, mapQ,
-            #                  kmerQ), so they are summed over the windows
+            #   opportunities: counts per contig, motif, k, mapQ and the keys
+            #                  of strata.py, so they are summed over the windows
             #   FASTQ:         concatenated, a read carrying calls in two
             #                  windows is kept once
             merge_commands = []
             for model in models:
                 merge_commands.append(
                     f"awk 'FNR==1 && NR==1 || FNR>1' {' '.join(window_calls[model])} > {calls[model]}")
-                merge_commands.append(
-                    f"awk -F'\\t' -v OFS='\\t' 'FNR==1 {{if (NR==1) print; next}} "
-                    f"{{n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7}} END {{for (key in n) print key, n[key]}}' "
-                    f"{' '.join(window_opportunities[model])} > {opportunities[model]}")
+                merge_commands.append(summed_counts(window_opportunities[model], opportunities[model]))
             merge_commands = "\n                ".join(merge_commands)
             contig_dirs = " ".join([fastq_dir] + list(calls_dir.values()) + list(opportunities_dir.values()))
 

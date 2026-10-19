@@ -2,7 +2,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import Pipeline
+from pipeline import Pipeline, summed_counts
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -158,18 +158,15 @@ for species, samples in config["samples"].items():
         # Step 3 — join the windows back into one file per contig, for every
         # contig in one job.
         #   calls:         concatenated, header kept from the first window
-        #   opportunities: counts per (contig, context, tissue, mapQ, kmerQ),
-        #                  so they are summed over the windows
+        #   opportunities: counts per contig, context, mapQ and the keys of
+        #                  strata.py, so they are summed over the windows
         #   FASTQ:         concatenated, a read carrying calls in two windows is
         #                  kept once
         merge_commands = []
         for contig in long_contigs:
             merge_commands.append(
                 f"awk 'FNR==1 && NR==1 || FNR>1' {' '.join(window_calls[contig])} > {calls[contig]}")
-            merge_commands.append(
-                f"awk -F'\\t' -v OFS='\\t' 'FNR==1 {{if (NR==1) print; next}} "
-                f"{{n[$1 OFS $2 OFS $3 OFS $4 OFS $5] += $6}} END {{for (key in n) print key, n[key]}}' "
-                f"{' '.join(window_opportunities[contig])} > {opportunities[contig]}")
+            merge_commands.append(summed_counts(window_opportunities[contig], opportunities[contig]))
             merge_commands.append(
                 f"cat {' '.join(window_fastqs[contig])} | awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' > {fastqs[contig]}")
         merge_commands = "\n        ".join(merge_commands)
