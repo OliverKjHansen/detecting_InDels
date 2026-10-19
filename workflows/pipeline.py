@@ -48,15 +48,16 @@ class Pipeline:
             **self.roots, assembly_type=self.config["assembly_type"],
             species=species, sample=sample, **fields)
 
-    def folder(self, name, species, sample):
+    def folder(self, name, species, sample, **fields):
         """
         The folder the files of `layout` template `name` go in, for one sample.
-        The per-file fields, such as contig, may only appear in the file name.
+        `fields` fills the placeholders in the folder part, such as model; the
+        per-file ones, such as contig, may only appear in the file name.
         """
-        filled = {"species", "sample", "assembly_type", *self.roots}
+        filled = {"species", "sample", "assembly_type", *self.roots, *fields}
         blanks = {field: "\0" for _, field, _, _ in string.Formatter().parse(self.config["layout"][name])
                   if field and field not in filled}
-        folder = os.path.dirname(self.path(name, species, sample, **blanks))
+        folder = os.path.dirname(self.path(name, species, sample, **fields, **blanks))
         if "\0" in folder:
             raise ValueError(f"layout.{name} has a per-file field in its folder")
         return folder

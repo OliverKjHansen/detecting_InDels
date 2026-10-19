@@ -1,9 +1,10 @@
 import math
-import os
+from functools import partial
 from os.path import expanduser
 
-import yaml
 from gwf import Workflow
+
+from pipeline import Pipeline
 
 # ---------------------------------------------------------------------------
 # Repetitive DNA annotation. Annotates tandem repeats per contig for every
@@ -19,44 +20,35 @@ from gwf import Workflow
 #   gwf -f workflows/precompute.py run
 #   gwf -f workflows/repetitive_dna.py run
 #
-# output/ and scripts/ are made absolute from there, because gwf runs the
-# recipes from workflows/.
+# Paths come from the `layout` templates and the parameters from the `repeats`
+# block in config.yaml, through pipeline.py.
 # ---------------------------------------------------------------------------
 
-with open("config.yaml") as handle:
-    config = yaml.safe_load(handle)
-
-sample_dict       = config["samples"]
+pipeline          = Pipeline()
+config            = pipeline.config
 assembly_type     = config["assembly_type"]
-min_contig_length = config["min_contig_length"]
-inpath_fa         = expanduser(config["paths"]["fasta"])
-output            = os.path.abspath(config["paths"]["output"])
-results           = os.path.abspath(config["paths"]["results"])
-scripts           = os.path.abspath("scripts")
+scripts           = pipeline.scripts
 mreps             = expanduser(config["tools"]["mreps"])
 trf               = expanduser(config["tools"]["trf"])
 
 # Tandem repeat periods to scan. Homopolymers (k=1) are not annotated.
-periods = [2, 3, 4, 5, 6]
+periods = config["repeats"]["periods"]
 periods_str = " ".join(str(k) for k in periods)
 max_period = max(periods)
 
 # M0 and M2 — mreps minimum exponent, i.e. at least this many full copies.
-mreps_exp = 3
+mreps_exp = config["repeats"]["mreps_min_exponent"]
 
 # M2 — mreps resolution: substitutions allowed between adjacent copies.
-m2_res = 1
+m2_res = config["repeats"]["m2_resolution"]
 
 # M1 — TRF parameters: match mismatch indel PM PI minscore.
-# With match weight 2 a perfect tract needs >= minscore/2 bp: ~25 bp.
-trf_params = "2 7 7 80 10 50"
+trf_params = config["repeats"]["trf_params"]
 
-# M1 — TRF runs on windows of a contig, one job per window, because its runtime
-# explodes in long satellite arrays and a whole chromosome can run for days.
-# Windows overlap by trf_overlap so a tract crossing a boundary is still seen
-# whole; a tract longer than the overlap can be cut in two.
-trf_window  = 5_000_000
-trf_overlap = 1_000_000
+# M1 — TRF runs on windows of a contig, one job per window, overlapping by
+# trf_overlap (see config.yaml).
+trf_window  = config["repeats"]["trf_window_size"]
+trf_overlap = config["repeats"]["trf_overlap"]
 
 # M1 — TRF aligns a repeat over at most -l million bp (default 2). In a uniform
 # array longer than that, e.g. a 4 Mb centromere, it keeps restarting the
@@ -65,7 +57,7 @@ trf_overlap = 1_000_000
 # ~0.6 GB per million up front: -l 12 for 10 Mb windows is ~7.5 GB.
 trf_max_length = math.ceil((trf_window + 2 * trf_overlap) / 1_000_000)
 
-models = ["M0", "M1", "M2"]
+models = config["repeats"]["models"]
 
 # Resource requests. mreps and TRF are single-threaded, so one core per job.
 gwf = Workflow(
@@ -76,23 +68,17 @@ gwf = Workflow(
         'account': 'mutationalscanning'})
 
 
-for species, samples in sample_dict.items():
+for species, samples in config["samples"].items():
     for sample in samples:
-        assembly    = f"{inpath_fa}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
-        contigs_dir = f"{output}/precomute/{species}/{sample}/contigs"
-        outdir      = f"{output}/repetitive_dna/{species}/{sample}"
-        per_k_dir   = f"{outdir}/per_k"
-        resultsdir  = f"{results}/repetitive_dna/{species}/{sample}"
-        contig_dict = {}
-
-        with open(f"{assembly}.fai") as contigs:
-            for line in contigs:
-                contig_dict[line.split()[0]] = line.split()[1]
-
-        long_contigs = {contig: int(length) for contig, length in contig_dict.items() if int(length) > min_contig_length}
+        path        = partial(pipeline.path, species=species, sample=sample)
+        assembly    = path("assembly")
+        outdir      = pipeline.folder("tandem_repeats", species, sample)
+        per_k_dir   = pipeline.folder("repeats_per_k", species, sample)
+        resultsdir  = pipeline.folder("repeats_summary", species, sample)
+        long_contigs = pipeline.long_contigs(species, sample)
 
         for contig, length in long_contigs.items():
-            contig_fa = f"{contigs_dir}/{contig}.fa"
+            contig_fa = path("contig_fasta", contig=contig)
 
             # Step 1a — one job per model per period k. Each job writes its BED
             # to a .tmp file and renames it only when every command succeeded, so
@@ -102,9 +88,9 @@ for species, samples in sample_dict.items():
                 # M0: mreps exact/pure repeats.
                 # -exp N:      at least N full copies (exponent = length/period)
                 # -allowsmall: allow tracts shorter than the random-occurrence threshold
-                m0_bed = f"{per_k_dir}/{contig}_M0_k{k}.bed"
+                m0_bed = path("repeats_per_k", contig=contig, model="M0", k=k)
                 gwf.target(
-                    f"M0_mreps_k{k}_{contig}_{sample}_{assembly_type}",
+                    f"M0_mreps_k{k}_{contig}_{species}_{sample}_{assembly_type}",
                     inputs=[contig_fa],
                     outputs=[m0_bed],
                 ) << f"""
@@ -119,9 +105,9 @@ for species, samples in sample_dict.items():
 
                 # M2: mreps with resolution m2_res.
                 # -res N: allow up to N substitutions between adjacent copies
-                m2_bed = f"{per_k_dir}/{contig}_M2_k{k}.bed"
+                m2_bed = path("repeats_per_k", contig=contig, model="M2", k=k)
                 gwf.target(
-                    f"M2_mreps_k{k}_{contig}_{sample}_{assembly_type}",
+                    f"M2_mreps_k{k}_{contig}_{species}_{sample}_{assembly_type}",
                     inputs=[contig_fa],
                     outputs=[m2_bed],
                 ) << f"""
@@ -148,12 +134,15 @@ for species, samples in sample_dict.items():
                 core_end    = min(core_start + trf_window, length)
                 fetch_start = max(0, core_start - trf_overlap)
                 fetch_end   = min(length, core_end + trf_overlap)
-                window_beds = [f"{per_k_dir}/{contig}_M1_k{k}_{core_start}.bed" for k in periods]
+                window_beds = [path("repeats_per_k_window", contig=contig, model="M1", k=k, start=core_start)
+                               for k in periods]
                 m1_window_beds += window_beds
+                # The window's BED for the period in the shell loop's $k.
+                k_window_bed = path("repeats_per_k_window", contig=contig, model="M1", k="${k}", start=core_start)
 
                 gwf.target(
-                    f"M1_trf_{contig}_{core_start}_{sample}_{assembly_type}",
-                    inputs=[assembly, f"{assembly}.fai"],
+                    f"M1_trf_{contig}_{core_start}_{species}_{sample}_{assembly_type}",
+                    inputs=[assembly, path("assembly_fai")],
                     outputs=window_beds,
                     walltime="8:00:00",
                 ) << f"""
@@ -168,8 +157,8 @@ for species, samples in sample_dict.items():
                     awk -v k=$k '/^@/{{print}} !/^@/{{if ($3==k) print}}' $WORK/trf.txt > $WORK/trf_${{k}}.txt
                     python {scripts}/parse_trf.py $WORK/trf_${{k}}.txt $k {species} {sample} M1 \
                         {contig} {fetch_start} {core_start} {core_end} \
-                        > {per_k_dir}/{contig}_M1_k${{k}}_{core_start}.bed.tmp
-                    mv {per_k_dir}/{contig}_M1_k${{k}}_{core_start}.bed.tmp {per_k_dir}/{contig}_M1_k${{k}}_{core_start}.bed
+                        > {k_window_bed}.tmp
+                    mv {k_window_bed}.tmp {k_window_bed}
                 done
                 """
 
@@ -177,18 +166,18 @@ for species, samples in sample_dict.items():
             # from the first file only) and resolve overlapping tracts, keeping
             # the smallest k. M1 also has one set of BEDs per window.
             k_beds_by_model = {
-                "M0": [f"{per_k_dir}/{contig}_M0_k{k}.bed" for k in periods],
+                "M0": [path("repeats_per_k", contig=contig, model="M0", k=k) for k in periods],
                 "M1": m1_window_beds,
-                "M2": [f"{per_k_dir}/{contig}_M2_k{k}.bed" for k in periods],
+                "M2": [path("repeats_per_k", contig=contig, model="M2", k=k) for k in periods],
             }
 
             for model in models:
                 k_beds = k_beds_by_model[model]
                 k_bed_list = " ".join(k_beds)
-                contig_bed = f"{outdir}/{contig}_{model}.bed"
+                contig_bed = path("tandem_repeats", contig=contig, model=model)
 
                 gwf.target(
-                    f"{model}_merge_k_{contig}_{sample}_{assembly_type}",
+                    f"{model}_merge_k_{contig}_{species}_{sample}_{assembly_type}",
                     inputs=k_beds,
                     outputs=[contig_bed],
                     memory="16g",
@@ -209,13 +198,13 @@ for species, samples in sample_dict.items():
         # model, species, sample), i.e. BED columns 4-11, and goes to the results
         # path; the full BED stays under output.
         for model in models:
-            model_beds = [f"{outdir}/{contig}_{model}.bed" for contig in long_contigs]
+            model_beds = [path("tandem_repeats", contig=contig, model=model) for contig in long_contigs]
             bed_list = " ".join(model_beds)
-            sample_bed = f"{outdir}/{model}.bed"
-            summary = f"{resultsdir}/{model}_summary.tsv"
+            sample_bed = path("tandem_repeats_sample", model=model)
+            summary = path("repeats_summary", model=model)
 
             gwf.target(
-                f"cat_{model}_{sample}_{assembly_type}",
+                f"cat_{model}_{species}_{sample}_{assembly_type}",
                 inputs=model_beds,
                 outputs=[sample_bed, summary],
             ) << f"""

@@ -1,8 +1,9 @@
 import os
-from os.path import expanduser
+from functools import partial
 
-import yaml
 from gwf import Workflow
+
+from pipeline import Pipeline
 
 # ---------------------------------------------------------------------------
 # InDels inside repetitive DNA. For every repeat model written by
@@ -21,36 +22,24 @@ from gwf import Workflow
 #   gwf -f workflows/repetitive_dna.py run
 #   gwf -f workflows/repetitive_indel_call.py run
 #
-# output/, results/, plots/ and scripts/ are made absolute from there, because
-# gwf runs the recipes from workflows/.
+# Paths come from the `layout` templates and the parameters from config.yaml,
+# through pipeline.py.
 # ---------------------------------------------------------------------------
 
-with open("config.yaml") as handle:
-    config = yaml.safe_load(handle)
-
-sample_dict       = config["samples"]
-tissue_dict       = config["tissue_samples"]
-methylation_dict  = config.get("methylation_samples", {})
-inpath_classification = expanduser(config["paths"]["classification"])
+pipeline          = Pipeline()
+config            = pipeline.config
 assembly_type     = config["assembly_type"]
-min_contig_length = config["min_contig_length"]
-inpath_fa         = expanduser(config["paths"]["fasta"])
-inpath_bam        = expanduser(config["paths"]["bam"])
-alignment_overrides = config.get("alignment_overrides", {})
-output            = os.path.abspath(config["paths"]["output"])
-results           = os.path.abspath(config["paths"]["results"])
-plots             = os.path.abspath(config["paths"]["plots"])
-scripts           = os.path.abspath("scripts")
+scripts           = pipeline.scripts
 
 # Repeat models written by repetitive_dna.py.
-models = ["M0", "M1", "M2"]
+models = config["repeats"]["models"]
 
 # Step 1 splits each contig into windows of this many bp, one scan job per window.
-chunk_size = 10_000_000
+chunk_size = config["scan"]["window_size"]
 
 # Final filtering thresholds.
-min_kmerq = 93                 # minimum Phred base quality across the InDel 4-mer
-min_read_end_distance = 100    # bp; InDels nearer a read end are unreliable
+min_kmerq = config["final_filters"]["min_kmerq"]
+min_read_end_distance = config["final_filters"]["min_read_end_distance"]
 
 
 # Resource requests.
@@ -62,48 +51,40 @@ gwf = Workflow(
         'account': 'mutationalscanning'})
 
 
-for species, samples in sample_dict.items():
+for species, samples in config["samples"].items():
     for sample in samples:
-        assembly    = f"{inpath_fa}/{species}/{sample}/{assembly_type}_assembly/{sample}_{assembly_type}.fa"
-        haploid     = f"{inpath_fa}/{species}/{sample}/haploid_assembly/{sample}_haploid.fa"
+        path        = partial(pipeline.path, species=species, sample=sample)
+        folder      = partial(pipeline.folder, species=species, sample=sample)
+        assembly    = path("assembly")
+        haploid     = path("haploid")
         # Samples listed under alignment_overrides in config.yaml use that BAM.
-        alignment   = expanduser(alignment_overrides.get(species, {}).get(
-            sample, f"{inpath_bam}/{species}/{sample}/kinetics/{sample}_kinetics_{assembly_type}.bam"))
-        precompute  = f"{output}/precomute/{species}/{sample}"
-        coverage    = f"{precompute}/avg_coverage.txt"
-        repeats_dir = f"{output}/repetitive_dna/{species}/{sample}"
-        sample_dir  = f"{output}/repetitive_indels/{species}/{sample}"
-        contig_dict = {}
-
-        with open(f"{assembly}.fai") as contigs:
-            for line in contigs:
-                contig_dict[line.split()[0]] = line.split()[1]
-
-        long_contigs = {contig: int(length) for contig, length in contig_dict.items() if int(length) > min_contig_length}
+        alignment   = pipeline.alignment(species, sample)
+        coverage    = path("coverage")
+        long_contigs = pipeline.long_contigs(species, sample)
 
         # Samples without read labels have no tissue table; the callers then
         # report tissue NA for every read.
-        if sample in tissue_dict.get(species, []):
-            tissue        = f"{precompute}/sorted_tissue_classification.tsv"
+        if pipeline.is_listed("tissue_samples", species, sample):
+            tissue        = path("tissue")
             tissue_inputs = [tissue]
         else:
             tissue        = "NA"
             tissue_inputs = []
 
         # Shared by the models: the reads carrying calls, and their remapping.
-        fastq_dir   = f"{sample_dir}/fastq"
-        haploid_dir = f"{sample_dir}/haploid"
+        fastq_dir   = folder("repetitive_reads")
+        haploid_dir = folder("repetitive_haploid_locations")
 
         # Per model.
-        calls_dir         = {model: f"{sample_dir}/{model}/calls" for model in models}
-        opportunities_dir = {model: f"{sample_dir}/{model}/opportunities" for model in models}
-        merged_dir        = {model: f"{sample_dir}/{model}/merged" for model in models}
+        calls_dir         = {model: folder("repetitive_calls", model=model) for model in models}
+        opportunities_dir = {model: folder("repetitive_opportunities", model=model) for model in models}
+        merged_dir        = {model: folder("repetitive_merged_calls", model=model) for model in models}
 
         for contig, length in long_contigs.items():
-            repeat_beds   = {model: f"{repeats_dir}/{contig}_{model}.bed" for model in models}
-            calls         = {model: f"{calls_dir[model]}/{contig}.tsv" for model in models}
-            opportunities = {model: f"{opportunities_dir[model]}/{contig}.tsv" for model in models}
-            fastq         = f"{fastq_dir}/{contig}.fastq"
+            repeat_beds   = {model: path("tandem_repeats", contig=contig, model=model) for model in models}
+            calls         = {model: path("repetitive_calls", contig=contig, model=model) for model in models}
+            opportunities = {model: path("repetitive_opportunities", contig=contig, model=model) for model in models}
+            fastq         = path("repetitive_reads", contig=contig)
 
             # Step 1 runs per window. The windows [0, chunk_size),
             # [chunk_size, 2*chunk_size), ... tile the contig, and every pileup
@@ -115,15 +96,17 @@ for species, samples in sample_dict.items():
 
             for start in range(0, length, chunk_size):
                 end = min(start + chunk_size, length)
-                w_calls         = {model: f"{calls_dir[model]}/chunks/{contig}_{start}_{end}.tsv" for model in models}
-                w_opportunities = {model: f"{opportunities_dir[model]}/chunks/{contig}_{start}_{end}.tsv" for model in models}
-                w_fastq         = f"{fastq_dir}/chunks/{contig}_{start}_{end}.fastq"
+                w_calls         = {model: path("repetitive_window_calls", contig=contig, start=start, end=end, model=model)
+                                   for model in models}
+                w_opportunities = {model: path("repetitive_window_opportunities", contig=contig, start=start, end=end,
+                                               model=model) for model in models}
+                w_fastq         = path("repetitive_window_reads", contig=contig, start=start, end=end)
                 for model in models:
                     window_calls[model].append(w_calls[model])
                     window_opportunities[model].append(w_opportunities[model])
                 window_fastqs.append(w_fastq)
 
-                chunk_dirs = " ".join(sorted({os.path.dirname(path) for path in
+                chunk_dirs = " ".join(sorted({os.path.dirname(file) for file in
                                               [w_fastq] + list(w_calls.values()) + list(w_opportunities.values())}))
                 model_args = " ".join(f"--model {model} {repeat_beds[model]} {w_calls[model]} {w_opportunities[model]}"
                                       for model in models)
@@ -133,7 +116,7 @@ for species, samples in sample_dict.items():
                 # period, count the opportunities (the denominator of the rate),
                 # and write the reads carrying a call, for haploid remapping.
                 gwf.target(
-                    f"TRScan_{contig}_{start}_{sample}",
+                    f"TRScan_{contig}_{start}_{species}_{sample}",
                     inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs,
                     outputs=list(w_calls.values()) + list(w_opportunities.values()) + [w_fastq],
                     cores=1,
@@ -160,7 +143,7 @@ for species, samples in sample_dict.items():
             contig_dirs = " ".join([fastq_dir] + list(calls_dir.values()) + list(opportunities_dir.values()))
 
             gwf.target(
-                f"TRMergeWindows_{contig}_{sample}",
+                f"TRMergeWindows_{contig}_{species}_{sample}",
                 inputs=[path for model in models for path in window_calls[model] + window_opportunities[model]] + window_fastqs,
                 outputs=list(calls.values()) + list(opportunities.values()) + [fastq],
                 cores=1,
@@ -172,18 +155,18 @@ for species, samples in sample_dict.items():
                 cat {' '.join(window_fastqs)} | awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' > {fastq}
                 """
 
-        fastqs            = [f"{fastq_dir}/{contig}.fastq" for contig in long_contigs]
+        fastqs            = [path("repetitive_reads", contig=contig) for contig in long_contigs]
         fastq_list        = " ".join(fastqs)
-        combined_fastq    = f"{haploid_dir}/all.fastq"
-        remapped_bam      = f"{haploid_dir}/remapped.bam"
-        haploid_locations = f"{haploid_dir}/locations.tsv"
+        combined_fastq    = path("repetitive_haploid_reads")
+        remapped_bam      = path("repetitive_haploid_bam")
+        haploid_locations = path("repetitive_haploid_locations")
 
         # Step 3 — remap the reads carrying a call in any model to the haploid
         # assembly, once for all models. The FASTQs are listed explicitly and
         # the combined FASTQ is written to haploid/, so a re-run never reads its
         # own output.
         gwf.target(
-            f"TRHaploidMapping_{sample}",
+            f"TRHaploidMapping_{species}_{sample}",
             inputs=fastqs + [haploid],
             outputs=[combined_fastq, remapped_bam, haploid_locations],
             cores=16,
@@ -197,23 +180,23 @@ for species, samples in sample_dict.items():
         """
 
         for model in models:
-            resultsdir = f"{results}/repetitive_indels/{species}/{sample}/{model}"
-            plotsdir   = f"{plots}/repetitive_indels/{species}/{sample}/{model}"
+            resultsdir = folder("repetitive_results_calls", model=model)
+            plotsdir   = folder("repetitive_plots", model=model)
 
-            calls_files          = [f"{calls_dir[model]}/{contig}.tsv" for contig in long_contigs]
-            opportunities_files  = [f"{opportunities_dir[model]}/{contig}.tsv" for contig in long_contigs]
+            calls_files          = [path("repetitive_calls", contig=contig, model=model) for contig in long_contigs]
+            opportunities_files  = [path("repetitive_opportunities", contig=contig, model=model) for contig in long_contigs]
             calls_list           = " ".join(calls_files)
             opportunities_list   = " ".join(opportunities_files)
-            merged_indels        = f"{merged_dir[model]}/indels.tsv"
-            merged_opportunities = f"{merged_dir[model]}/opportunities.tsv"
-            plots_pdf            = f"{plotsdir}/plots.pdf"
+            merged_indels        = path("repetitive_merged_calls", model=model)
+            merged_opportunities = path("repetitive_merged_opportunities", model=model)
+            plots_pdf            = path("repetitive_plots", model=model)
 
             # Step 4 — haploid concordance for all contigs of the model: is the
             # same InDel also in the read's alignment to the haploid assembly?
             # locations.tsv is read once for every contig. The contigs are
             # merged into one table (header kept once) with species/sample added.
             gwf.target(
-                f"TRHaploidFilter_{sample}_{model}",
+                f"TRHaploidFilter_{species}_{sample}_{model}",
                 inputs=calls_files + [haploid_locations],
                 outputs=[merged_indels],
                 cores=1,
@@ -230,7 +213,7 @@ for species, samples in sample_dict.items():
             # first file only, species/sample added) and draw diagnostics of
             # the unfiltered calls.
             gwf.target(
-                f"TRMergeAndPlot_{sample}_{model}",
+                f"TRMergeAndPlot_{species}_{sample}_{model}",
                 inputs=[merged_indels] + opportunities_files,
                 outputs=[merged_opportunities, plots_pdf],
                 cores=8,
@@ -246,25 +229,29 @@ for species, samples in sample_dict.items():
 
             # Step 6 — final filtering, with a report of rows removed per step.
             # These small tables are the results.
+            results_calls         = path("repetitive_results_calls", model=model)
+            results_opportunities = path("repetitive_results_opportunities", model=model)
+            results_report        = path("repetitive_results_report", model=model)
+
             gwf.target(
-                f"TRFinalFiltering_{sample}_{model}",
+                f"TRFinalFiltering_{species}_{sample}_{model}",
                 inputs=[merged_indels, merged_opportunities],
-                outputs=[f"{resultsdir}/indels.tsv",
-                         f"{resultsdir}/opportunities.tsv",
-                         f"{resultsdir}/filter_report.tsv"],
+                outputs=[results_calls,
+                         results_opportunities,
+                         results_report],
                 cores=4,
                 memory="200g",
                 walltime="01:00:00",
             ) << f"""
             mkdir -p {resultsdir}
             python {scripts}/filtering_small_indels.py {merged_indels} \\
-                -o {resultsdir}/indels.tsv \\
+                -o {results_calls} \\
                 --haploid-check True \\
                 --min-quality {min_kmerq} \\
                 --min-read-end-distance {min_read_end_distance} \\
-                --report {resultsdir}/filter_report.tsv
+                --report {results_report}
             python {scripts}/filtering_opportunities.py {merged_opportunities} \\
-                -o {resultsdir}/opportunities.tsv \\
+                -o {results_opportunities} \\
                 --min-kmerq {min_kmerq}
             """
 
@@ -275,21 +262,21 @@ for species, samples in sample_dict.items():
             # the difference and its bin to every call. The likelihood table
             # covers the whole sample, so it is streamed once and filtered to
             # the reads that carry a call.
-            if sample in methylation_dict.get(species, []):
-                likelihoods = (f"{inpath_classification}/{species}/{sample}/{sample}"
-                               f"/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv")
+            if pipeline.is_listed("methylation_samples", species, sample):
+                likelihoods = path("likelihoods")
+                classified  = path("repetitive_results_classified", model=model)
 
                 gwf.target(
-                    f"TRClassify_{sample}_{model}",
-                    inputs=[f"{resultsdir}/indels.tsv", likelihoods],
-                    outputs=[f"{resultsdir}/indels_classified.tsv"],
+                    f"TRClassify_{species}_{sample}_{model}",
+                    inputs=[results_calls, likelihoods],
+                    outputs=[classified],
                     cores=1,
                     memory="8g",
                     walltime="04:00:00",
                 ) << f"""
                 set -e
                 bash {scripts}/join_read_classification.sh \\
-                    {resultsdir}/indels.tsv \\
+                    {results_calls} \\
                     {likelihoods} \\
-                    {resultsdir}/indels_classified.tsv
+                    {classified}
                 """

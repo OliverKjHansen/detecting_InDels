@@ -134,8 +134,8 @@ tools:
 # ---------------------------------------------------------------------------
 # File layout. These templates are the single source of truth for where data
 # lives; workflows never build paths by hand. Placeholders are filled from
-# `paths` and `assembly_type` above, plus species/sample/contig/model and, for
-# files written per window of a contig, start/end.
+# `paths` and `assembly_type` above, plus species/sample/contig/model, the period
+# k, and, for files written per window of a contig, start/end.
 # ---------------------------------------------------------------------------
 layout:
   # Raw inputs.
@@ -157,6 +157,91 @@ layout:
   # indel_mutation_call.py.
   microsat:     "{microsat}/{species}/{sample}/{contig}_trs_tidy.tsv"
 
-  # Written by repetitive_dna.py: one BED per contig per model, and per sample.
+  # Written by repetitive_dna.py: per period k (M1 also per window), then one
+  # BED per contig per model, and per sample.
+  repeats_per_k:         "{output}/repetitive_dna/{species}/{sample}/per_k/{contig}_{model}_k{k}.bed"
+  repeats_per_k_window:  "{output}/repetitive_dna/{species}/{sample}/per_k/{contig}_{model}_k{k}_{start}.bed"
   tandem_repeats:        "{output}/repetitive_dna/{species}/{sample}/{contig}_{model}.bed"
   tandem_repeats_sample: "{output}/repetitive_dna/{species}/{sample}/{model}.bed"
+  repeats_summary:       "{results}/repetitive_dna/{species}/{sample}/{model}_summary.tsv"
+
+  # Per-read cell-type likelihoods from the methylation model.
+  likelihoods: "{classification}/{species}/{sample}/{sample}/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv"
+
+  # Written by indel_mutation_call.py (workflow 3).
+  nonrepetitive_mask:                 "{output}/nonrepetitive_indels/{species}/{sample}/mask/{contig}.bed"
+  nonrepetitive_window_calls:         "{output}/nonrepetitive_indels/{species}/{sample}/calls/chunks/{contig}_{start}_{end}.tsv"
+  nonrepetitive_window_opportunities: "{output}/nonrepetitive_indels/{species}/{sample}/opportunities/chunks/{contig}_{start}_{end}.tsv"
+  nonrepetitive_window_reads:         "{output}/nonrepetitive_indels/{species}/{sample}/fastq/chunks/{contig}_{start}_{end}.fastq"
+  nonrepetitive_calls:                "{output}/nonrepetitive_indels/{species}/{sample}/calls/{contig}.tsv"
+  nonrepetitive_opportunities:        "{output}/nonrepetitive_indels/{species}/{sample}/opportunities/{contig}.tsv"
+  nonrepetitive_reads:                "{output}/nonrepetitive_indels/{species}/{sample}/fastq/{contig}.fastq"
+  nonrepetitive_haploid_reads:        "{output}/nonrepetitive_indels/{species}/{sample}/haploid/all.fastq"
+  nonrepetitive_haploid_bam:          "{output}/nonrepetitive_indels/{species}/{sample}/haploid/remapped.bam"
+  nonrepetitive_haploid_locations:    "{output}/nonrepetitive_indels/{species}/{sample}/haploid/locations.tsv"
+  nonrepetitive_merged_calls:         "{output}/nonrepetitive_indels/{species}/{sample}/merged/indels.tsv"
+  nonrepetitive_merged_opportunities: "{output}/nonrepetitive_indels/{species}/{sample}/merged/opportunities.tsv"
+  nonrepetitive_plots:                "{plots}/nonrepetitive_indels/{species}/{sample}/plots.pdf"
+  nonrepetitive_results_calls:        "{results}/nonrepetitive_indels/{species}/{sample}/indels.tsv"
+  nonrepetitive_results_opportunities: "{results}/nonrepetitive_indels/{species}/{sample}/opportunities.tsv"
+  nonrepetitive_results_report:       "{results}/nonrepetitive_indels/{species}/{sample}/filter_report.tsv"
+  nonrepetitive_results_classified:   "{results}/nonrepetitive_indels/{species}/{sample}/indels_classified.tsv"
+  nonrepetitive_classification_reads: "{results}/nonrepetitive_indels/{species}/{sample}/classification_reads.tsv"
+
+  # Written by repetitive_indel_call.py (workflow 4): the reads and their
+  # remapping are shared by the models, everything else is per model.
+  repetitive_window_calls:         "{output}/repetitive_indels/{species}/{sample}/{model}/calls/chunks/{contig}_{start}_{end}.tsv"
+  repetitive_window_opportunities: "{output}/repetitive_indels/{species}/{sample}/{model}/opportunities/chunks/{contig}_{start}_{end}.tsv"
+  repetitive_window_reads:         "{output}/repetitive_indels/{species}/{sample}/fastq/chunks/{contig}_{start}_{end}.fastq"
+  repetitive_calls:                "{output}/repetitive_indels/{species}/{sample}/{model}/calls/{contig}.tsv"
+  repetitive_opportunities:        "{output}/repetitive_indels/{species}/{sample}/{model}/opportunities/{contig}.tsv"
+  repetitive_reads:                "{output}/repetitive_indels/{species}/{sample}/fastq/{contig}.fastq"
+  repetitive_haploid_reads:        "{output}/repetitive_indels/{species}/{sample}/haploid/all.fastq"
+  repetitive_haploid_bam:          "{output}/repetitive_indels/{species}/{sample}/haploid/remapped.bam"
+  repetitive_haploid_locations:    "{output}/repetitive_indels/{species}/{sample}/haploid/locations.tsv"
+  repetitive_merged_calls:         "{output}/repetitive_indels/{species}/{sample}/{model}/merged/indels.tsv"
+  repetitive_merged_opportunities: "{output}/repetitive_indels/{species}/{sample}/{model}/merged/opportunities.tsv"
+  repetitive_plots:                "{plots}/repetitive_indels/{species}/{sample}/{model}/plots.pdf"
+  repetitive_results_calls:        "{results}/repetitive_indels/{species}/{sample}/{model}/indels.tsv"
+  repetitive_results_opportunities: "{results}/repetitive_indels/{species}/{sample}/{model}/opportunities.tsv"
+  repetitive_results_report:       "{results}/repetitive_indels/{species}/{sample}/{model}/filter_report.tsv"
+  repetitive_results_classified:   "{results}/repetitive_indels/{species}/{sample}/{model}/indels_classified.tsv"
+  repetitive_classification_reads: "{results}/repetitive_indels/{species}/{sample}/classification_reads.tsv"
+
+# ---------------------------------------------------------------------------
+# Parameters. Every number the workflows use comes from here.
+# ---------------------------------------------------------------------------
+
+# Workflow 1.
+precompute:
+  # Unresolved haplotypes are found per window of this many bp, one job each.
+  unresolved_window_size: 40_000_000
+
+# Workflow 2.
+repeats:
+  models: [M0, M1, M2]
+  # Tandem repeat periods annotated. Homopolymers (k = 1) are not.
+  periods: [2, 3, 4, 5, 6]
+  # M0 and M2, mreps -exp: at least this many full copies.
+  mreps_min_exponent: 3
+  # M2, mreps -res: substitutions allowed between adjacent copies.
+  m2_resolution: 1
+  # M1, TRF: match mismatch indel PM PI minscore. With match weight 2 a pure
+  # tract needs at least minscore/2 bp, about 25 bp.
+  trf_params: "2 7 7 80 10 50"
+  # M1, TRF runs on windows of a contig, one job each, because its runtime
+  # explodes in long satellite arrays. Windows overlap by trf_overlap so a
+  # tract crossing a boundary is seen whole; a longer tract can be cut in two.
+  trf_window_size: 5_000_000
+  trf_overlap: 1_000_000
+
+# Workflows 3 and 4.
+scan:
+  # Each contig is scanned in windows of this many bp, one job each.
+  window_size: 10_000_000
+
+final_filters:
+  # Minimum Phred base quality across the InDel 4-mer.
+  min_kmerq: 93
+  # Workflow 4: InDels nearer a read end than this many bp are dropped.
+  min_read_end_distance: 100

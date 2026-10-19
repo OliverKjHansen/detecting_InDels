@@ -67,3 +67,10 @@ def test_relative_paths_can_resolve_against_another_folder(tmp_path, monkeypatch
     from pipeline import Pipeline
     pipeline = Pipeline(f"{root}/config.yaml", base=root)
     assert pipeline.path("coverage", "ape", "s1") == f"{root}/output/precomute/ape/s1/avg_coverage.txt"
+
+
+def test_a_folder_takes_the_fields_its_own_path_needs(pipeline, root):
+    assert pipeline.folder("repetitive_calls", "ape", "s1", model="M1") == \
+        f"{root}/output/repetitive_indels/ape/s1/M1/calls"
+    with pytest.raises(ValueError):
+        pipeline.folder("repetitive_calls", "ape", "s1")   # the model is part of the folder

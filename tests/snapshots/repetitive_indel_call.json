@@ -1,5 +1,5 @@
 {
- "TRClassify_s1_M0": {
+ "TRClassify_ape_s1_M0": {
   "inputs": [
    "{ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv",
    "{ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv"
@@ -15,7 +15,7 @@
   ],
   "spec": "\n                set -e\n                bash {ROOT}/scripts/join_read_classification.sh \\\n                    {ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv \\\n                    {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv \\\n                    {ROOT}/results/repetitive_indels/ape/s1/M0/indels_classified.tsv\n                "
  },
- "TRClassify_s1_M1": {
+ "TRClassify_ape_s1_M1": {
   "inputs": [
    "{ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv",
    "{ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv"
@@ -31,7 +31,7 @@
   ],
   "spec": "\n                set -e\n                bash {ROOT}/scripts/join_read_classification.sh \\\n                    {ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv \\\n                    {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv \\\n                    {ROOT}/results/repetitive_indels/ape/s1/M1/indels_classified.tsv\n                "
  },
- "TRClassify_s1_M2": {
+ "TRClassify_ape_s1_M2": {
   "inputs": [
    "{ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv",
    "{ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv"
@@ -47,7 +47,7 @@
   ],
   "spec": "\n                set -e\n                bash {ROOT}/scripts/join_read_classification.sh \\\n                    {ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv \\\n                    {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv \\\n                    {ROOT}/results/repetitive_indels/ape/s1/M2/indels_classified.tsv\n                "
  },
- "TRFinalFiltering_s1_M0": {
+ "TRFinalFiltering_ape_s1_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv"
@@ -65,7 +65,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M0\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/ape/s1/M0/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s1_M1": {
+ "TRFinalFiltering_ape_s1_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv"
@@ -83,7 +83,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M1\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/ape/s1/M1/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s1_M2": {
+ "TRFinalFiltering_ape_s1_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv"
@@ -101,7 +101,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M2\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/ape/s1/M2/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s2_M0": {
+ "TRFinalFiltering_ape_s2_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv"
@@ -119,7 +119,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M0\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s2/M0/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/ape/s2/M0/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s2_M1": {
+ "TRFinalFiltering_ape_s2_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv"
@@ -137,7 +137,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M1\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s2/M1/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/ape/s2/M1/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s2_M2": {
+ "TRFinalFiltering_ape_s2_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv"
@@ -155,7 +155,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M2\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s2/M2/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/ape/s2/M2/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s3_M0": {
+ "TRFinalFiltering_monkey_s3_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv"
@@ -173,7 +173,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M0\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/monkey/s3/M0/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/monkey/s3/M0/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s3_M1": {
+ "TRFinalFiltering_monkey_s3_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv"
@@ -191,7 +191,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M1\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/monkey/s3/M1/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/monkey/s3/M1/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRFinalFiltering_s3_M2": {
+ "TRFinalFiltering_monkey_s3_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv"
@@ -209,7 +209,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M2\n            python {ROOT}/scripts/filtering_small_indels.py {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv \\\n                -o {ROOT}/results/repetitive_indels/monkey/s3/M2/indels.tsv \\\n                --haploid-check True \\\n                --min-quality 93 \\\n                --min-read-end-distance 100 \\\n                --report {ROOT}/results/repetitive_indels/monkey/s3/M2/filter_report.tsv\n            python {ROOT}/scripts/filtering_opportunities.py {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv \\\n                -o {ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.tsv \\\n                --min-kmerq 93\n            "
  },
- "TRHaploidFilter_s1_M0": {
+ "TRHaploidFilter_ape_s1_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv",
@@ -226,7 +226,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s1_M1": {
+ "TRHaploidFilter_ape_s1_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv",
@@ -243,7 +243,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s1_M2": {
+ "TRHaploidFilter_ape_s1_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv",
@@ -260,7 +260,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s2_M0": {
+ "TRHaploidFilter_ape_s2_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv"
@@ -276,7 +276,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s2_M1": {
+ "TRHaploidFilter_ape_s2_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv"
@@ -292,7 +292,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s2_M2": {
+ "TRHaploidFilter_ape_s2_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv"
@@ -308,7 +308,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s3_M0": {
+ "TRHaploidFilter_monkey_s3_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv"
@@ -324,7 +324,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s3_M1": {
+ "TRHaploidFilter_monkey_s3_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv"
@@ -340,7 +340,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidFilter_s3_M2": {
+ "TRHaploidFilter_monkey_s3_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv"
@@ -356,7 +356,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp\n            "
  },
- "TRHaploidMapping_s1": {
+ "TRHaploidMapping_ape_s1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq",
    "{ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq",
@@ -375,7 +375,7 @@
   ],
   "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/ape/s1/haploid\n        cat {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq > {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/ape/s1/haploid_assembly/s1_haploid.fa {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s1/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G\n        samtools view {ROOT}/output/repetitive_indels/ape/s1/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv\n        "
  },
- "TRHaploidMapping_s2": {
+ "TRHaploidMapping_ape_s2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq",
    "{ROOT}/fasta/ape/s2/haploid_assembly/s2_haploid.fa"
@@ -393,7 +393,7 @@
   ],
   "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/ape/s2/haploid\n        cat {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq > {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/ape/s2/haploid_assembly/s2_haploid.fa {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s2/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G\n        samtools view {ROOT}/output/repetitive_indels/ape/s2/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv\n        "
  },
- "TRHaploidMapping_s3": {
+ "TRHaploidMapping_monkey_s3": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq",
    "{ROOT}/fasta/monkey/s3/haploid_assembly/s3_haploid.fa"
@@ -411,7 +411,7 @@
   ],
   "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/haploid\n        cat {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq > {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/monkey/s3/haploid_assembly/s3_haploid.fa {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq {ROOT}/output/repetitive_indels/monkey/s3/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G\n        samtools view {ROOT}/output/repetitive_indels/monkey/s3/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv\n        "
  },
- "TRMergeAndPlot_s1_M0": {
+ "TRMergeAndPlot_ape_s1_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv",
@@ -429,7 +429,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/merged {ROOT}/plots/repetitive_indels/ape/s1/M0\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' \\\n                > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/ape/s1/M0/plots.pdf\n            "
  },
- "TRMergeAndPlot_s1_M1": {
+ "TRMergeAndPlot_ape_s1_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv",
@@ -447,7 +447,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M1/merged {ROOT}/plots/repetitive_indels/ape/s1/M1\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' \\\n                > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/ape/s1/M1/plots.pdf\n            "
  },
- "TRMergeAndPlot_s1_M2": {
+ "TRMergeAndPlot_ape_s1_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv",
@@ -465,7 +465,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M2/merged {ROOT}/plots/repetitive_indels/ape/s1/M2\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' \\\n                > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/ape/s1/M2/plots.pdf\n            "
  },
- "TRMergeAndPlot_s2_M0": {
+ "TRMergeAndPlot_ape_s2_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv"
@@ -482,7 +482,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/merged {ROOT}/plots/repetitive_indels/ape/s2/M0\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' \\\n                > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/ape/s2/M0/plots.pdf\n            "
  },
- "TRMergeAndPlot_s2_M1": {
+ "TRMergeAndPlot_ape_s2_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv"
@@ -499,7 +499,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M1/merged {ROOT}/plots/repetitive_indels/ape/s2/M1\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' \\\n                > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/ape/s2/M1/plots.pdf\n            "
  },
- "TRMergeAndPlot_s2_M2": {
+ "TRMergeAndPlot_ape_s2_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv"
@@ -516,7 +516,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M2/merged {ROOT}/plots/repetitive_indels/ape/s2/M2\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' \\\n                > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/ape/s2/M2/plots.pdf\n            "
  },
- "TRMergeAndPlot_s3_M0": {
+ "TRMergeAndPlot_monkey_s3_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv"
@@ -533,7 +533,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M0/merged {ROOT}/plots/repetitive_indels/monkey/s3/M0\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' \\\n                > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M0/plots.pdf\n            "
  },
- "TRMergeAndPlot_s3_M1": {
+ "TRMergeAndPlot_monkey_s3_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv"
@@ -550,7 +550,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M1/merged {ROOT}/plots/repetitive_indels/monkey/s3/M1\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' \\\n                > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M1/plots.pdf\n            "
  },
- "TRMergeAndPlot_s3_M2": {
+ "TRMergeAndPlot_monkey_s3_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv"
@@ -567,7 +567,7 @@
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M2/merged {ROOT}/plots/repetitive_indels/monkey/s3/M2\n            awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv \\\n                | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' \\\n                > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M2/plots.pdf\n            "
  },
- "TRMergeWindows_c1_s1": {
+ "TRMergeWindows_c1_ape_s1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_0_10000000.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_10000000_12000000.tsv",
@@ -601,7 +601,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/fastq {ROOT}/output/repetitive_indels/ape/s1/M0/calls {ROOT}/output/repetitive_indels/ape/s1/M1/calls {ROOT}/output/repetitive_indels/ape/s1/M2/calls {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_10000000_12000000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_10000000_12000000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_10000000_12000000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_10000000_12000000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_10000000_12000000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_10000000_12000000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv\n                cat {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' > {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq\n                "
  },
- "TRMergeWindows_c2_s1": {
+ "TRMergeWindows_c2_ape_s1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c2_0_1500000.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv",
@@ -628,7 +628,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/fastq {ROOT}/output/repetitive_indels/ape/s1/M0/calls {ROOT}/output/repetitive_indels/ape/s1/M1/calls {ROOT}/output/repetitive_indels/ape/s1/M2/calls {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv\n                cat {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' > {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq\n                "
  },
- "TRMergeWindows_c2_s2": {
+ "TRMergeWindows_c2_ape_s2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks/c2_0_1500000.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv",
@@ -655,7 +655,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s2/fastq {ROOT}/output/repetitive_indels/ape/s2/M0/calls {ROOT}/output/repetitive_indels/ape/s2/M1/calls {ROOT}/output/repetitive_indels/ape/s2/M2/calls {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M1/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M2/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv\n                cat {ROOT}/output/repetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' > {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq\n                "
  },
- "TRMergeWindows_c2_s3": {
+ "TRMergeWindows_c2_monkey_s3": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/calls/chunks/c2_0_1500000.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/chunks/c2_0_1500000.tsv",
@@ -682,7 +682,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/fastq {ROOT}/output/repetitive_indels/monkey/s3/M0/calls {ROOT}/output/repetitive_indels/monkey/s3/M1/calls {ROOT}/output/repetitive_indels/monkey/s3/M2/calls {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv\n                awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv\n                awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} {n[$1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6] += $7} END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/chunks/c2_0_1500000.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv\n                cat {ROOT}/output/repetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' > {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq\n                "
  },
- "TRScan_c1_0_s1": {
+ "TRScan_c1_0_ape_s1": {
   "inputs": [
    "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
    "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
@@ -709,7 +709,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks\n                python {ROOT}/scripts/tandem_repeat_scan.py c1 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt {ROOT}/output/precomute/ape/s1/sorted_tissue_classification.tsv 0 10000000 {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq --model M0 {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_0_10000000.tsv --model M1 {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_0_10000000.tsv --model M2 {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_0_10000000.tsv\n                "
  },
- "TRScan_c1_10000000_s1": {
+ "TRScan_c1_10000000_ape_s1": {
   "inputs": [
    "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
    "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
@@ -736,7 +736,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks\n                python {ROOT}/scripts/tandem_repeat_scan.py c1 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt {ROOT}/output/precomute/ape/s1/sorted_tissue_classification.tsv 10000000 12000000 {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq --model M0 {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_10000000_12000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_10000000_12000000.tsv --model M1 {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_10000000_12000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_10000000_12000000.tsv --model M2 {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_10000000_12000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_10000000_12000000.tsv\n                "
  },
- "TRScan_c2_0_s1": {
+ "TRScan_c2_0_ape_s1": {
   "inputs": [
    "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
    "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
@@ -763,7 +763,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks\n                python {ROOT}/scripts/tandem_repeat_scan.py c2 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt {ROOT}/output/precomute/ape/s1/sorted_tissue_classification.tsv 0 1500000 {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq --model M0 {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c2_0_1500000.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv --model M1 {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c2_0_1500000.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c2_0_1500000.tsv --model M2 {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c2_0_1500000.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c2_0_1500000.tsv\n                "
  },
- "TRScan_c2_0_s2": {
+ "TRScan_c2_0_ape_s2": {
   "inputs": [
    "{ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa",
    "{ROOT}/override/s2_diploid.bam",
@@ -789,7 +789,7 @@
   ],
   "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s2/M1/calls/chunks {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s2/M2/calls/chunks {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks {ROOT}/output/repetitive_indels/ape/s2/fastq/chunks\n                python {ROOT}/scripts/tandem_repeat_scan.py c2 {ROOT}/override/s2_diploid.bam {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precomute/ape/s2/avg_coverage.txt NA 0 1500000 {ROOT}/output/repetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq --model M0 {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed {ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks/c2_0_1500000.tsv {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv --model M1 {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed {ROOT}/output/repetitive_indels/ape/s2/M1/calls/chunks/c2_0_1500000.tsv {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks/c2_0_1500000.tsv --model M2 {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed {ROOT}/output/repetitive_indels/ape/s2/M2/calls/chunks/c2_0_1500000.tsv {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks/c2_0_1500000.tsv\n                "
  },
- "TRScan_c2_0_s3": {
+ "TRScan_c2_0_monkey_s3": {
   "inputs": [
    "{ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa",
    "{ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam",

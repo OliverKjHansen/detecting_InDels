@@ -1,8 +1,8 @@
-import os
-from os.path import expanduser
+from functools import partial
 
-import yaml
 from gwf import Workflow
+
+from pipeline import Pipeline
 
 # ---------------------------------------------------------------------------
 # A denominator per germline/somatic bin, for the samples listed under
@@ -38,17 +38,11 @@ from gwf import Workflow
 #
 #   gwf -f workflows/classification_denominator.py run
 #
-# results/ and scripts/ are made absolute, because gwf runs the recipes from
-# workflows/.
+# Paths come from the `layout` templates in config.yaml, through pipeline.py.
 # ---------------------------------------------------------------------------
 
-with open("config.yaml") as handle:
-    config = yaml.safe_load(handle)
-
-methylation_dict      = config.get("methylation_samples", {})
-inpath_classification = expanduser(config["paths"]["classification"])
-results               = os.path.abspath(config["paths"]["results"])
-scripts               = os.path.abspath("scripts")
+pipeline = Pipeline()
+scripts  = pipeline.scripts
 
 
 # Resource requests. One streaming pass over a per-read table, so one core; the
@@ -61,24 +55,25 @@ gwf = Workflow(
         'account': 'mutationalscanning'})
 
 
-for species, samples in methylation_dict.items():
+for species, samples in (pipeline.config.get("methylation_samples") or {}).items():
     for sample in samples:
-        likelihoods = (f"{inpath_classification}/{species}/{sample}/{sample}"
-                       f"/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv")
-
-        nonrep_dir = f"{results}/nonrepetitive_indels/{species}/{sample}"
-        rep_dir    = f"{results}/repetitive_indels/{species}/{sample}"
+        path        = partial(pipeline.path, species=species, sample=sample)
+        likelihoods = path("likelihoods")
+        nonrep      = path("nonrepetitive_classification_reads")
+        rep         = path("repetitive_classification_reads")
+        nonrep_dir  = pipeline.folder("nonrepetitive_classification_reads", species, sample)
+        rep_dir     = pipeline.folder("repetitive_classification_reads", species, sample)
 
         gwf.target(
             f"ClassificationReads_{species}_{sample}",
             inputs=[likelihoods],
-            outputs=[f"{nonrep_dir}/classification_reads.tsv",
-                     f"{rep_dir}/classification_reads.tsv"],
+            outputs=[nonrep,
+                     rep],
         ) << f"""
         set -e
         mkdir -p {nonrep_dir} {rep_dir}
         bash {scripts}/classification_read_counts.sh \\
             {likelihoods} \\
-            {nonrep_dir}/classification_reads.tsv
-        cp {nonrep_dir}/classification_reads.tsv {rep_dir}/classification_reads.tsv
+            {nonrep}
+        cp {nonrep} {rep}
         """

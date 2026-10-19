@@ -54,8 +54,9 @@ config.yaml points into it with relative paths:
                      model for workflow 4): the scan's calls and
                      opportunities, the calls after the haploid check, and the
                      final calls
-  run_local.sh       reruns workflows 3 and 4 on the window and compares each
-                     table with the cluster's (scripts/compare_tables.py)
+  run_local.sh       runs scripts/replay_window.py on the window: reruns
+                     workflows 3 and 4 and compares each table with the
+                     cluster's (scripts/compare_tables.py)
 """
 import argparse
 import os
@@ -63,6 +64,7 @@ import shutil
 import sys
 import time
 from collections import Counter
+from functools import partial
 
 import pysam
 import yaml
@@ -71,30 +73,27 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 from pipeline import Pipeline  # noqa: E402
 
 KINETICS_TAGS = ("fi", "ri", "fp", "rp", "ip", "pw")
-SCAN_WINDOW = 10_000_000      # workflows 3 and 4 scan each contig in windows of this size
 MARGIN = 100_000              # real sequence kept on each side of the window
-MODELS = ["M0", "M1", "M2"]   # the repeat models of workflow 2
-
-# The final filters, as workflows 3 and 4 apply them.
-MIN_KMERQ = 93
-MIN_READ_END_DISTANCE = 100   # workflow 4 only
 
 STARTED = time.time()
+
+# run_local.sh: the replay itself is built from the current code by
+# replay_window.py, so a window outlives changes to the scripts' arguments.
+REPLAY_SCRIPT = """#!/usr/bin/env bash
+# Replays workflows 3 and 4 on this window with the scripts of the checkout
+# REPO, by default the one this folder sits in (mirror/{species}/{sample}/
+# under the repository root), and compares each table with the cluster's.
+# Exits 1 if any table differs. For software testing only. PYTHON is the
+# Python to run them with, one with pysam and pandas.
+set -euo pipefail
+cd "$(dirname "$0")"
+REPO="${REPO:-$(cd ../../../.. && pwd)}"
+exec "${PYTHON:-python}" "$REPO/scripts/replay_window.py" .
+"""
 
 
 def log(message):
     print(f"[{time.time() - STARTED:5.0f} s] {message}", file=sys.stderr, flush=True)
-
-
-def workflow_dirs(pipeline, species, sample):
-    """Workflows 3 and 4's working and results folders, built as the workflows build them."""
-    output, results = pipeline.roots["output"], pipeline.roots["results"]
-    return {
-        "nonrepetitive": f"{output}/nonrepetitive_indels/{species}/{sample}",
-        "nonrepetitive_results": f"{results}/nonrepetitive_indels/{species}/{sample}",
-        "repetitive": f"{output}/repetitive_indels/{species}/{sample}",
-        "repetitive_results": f"{results}/repetitive_indels/{species}/{sample}",
-    }
 
 
 def parse_sample(spec):
@@ -108,10 +107,10 @@ def parse_sample(spec):
     return species, sample, (contig, start, end)
 
 
-def busiest_window(results, contigs, size):
+def busiest_window(final_calls, contigs, size):
     """The window of `size` bp holding the most unique calls in the final results."""
     counts = Counter()
-    with open(f"{results}/indels.tsv") as handle:
+    with open(final_calls) as handle:
         header = handle.readline().rstrip("\n").split("\t")
         contig, position, unique = (header.index(c) for c in ("contig", "position", "unique"))
         for line in handle:
@@ -119,7 +118,7 @@ def busiest_window(results, contigs, size):
             if fields[unique] == "unique" and fields[contig] in contigs:
                 counts[(fields[contig], (int(fields[position]) - 1) // size)] += 1
     if not counts:
-        sys.exit(f"No unique calls in {results}/indels.tsv; give a window.")
+        sys.exit(f"No unique calls in {final_calls}; give a window.")
     (contig, index), n = counts.most_common(1)[0]
     log(f"window with the most unique calls: {n} calls")
     return contig, index * size, min((index + 1) * size, contigs[contig])
@@ -170,21 +169,22 @@ def copy_rows_of_reads(source, target, names, header=False):
         out.writelines(line for line in handle if line.split("\t", 1)[0] in names)
 
 
-def copy_cluster_tables(work, results, compare, contig, start, end, is_scan_job):
+def copy_cluster_tables(source, species, sample, workflow, compare, contig, start, end, is_scan_job, **fields):
     """
-    The cluster's tables for the window, from one workflow (one model of
-    workflow 4): the scan's calls and, for a whole scan job, opportunities;
-    the calls after the haploid check; the final calls.
+    The cluster's tables for the window, from one workflow ("nonrepetitive" or
+    "repetitive", and for workflow 4 one model): the scan's calls and, for a
+    whole scan job, opportunities; the calls after the haploid check; the
+    final calls.
     """
+    path = partial(source.path, species=species, sample=sample, **fields)
     os.makedirs(compare, exist_ok=True)
-    chunk = f"{contig}_{start}_{end}"
     if is_scan_job:
         for table in ("calls", "opportunities"):
-            shutil.copy(f"{work}/{table}/chunks/{chunk}.tsv", f"{compare}/{table}.tsv")
+            shutil.copy(path(f"{workflow}_window_{table}", contig=contig, start=start, end=end), f"{compare}/{table}.tsv")
     else:
-        copy_calls_in_window(f"{work}/calls/{contig}.tsv", f"{compare}/calls.tsv", contig, start, end)
-    copy_calls_in_window(f"{work}/merged/indels.tsv", f"{compare}/merged_indels.tsv", contig, start, end)
-    copy_calls_in_window(f"{results}/indels.tsv", f"{compare}/indels.tsv", contig, start, end)
+        copy_calls_in_window(path(f"{workflow}_calls", contig=contig), f"{compare}/calls.tsv", contig, start, end)
+    copy_calls_in_window(path(f"{workflow}_merged_calls"), f"{compare}/merged_indels.tsv", contig, start, end)
+    copy_calls_in_window(path(f"{workflow}_results_calls"), f"{compare}/indels.tsv", contig, start, end)
 
 
 def mirror_config(config, species, sample, root):
@@ -215,12 +215,12 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     contigs = source.long_contigs(species, sample)
     if contig not in contigs or not 0 <= start < end <= contigs[contig]:
         sys.exit(f"{species}/{sample}: {contig}:{start}-{end} is not inside a contig longer than min_contig_length")
-    is_scan_job = start % SCAN_WINDOW == 0 and end == min(start + SCAN_WINDOW, contigs[contig])
+    scan_window = source.config["scan"]["window_size"]
+    is_scan_job = start % scan_window == 0 and end == min(start + scan_window, contigs[contig])
     root = os.path.abspath(os.path.join(out, species, sample, f"{contig}_{start}_{end}"))
     os.makedirs(root, exist_ok=True)
     target = mirror_config(source.config, species, sample, root)
-    source_dirs, target_dirs = workflow_dirs(source, species, sample), workflow_dirs(target, species, sample)
-    has_workflow4 = os.path.exists(f"{source_dirs['repetitive']}/haploid/locations.tsv")
+    has_workflow4 = os.path.exists(source.path("repetitive_haploid_locations", species, sample))
     log(f"{species}/{sample} {contig}:{start}-{end}"
         f" ({'one scan job' if is_scan_job else 'not a scan job: calls compared, opportunities not'})")
     if not has_workflow4:
@@ -274,38 +274,27 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     if source.is_listed("tissue_samples", species, sample):
         source_tissue, tissue = both("tissue")
         copy_rows_of_reads(source_tissue, tissue, names, header=True)
-    for model in MODELS:
+    models = source.config["repeats"]["models"]
+    for model in models:
         copy_overlapping(*both("tandem_repeats", contig=contig, model=model), contig, left, right, header=True)
 
     # Workflows 3 and 4: the mask, and the haploid alignments of the window's reads.
     log("  mask and haploid alignment records")
-    copy_overlapping(f"{source_dirs['nonrepetitive']}/mask/{contig}.bed",
-                     f"{target_dirs['nonrepetitive']}/mask/{contig}.bed", contig, left, right, header=False)
-    workflows = ["nonrepetitive"] + (["repetitive"] if has_workflow4 else [])
-    for workflow in workflows:
-        copy_rows_of_reads(f"{source_dirs[workflow]}/haploid/locations.tsv",
-                           f"{target_dirs[workflow]}/haploid/locations.tsv", names)
+    copy_overlapping(*both("nonrepetitive_mask", contig=contig), contig, left, right, header=False)
+    for workflow in ["nonrepetitive"] + (["repetitive"] if has_workflow4 else []):
+        copy_rows_of_reads(*both(f"{workflow}_haploid_locations"), names)
 
     # The cluster's tables for the window, to compare a local run with.
     log("  the cluster's tables for the window")
-    copy_cluster_tables(source_dirs["nonrepetitive"], source_dirs["nonrepetitive_results"],
-                        f"{root}/cluster/nonrepetitive_indels", contig, start, end, is_scan_job)
+    copy_cluster_tables(source, species, sample, "nonrepetitive", f"{root}/cluster/nonrepetitive_indels",
+                        contig, start, end, is_scan_job)
     if has_workflow4:
-        for model in MODELS:
-            copy_cluster_tables(f"{source_dirs['repetitive']}/{model}", f"{source_dirs['repetitive_results']}/{model}",
-                                f"{root}/cluster/repetitive_indels/{model}", contig, start, end, is_scan_job)
+        for model in models:
+            copy_cluster_tables(source, species, sample, "repetitive", f"{root}/cluster/repetitive_indels/{model}",
+                                contig, start, end, is_scan_job, model=model)
 
-    relative = lambda path: os.path.relpath(path, root)
     with open(f"{root}/run_local.sh", "w") as handle:
-        handle.write(replay_script(
-            contig, start, end, out, species, sample, is_scan_job, has_workflow4,
-            bam=relative(alignment), assembly=relative(assembly),
-            coverage=relative(target.path("coverage", species, sample)),
-            tissue=relative(tissue) if tissue != "NA" else "NA",
-            mask=relative(f"{target_dirs['nonrepetitive']}/mask/{contig}.bed"),
-            beds={model: relative(target.path("tandem_repeats", species, sample, contig=contig, model=model))
-                  for model in MODELS},
-            locations={workflow: relative(f"{target_dirs[workflow]}/haploid/locations.tsv") for workflow in workflows}))
+        handle.write(REPLAY_SCRIPT)
     os.chmod(f"{root}/run_local.sh", 0o755)
 
     sizes = {os.path.relpath(os.path.join(d, f), root): os.path.getsize(os.path.join(d, f))
@@ -324,88 +313,12 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     log(f"  done: {sum(sizes.values()) / 1e6:.0f} MB in {root}")
 
 
-def replay_script(contig, start, end, out, species, sample, is_scan_job, has_workflow4,
-                  bam, assembly, coverage, tissue, mask, beds, locations):
-    """run_local.sh: replay workflows 3 and 4 on the window and compare with the cluster."""
-    script = f"""#!/usr/bin/env bash
-# Replays workflows 3 and 4 on {contig}:{start}-{end} and compares each table
-# with the cluster's, by content (scripts/compare_tables.py). Exits 1 if any
-# table differs. For software testing only.
-#
-# REPO is the checkout whose scripts/ to run; by default the one this folder
-# sits in ({out}/{species}/{sample}/ under the repository root). PYTHON is the
-# Python to run them with, one with pysam and pandas. The scripts' own messages
-# go to local/replay.log.
-set -euo pipefail
-cd "$(dirname "$0")"
-REPO="${{REPO:-$(cd ../../../.. && pwd)}}"
-PYTHON="${{PYTHON:-python}}"
-mkdir -p local
-: > local/replay.log
-trap 'echo "replay failed; see $(pwd)/local/replay.log" >&2' ERR
-status=0
-compare() {{ "$PYTHON" "$REPO/scripts/compare_tables.py" "$1" "$2" --label "$3" || status=1; }}
-
-# Workflow 3, step 2: the scan.
-W3=local/nonrepetitive_indels
-mkdir -p $W3
-"$PYTHON" "$REPO/scripts/nonrepetitive_scan.py" {mask} {contig} {bam} {assembly} {coverage} {tissue} {start} {end} \\
-    $W3/calls.tsv $W3/opportunities.tsv $W3/reads.fastq 2>> local/replay.log
-# Step 5: the haploid check, against the cluster's haploid alignments.
-"$PYTHON" "$REPO/scripts/filtering_haploid_mappping.py" $W3/calls.tsv {locations['nonrepetitive']} \\
-    > $W3/merged_indels.tsv 2>> local/replay.log
-# Step 7: final filtering.
-"$PYTHON" "$REPO/scripts/filtering_small_indels.py" $W3/merged_indels.tsv -o $W3/indels.tsv \\
-    --haploid-check True --min-quality {MIN_KMERQ} --report $W3/filter_report.tsv 2>> local/replay.log
-"$PYTHON" "$REPO/scripts/filtering_opportunities.py" $W3/opportunities.tsv -o $W3/opportunities_q{MIN_KMERQ}.tsv \\
-    --min-kmerq {MIN_KMERQ} 2>> local/replay.log
-
-C3=cluster/nonrepetitive_indels
-compare $W3/calls.tsv $C3/calls.tsv "workflow 3 calls"
-"""
-    if is_scan_job:
-        script += 'compare $W3/opportunities.tsv $C3/opportunities.tsv "workflow 3 opportunities"\n'
-    script += """compare $W3/merged_indels.tsv $C3/merged_indels.tsv "workflow 3 calls after the haploid check"
-compare $W3/indels.tsv $C3/indels.tsv "workflow 3 final calls"
-"""
-    if has_workflow4:
-        model_args = " \\\n    ".join(f"--model {model} {beds[model]} $W4/{model}/calls.tsv $W4/{model}/opportunities.tsv"
-                                      for model in MODELS)
-        script += f"""
-# Workflow 4, step 1: the scan, every model in one pass.
-W4=local/repetitive_indels
-mkdir -p {" ".join(f"$W4/{model}" for model in MODELS)}
-"$PYTHON" "$REPO/scripts/tandem_repeat_scan.py" {contig} {bam} {assembly} {coverage} {tissue} {start} {end} $W4/reads.fastq \\
-    {model_args} 2>> local/replay.log
-for model in {" ".join(MODELS)}; do
-    # Step 4: the haploid check, against the cluster's haploid alignments.
-    "$PYTHON" "$REPO/scripts/filtering_haploid_mappping.py" $W4/$model/calls.tsv {locations['repetitive']} \\
-        > $W4/$model/merged_indels.tsv 2>> local/replay.log
-    # Step 6: final filtering.
-    "$PYTHON" "$REPO/scripts/filtering_small_indels.py" $W4/$model/merged_indels.tsv -o $W4/$model/indels.tsv \\
-        --haploid-check True --min-quality {MIN_KMERQ} --min-read-end-distance {MIN_READ_END_DISTANCE} \\
-        --report $W4/$model/filter_report.tsv 2>> local/replay.log
-    "$PYTHON" "$REPO/scripts/filtering_opportunities.py" $W4/$model/opportunities.tsv \\
-        -o $W4/$model/opportunities_q{MIN_KMERQ}.tsv --min-kmerq {MIN_KMERQ} 2>> local/replay.log
-
-    C4=cluster/repetitive_indels/$model
-    compare $W4/$model/calls.tsv $C4/calls.tsv "workflow 4 $model calls"
-"""
-        if is_scan_job:
-            script += '    compare $W4/$model/opportunities.tsv $C4/opportunities.tsv "workflow 4 $model opportunities"\n'
-        script += """    compare $W4/$model/merged_indels.tsv $C4/merged_indels.tsv "workflow 4 $model calls after the haploid check"
-    compare $W4/$model/indels.tsv $C4/indels.tsv "workflow 4 $model final calls"
-done
-"""
-    return script + "\nexit $status\n"
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0],
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("samples", nargs="+", metavar="species/sample[:contig:start-end]",
                         help="the samples to export, each with its window or none")
-    parser.add_argument("--window-size", type=int, default=SCAN_WINDOW,
+    parser.add_argument("--window-size", type=int,
                         help="size of the window chosen for a sample given without one (default: one scan job)")
     parser.add_argument("--config", default="config.yaml")
     parser.add_argument("--out", default="mirror",
@@ -414,11 +327,12 @@ def main():
     args = parser.parse_args()
 
     source = Pipeline(args.config)
+    window_size = args.window_size or source.config["scan"]["window_size"]
     for spec in args.samples:
         species, sample, window = parse_sample(spec)
         if window is None:
-            window = busiest_window(workflow_dirs(source, species, sample)["nonrepetitive_results"],
-                                    source.long_contigs(species, sample), args.window_size)
+            window = busiest_window(source.path("nonrepetitive_results_calls", species, sample),
+                                    source.long_contigs(species, sample), window_size)
         export_window(source, species, sample, *window, args.out, args.keep_kinetics)
 
 

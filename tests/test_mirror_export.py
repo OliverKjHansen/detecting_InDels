@@ -12,6 +12,7 @@ import runpy
 import shutil
 import subprocess
 import sys
+from functools import partial
 
 import pysam
 import pytest
@@ -23,10 +24,10 @@ from pipeline import Pipeline
 from workflow_config import REPO_ROOT
 
 SCRIPTS = os.path.join(REPO_ROOT, "scripts")
-MODELS = ["M0", "M1", "M2"]
 TRACTS = {"M0": [(2150, 2300, "AC", 2)],
           "M1": [(2100, 2300, "AC", 2)],
           "M2": [(2100, 2300, "AC", 2), (2190, 2250, "ACAG", 4, 90.0)]}
+MODELS = list(TRACTS)   # the models config.yaml lists
 SAMPLES = [("testspecies", "testsample"), ("otherspecies", "othersample")]
 CHUNK = f"{mf.CONTIG}_0_{mf.CONTIG_LENGTH}"   # the contig is shorter than one scan window
 
@@ -69,10 +70,15 @@ def haploid_check(calls, locations, merged, species, sample):
         out.writelines(f"{row}\t{species}\t{sample}\n" for row in rows)
 
 
-def final_filtering(merged, results, *extra):
-    os.makedirs(results, exist_ok=True)
-    run_script("filtering_small_indels.py", merged, "-o", f"{results}/indels.tsv",
-               "--haploid-check", "True", "--min-quality", "93", *extra, "--report", f"{results}/filter_report.tsv")
+def final_filtering(merged, final_calls, report, min_kmerq, *extra):
+    run_script("filtering_small_indels.py", merged, "-o", final_calls, "--haploid-check", "True",
+               "--min-quality", str(min_kmerq), *map(str, extra), "--report", report)
+
+
+def made(path):
+    """The path, with its folder created."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return path
 
 
 def place(source, target):
@@ -86,6 +92,7 @@ def cluster(tmp_path_factory, fixture_paths):
     root = os.path.realpath(tmp_path_factory.mktemp("cluster"))
     # A checkout: the replays run its scripts unless told otherwise.
     os.symlink(SCRIPTS, f"{root}/scripts")
+    os.symlink(os.path.join(REPO_ROOT, "workflows"), f"{root}/workflows")
     with open(os.path.join(REPO_ROOT, "config.yaml")) as handle:
         config = yaml.safe_load(handle)
     config.update({
@@ -100,10 +107,10 @@ def cluster(tmp_path_factory, fixture_paths):
     with open(f"{root}/config.yaml", "w") as handle:
         yaml.safe_dump(config, handle)
     pipeline = Pipeline(f"{root}/config.yaml", base=root)
+    filters = pipeline.config["final_filters"]
 
     for species, sample in SAMPLES:
-        def path(name, **fields):
-            return pipeline.path(name, species, sample, **fields)
+        path = partial(pipeline.path, species=species, sample=sample)
         assembly, bam, coverage = path("assembly"), pipeline.alignment(species, sample), path("coverage")
         tissue = path("tissue") if pipeline.is_listed("tissue_samples", species, sample) else "NA"
 
@@ -118,54 +125,51 @@ def cluster(tmp_path_factory, fixture_paths):
         if tissue != "NA":
             place(fixture_paths["tissue"], tissue)
         for model in MODELS:
-            os.makedirs(pipeline.folder("tandem_repeats", species, sample), exist_ok=True)
-            mf.write_tr_bed(path("tandem_repeats", contig=mf.CONTIG, model=model), TRACTS[model], model)
+            mf.write_tr_bed(made(path("tandem_repeats", contig=mf.CONTIG, model=model)), TRACTS[model], model)
 
         # Workflow 3.
-        work = f"{root}/output/nonrepetitive_indels/{species}/{sample}"
-        for folder in ("mask", "calls/chunks", "opportunities/chunks", "fastq/chunks", "haploid", "merged"):
-            os.makedirs(f"{work}/{folder}", exist_ok=True)
-        place(fixture_paths["filters"], f"{work}/mask/{mf.CONTIG}.bed")
-        with open(f"{work}/calls/chunks/{CHUNK}.tsv", "w") as calls, \
-                open(f"{work}/opportunities/chunks/{CHUNK}.tsv", "w") as opportunities, \
-                open(f"{work}/fastq/chunks/{CHUNK}.fastq", "w") as fastq:
-            utilities.nonrepetitive_scan(f"{work}/mask/{mf.CONTIG}.bed", mf.CONTIG, bam, assembly, coverage, tissue,
-                                         0, mf.CONTIG_LENGTH, calls_out=calls,
-                                         opportunities_out=opportunities, fastq_out=fastq)
-        place(f"{work}/calls/chunks/{CHUNK}.tsv", f"{work}/calls/{mf.CONTIG}.tsv")
-        write_haploid_records(bam, f"{work}/calls/{mf.CONTIG}.tsv", f"{work}/haploid/locations.tsv")
-        haploid_check(f"{work}/calls/{mf.CONTIG}.tsv", f"{work}/haploid/locations.tsv",
-                      f"{work}/merged/indels.tsv", species, sample)
-        final_filtering(f"{work}/merged/indels.tsv", f"{root}/results/nonrepetitive_indels/{species}/{sample}")
+        mask = made(path("nonrepetitive_mask", contig=mf.CONTIG))
+        place(fixture_paths["filters"], mask)
+        window = dict(contig=mf.CONTIG, start=0, end=mf.CONTIG_LENGTH)
+        with open(made(path("nonrepetitive_window_calls", **window)), "w") as calls, \
+                open(made(path("nonrepetitive_window_opportunities", **window)), "w") as opportunities, \
+                open(made(path("nonrepetitive_window_reads", **window)), "w") as fastq:
+            utilities.nonrepetitive_scan(mask, mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
+                                         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq)
+        calls = made(path("nonrepetitive_calls", contig=mf.CONTIG))
+        place(path("nonrepetitive_window_calls", **window), calls)
+        locations = made(path("nonrepetitive_haploid_locations"))
+        write_haploid_records(bam, calls, locations)
+        merged = made(path("nonrepetitive_merged_calls"))
+        haploid_check(calls, locations, merged, species, sample)
+        final_filtering(merged, made(path("nonrepetitive_results_calls")), path("nonrepetitive_results_report"),
+                        filters["min_kmerq"])
 
         # Workflow 4.
-        work = f"{root}/output/repetitive_indels/{species}/{sample}"
-        for model in MODELS:
-            for folder in ("calls/chunks", "opportunities/chunks", "merged"):
-                os.makedirs(f"{work}/{model}/{folder}", exist_ok=True)
-        os.makedirs(f"{work}/fastq/chunks", exist_ok=True)
-        os.makedirs(f"{work}/haploid", exist_ok=True)
         with contextlib.ExitStack() as files:
-            calls = {model: files.enter_context(open(f"{work}/{model}/calls/chunks/{CHUNK}.tsv", "w"))
-                     for model in MODELS}
-            opportunities = {model: files.enter_context(open(f"{work}/{model}/opportunities/chunks/{CHUNK}.tsv", "w"))
-                             for model in MODELS}
-            fastq = files.enter_context(open(f"{work}/fastq/chunks/{CHUNK}.fastq", "w"))
-            utilities.tandem_repeat_scan({model: path("tandem_repeats", contig=mf.CONTIG, model=model) for model in MODELS},
-                                         mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
-                                         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq)
-        with open(f"{work}/all_calls.tsv", "w") as out:
+            def opened(name, **fields):
+                return files.enter_context(open(made(path(name, **window, **fields)), "w"))
+            utilities.tandem_repeat_scan(
+                {model: path("tandem_repeats", contig=mf.CONTIG, model=model) for model in MODELS},
+                mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
+                calls_out={model: opened("repetitive_window_calls", model=model) for model in MODELS},
+                opportunities_out={model: opened("repetitive_window_opportunities", model=model) for model in MODELS},
+                fastq_out=opened("repetitive_window_reads"))
+        locations = made(path("repetitive_haploid_locations"))
+        all_calls = f"{os.path.dirname(locations)}/all_calls.tsv"
+        with open(all_calls, "w") as out:
             for i, model in enumerate(MODELS):
-                place(f"{work}/{model}/calls/chunks/{CHUNK}.tsv", f"{work}/{model}/calls/{mf.CONTIG}.tsv")
-                with open(f"{work}/{model}/calls/{mf.CONTIG}.tsv") as handle:
+                calls = made(path("repetitive_calls", contig=mf.CONTIG, model=model))
+                place(path("repetitive_window_calls", **window, model=model), calls)
+                with open(calls) as handle:
                     out.writelines(line for j, line in enumerate(handle) if i == 0 or j > 0)
-        write_haploid_records(bam, f"{work}/all_calls.tsv", f"{work}/haploid/locations.tsv")
+        write_haploid_records(bam, all_calls, locations)
         for model in MODELS:
-            haploid_check(f"{work}/{model}/calls/{mf.CONTIG}.tsv", f"{work}/haploid/locations.tsv",
-                          f"{work}/{model}/merged/indels.tsv", species, sample)
-            final_filtering(f"{work}/{model}/merged/indels.tsv",
-                            f"{root}/results/repetitive_indels/{species}/{sample}/{model}",
-                            "--min-read-end-distance", "100")
+            merged = made(path("repetitive_merged_calls", model=model))
+            haploid_check(path("repetitive_calls", contig=mf.CONTIG, model=model), locations, merged, species, sample)
+            final_filtering(merged, made(path("repetitive_results_calls", model=model)),
+                            path("repetitive_results_report", model=model), filters["min_kmerq"],
+                            "--min-read-end-distance", filters["min_read_end_distance"])
     return root
 
 
@@ -207,7 +211,8 @@ def test_every_exported_window_replays_both_workflows_to_the_clusters_tables(win
 
 
 def test_a_replay_that_differs_from_the_cluster_fails(windows, tmp_path):
-    window = shutil.copytree(windows["scan job"], tmp_path / "window")
+    # The folder's name says which window it holds.
+    window = shutil.copytree(windows["scan job"], tmp_path / CHUNK)
     final = window / "cluster" / "repetitive_indels" / "M1" / "indels.tsv"
     header, *rows = final.read_text().splitlines()
     assert rows, "the fixture should leave final calls inside the repeat tract"

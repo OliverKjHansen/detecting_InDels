@@ -15,8 +15,8 @@ assembly_type     = pipeline.config["assembly_type"]
 min_contig_length = pipeline.config["min_contig_length"]
 scripts           = pipeline.scripts
 
-# should properly go to config
-chunk_size = 40_000_000
+# Step 3 finds unresolved haplotypes in windows of this many bp, one job each.
+chunk_size = pipeline.config["precompute"]["unresolved_window_size"]
 
 
 # Resource requests.
@@ -41,7 +41,7 @@ for species, samples in pipeline.config["samples"].items():
         contigs_dir = pipeline.folder("contig_fasta", species, sample)
 
         gwf.target(
-            f"faSplit_{sample}_{assembly_type}",
+            f"faSplit_{species}_{sample}_{assembly_type}",
             inputs=[assembly],
             outputs=[pipeline.path("contig_fasta", species, sample, contig=contig) for contig in long_contigs],
         ) << f"""
@@ -53,7 +53,7 @@ for species, samples in pipeline.config["samples"].items():
         long_contigs_bed = pipeline.path("long_contigs", species, sample)
 
         gwf.target(
-            f"average_coverage_{sample}",
+            f"average_coverage_{species}_{sample}",
             inputs=[alignment, pipeline.path("assembly_fai", species, sample)],
             outputs=[long_contigs_bed, coverage],
             cores=8,
@@ -85,7 +85,7 @@ for species, samples in pipeline.config["samples"].items():
                 chunk_beds.append(chunk_bed)
 
                 gwf.target(
-                    f"unresolved_haplotype_{sample}_{contig}_{start}_{assembly_type}",
+                    f"unresolved_haplotype_{species}_{sample}_{contig}_{start}_{assembly_type}",
                     inputs=[assembly, alignment, coverage],
                     outputs=[chunk_bed],
                 ) << f"""
@@ -97,7 +97,7 @@ for species, samples in pipeline.config["samples"].items():
             chunk_list = " ".join(chunk_beds)
 
             gwf.target(
-                f"merge_unresolved_{sample}_{contig}_{assembly_type}",
+                f"merge_unresolved_{species}_{sample}_{contig}_{assembly_type}",
                 inputs=chunk_beds,
                 outputs=[unresolved],
                 cores=1,
@@ -114,7 +114,7 @@ for species, samples in pipeline.config["samples"].items():
             tissue      = pipeline.path("tissue", species, sample)
 
             gwf.target(
-                f"sorting_tissue_classification_{sample}_{assembly_type}",
+                f"sorting_tissue_classification_{species}_{sample}_{assembly_type}",
                 inputs=[read_labels],
                 outputs=[tissue],
             ) << f"""

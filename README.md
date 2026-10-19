@@ -182,24 +182,25 @@ in.
 | `paths.classification` | Root of the methylation likelihood tables. |
 | `paths.output`, `paths.results`, `paths.plots` | Where intermediates, final tables and PDFs go, relative to the repository root. |
 | `tools.mreps`, `tools.trf` | The two repeat finders. |
+| `layout` | Where every file lives: one path template per file, filled from `paths`, `assembly_type`, species, sample and, per file, contig, model, window start and end, or period k. The workflows build every path from these, through [workflows/pipeline.py](workflows/pipeline.py). |
+| `precompute`, `repeats`, `scan`, `final_filters` | The workflows' parameters, below. |
 
-No workflow reads `sperm_samples`, `paths.microsat` or the `layout` block.
-`layout` describes where files live, but the workflows build their paths
-themselves; where the two differ, [Outputs](#outputs) follows the workflows.
+No workflow reads `sperm_samples` or `sample_age`; the notebooks do.
 
-Parameters set in the workflow files rather than in config.yaml:
+Parameters:
 
-| Parameter | Value | Set in |
+| Parameter | Value | Key |
 |---|---|---|
-| Repeat periods | 2, 3, 4, 5, 6 | repetitive_dna.py |
-| mreps minimum exponent (M0, M2) | 3 copies | repetitive_dna.py |
-| mreps resolution (M2) | 1 | repetitive_dna.py |
-| TRF scoring (M1) | `2 7 7 80 10 50`, maximum period 6 | repetitive_dna.py |
-| TRF window and overlap (M1) | 5 Mb, plus 1 Mb on each side | repetitive_dna.py |
-| Unresolved-haplotype scan window | 40 Mb | precompute.py |
-| InDel scan window | 10 Mb | indel_mutation_call.py, repetitive_indel_call.py |
-| Minimum kmerQ | 93 | indel_mutation_call.py, repetitive_indel_call.py |
-| Minimum distance to the read end | 100 bp | repetitive_indel_call.py |
+| Unresolved-haplotype scan window | 40 Mb | `precompute.unresolved_window_size` |
+| Repeat models | M0, M1, M2 | `repeats.models` |
+| Repeat periods | 2, 3, 4, 5, 6 | `repeats.periods` |
+| mreps minimum exponent (M0, M2) | 3 copies | `repeats.mreps_min_exponent` |
+| mreps resolution (M2) | 1 | `repeats.m2_resolution` |
+| TRF scoring (M1) | `2 7 7 80 10 50`, maximum period 6 | `repeats.trf_params` |
+| TRF window and overlap (M1) | 5 Mb, plus 1 Mb on each side | `repeats.trf_window_size`, `repeats.trf_overlap` |
+| InDel scan window | 10 Mb | `scan.window_size` |
+| Minimum kmerQ | 93 | `final_filters.min_kmerq` |
+| Minimum distance to the read end (workflow 4) | 100 bp | `final_filters.min_read_end_distance` |
 | Coverage window | 0.5×–2× the sample mean | scripts/utilities.py |
 | Unresolved-haplotype evidence | ≥ 2 reads with the same base at quality ≥ 40 | scripts/utilities.py |
 | Slurm account and per-target cores, memory, walltime | `mutationalscanning` | every workflow |
@@ -257,11 +258,11 @@ directory is spelled `precomute` in the code).
 
 | Step | Target | Runs per | Output |
 |---|---|---|---|
-| 1. Split the assembly | `faSplit_{sample}_diploid` | sample | `contigs/{contig}.fa` |
-| 2. Mean coverage | `average_coverage_{sample}` | sample | `long_contigs.bed`, `avg_coverage.txt` |
-| 3a. Unresolved haplotypes | `unresolved_haplotype_{sample}_{contig}_{start}_diploid` | 40 Mb window | `unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed` |
-| 3b. Join the windows | `merge_unresolved_{sample}_{contig}_diploid` | contig | `unresolved_haplotypes/{contig}.bed` |
-| 4. Tissue table | `sorting_tissue_classification_{sample}_diploid` | sample in `tissue_samples` | `sorted_tissue_classification.tsv` |
+| 1. Split the assembly | `faSplit_{species}_{sample}_diploid` | sample | `contigs/{contig}.fa` |
+| 2. Mean coverage | `average_coverage_{species}_{sample}` | sample | `long_contigs.bed`, `avg_coverage.txt` |
+| 3a. Unresolved haplotypes | `unresolved_haplotype_{species}_{sample}_{contig}_{start}_diploid` | 40 Mb window | `unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed` |
+| 3b. Join the windows | `merge_unresolved_{species}_{sample}_{contig}_diploid` | contig | `unresolved_haplotypes/{contig}.bed` |
+| 4. Tissue table | `sorting_tissue_classification_{species}_{sample}_diploid` | sample in `tissue_samples` | `sorted_tissue_classification.tsv` |
 
 **Split.** `faSplit byname` writes one FASTA per contig, for mreps in workflow 2.
 
@@ -309,11 +310,11 @@ three models; workflow 4 scans each model's tracts on their own.
 
 | Step | Target | Runs per | Output |
 |---|---|---|---|
-| 1a. M0 tracts | `M0_mreps_k{k}_{contig}_{sample}_diploid` | contig × k | `per_k/{contig}_M0_k{k}.bed` |
-| 1a. M2 tracts | `M2_mreps_k{k}_{contig}_{sample}_diploid` | contig × k | `per_k/{contig}_M2_k{k}.bed` |
-| 1a. M1 tracts | `M1_trf_{contig}_{start}_{sample}_diploid` | 5 Mb window | `per_k/{contig}_M1_k{k}_{start}.bed`, one per k |
-| 1b. Resolve overlaps | `{model}_merge_k_{contig}_{sample}_diploid` | contig × model | `{contig}_{model}.bed` |
-| 2. Sample BED and summary | `cat_{model}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` |
+| 1a. M0 tracts | `M0_mreps_k{k}_{contig}_{species}_{sample}_diploid` | contig × k | `per_k/{contig}_M0_k{k}.bed` |
+| 1a. M2 tracts | `M2_mreps_k{k}_{contig}_{species}_{sample}_diploid` | contig × k | `per_k/{contig}_M2_k{k}.bed` |
+| 1a. M1 tracts | `M1_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window | `per_k/{contig}_M1_k{k}_{start}.bed`, one per k |
+| 1b. Resolve overlaps | `{model}_merge_k_{contig}_{species}_{sample}_diploid` | contig × model | `{contig}_{model}.bed` |
+| 2. Sample BED and summary | `cat_{model}_{species}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` |
 
 **mreps (M0, M2).** mreps runs once per contig and period.
 [parse_mreps_canonical.py](scripts/parse_mreps_canonical.py) turns its report into
@@ -400,14 +401,14 @@ unresolved-haplotype region. Intermediates go to
 
 | Step | Target | Runs per | Output |
 |---|---|---|---|
-| 1. Build the mask | `non_rep_Mask_{sample}_diploid` | sample | `mask/{contig}.bed` |
-| 2. Scan | `non_rep_Scan_{contig}_{start}_{sample}_diploid` | 10 Mb window | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
-| 3. Join the windows | `non_rep_MergeWindows_{sample}_diploid` | sample | `calls/{contig}.tsv`, `opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
-| 4. Remap to haploid | `non_rep_HaploidMapping_{sample}_diploid` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
-| 5. Haploid check | `non_rep_HaploidFilter_{sample}_diploid` | sample | `merged/indels.tsv` |
-| 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{sample}_diploid` | sample | `merged/opportunities.tsv`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
-| 7. Final filtering | `non_rep_FinalFiltering_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
-| 8. Germline/somatic | `non_rep_Classify_{sample}_diploid` | sample in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
+| 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
+| 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid` | 10 Mb window | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
+| 3. Join the windows | `non_rep_MergeWindows_{species}_{sample}_diploid` | sample | `calls/{contig}.tsv`, `opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
+| 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
+| 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
+| 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{species}_{sample}_diploid` | sample | `merged/opportunities.tsv`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
+| 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
+| 8. Germline/somatic | `non_rep_Classify_{species}_{sample}_diploid` | sample in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
 1. **Mask.** Per contig, the tracts of all three models (after overlap
    resolution) and the unresolved-haplotype regions, merged with
@@ -452,13 +453,13 @@ Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 
 | Step | Target | Runs per | Output |
 |---|---|---|---|
-| 1. Scan | `TRScan_{contig}_{start}_{sample}` | 10 Mb window | `{model}/calls/chunks/`, `{model}/opportunities/chunks/`, `fastq/chunks/` |
-| 2. Join the windows | `TRMergeWindows_{contig}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
-| 3. Remap to haploid | `TRHaploidMapping_{sample}` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
-| 4. Haploid check | `TRHaploidFilter_{sample}_{model}` | sample × model | `{model}/merged/indels.tsv` |
-| 5. Merge opportunities, plot | `TRMergeAndPlot_{sample}_{model}` | sample × model | `{model}/merged/opportunities.tsv`, `plots/repetitive_indels/{species}/{sample}/{model}/plots.pdf` |
-| 6. Final filtering | `TRFinalFiltering_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
-| 7. Germline/somatic | `TRClassify_{sample}_{model}` | sample × model, in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
+| 1. Scan | `TRScan_{contig}_{start}_{species}_{sample}` | 10 Mb window | `{model}/calls/chunks/`, `{model}/opportunities/chunks/`, `fastq/chunks/` |
+| 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
+| 3. Remap to haploid | `TRHaploidMapping_{species}_{sample}` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
+| 4. Haploid check | `TRHaploidFilter_{species}_{sample}_{model}` | sample × model | `{model}/merged/indels.tsv` |
+| 5. Merge opportunities, plot | `TRMergeAndPlot_{species}_{sample}_{model}` | sample × model | `{model}/merged/opportunities.tsv`, `plots/repetitive_indels/{species}/{sample}/{model}/plots.pdf` |
+| 6. Final filtering | `TRFinalFiltering_{species}_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
+| 7. Germline/somatic | `TRClassify_{species}_{sample}_{model}` | sample × model, in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
 The steps mirror workflow 3, with two savings. One scan of a window serves all
 three models ([tandem_repeat_scan.py](scripts/tandem_repeat_scan.py) runs
