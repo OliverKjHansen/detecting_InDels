@@ -202,7 +202,8 @@ Parameters:
 | InDel scan window | 10 Mb | `scan.window_size` |
 | Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
-| Minimum kmerQ | 93 | `final_filters.min_kmerq` |
+| Minimum kmerQ, as the key `kmerQ_pass` | 93 | `strata.min_kmerq` |
+| Bins of read length and of distance to the read end, keys on calls and opportunities | 4, 8, 12, 16, 20 kb; 25, 100, 300, 1000 bp | `strata.read_length_bins`, `strata.read_end_distance_bins` |
 | Minimum distance to the read end (workflow 4) | 100 bp | `final_filters.min_read_end_distance` |
 | Bins of subread support, a key on calls and opportunities | 0.8, 0.9, 1 | `strata.subread_support_bins` |
 | Germline and somatic cell types; the 14 score bins | `Sperm.*` against six somatic types; edges −10 to 10 | `classification.germline_prefix`, `.somatic_types`, `.bin_edges`, `.bin_labels` |
@@ -441,8 +442,8 @@ unresolved-haplotype region. Intermediates go to
    diagnostics of the calls before final filtering: kmerQ, the 20 most common
    InDel sequences, distance to the read end, the unique flag, the haploid
    check, tissue, kmerQ against haploid distance, and subread coverage.
-7. **Final filtering.** Calls must pass the haploid check and have kmerQ ≥ 93.
-   Opportunities must have kmerQ ≥ 93.
+7. **Final filtering.** Calls must pass the haploid check and have
+   `kmerQ_pass` = `pass`. Opportunities must have `kmerQ_pass` = `pass`.
 8. **Germline/somatic.** See [Tissue and cell-type labels](#tissue-and-cell-type-labels).
 
 ---
@@ -815,6 +816,7 @@ positions in the read; the position on the contig is `position`.
 | `sm_pre`, `sx_pre` | the same at the anchor |
 | `sa` | subread coverage at the anchor, decoded from PacBio's run-length-encoded `sa` tag |
 | `ToreadEnd` | distance from the anchor to the nearer end of the read's alignment |
+| `kmerQ` | lowest base quality in the window around the event, see [kmerQ](#kmerq) |
 | `position` | 1-based coordinate of the anchor on the contig |
 | `readID` | read name |
 | `diploid_direction` | strand of the read's alignment to the diploid assembly |
@@ -852,7 +854,11 @@ tables.
 | Key | Meaning |
 |---|---|
 | `tissue` | the read's tissue label, or `NA` |
-| `kmerQ` | lowest base quality among the bases tested, see [kmerQ](#kmerq); only 93 remains after final filtering |
+| `read_length_bin` | the read's length, binned by `strata.read_length_bins` |
+| `aligned_strand` | the strand of the assembly the read is aligned to: `+`, or `-` for flag 16 |
+| `smrt_cell` | the SMRT Cell (movie): the first part of the read's name |
+| `kmerQ_pass` | `pass` if every base tested has at least `strata.min_kmerq`, else `fail`; final filtering keeps `pass` on both tables. Calls also carry the raw `kmerQ`. |
+| `read_end_distance_bin` | distance from the anchor to the nearer end of the read's alignment, binned by `strata.read_end_distance_bins`. An opportunity's anchor is the base before its k-mer. |
 | `subread_support` | lowest share of covering subreads that match (`sm`/`sa`), among the bases tested, binned by `strata.subread_support_bins`; `NA` for reads without subread tags (Sequel II) |
 
 Every read position is counted once for each size, so the opportunities for one

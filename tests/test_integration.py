@@ -135,7 +135,7 @@ def test_opportunities_are_counted_outside_the_mask(fixture_paths):
     _, opportunities, _ = nonrepetitive_scan(fixture_paths)
     rows = rows_of(opportunities)
     assert rows
-    assert {"context", "tissue", "mapQ", "kmerQ", "count"} <= set(rows[0])
+    assert {"context", "tissue", "mapQ", "kmerQ_pass", "count"} <= set(rows[0])
     assert sum(int(row["count"]) for row in rows) > 0
 
 
@@ -207,7 +207,7 @@ def test_scan_windows_add_up_to_the_whole_contig(three_model_beds, fixture_paths
         totals = {}
         for text in texts:
             for row in rows_of(text):
-                key = tuple(row[column] for column in ("contig", "canonical_motif", "k", "tissue", "mapQ", "kmerQ"))
+                key = tuple(value for column, value in row.items() if column != "count")
                 totals[key] = totals.get(key, 0) + int(row["count"])
         return {key: count for key, count in totals.items() if count}
 
@@ -258,7 +258,7 @@ def test_nonrepetitive_scan_windows_add_up_to_the_whole_contig(fixture_paths):
         totals = {}
         for text in texts:
             for row in rows_of(text):
-                key = tuple(row[column] for column in ("contig", "context", "tissue", "mapQ", "kmerQ"))
+                key = tuple(value for column, value in row.items() if column != "count")
                 totals[key] = totals.get(key, 0) + int(row["count"])
         return {key: count for key, count in totals.items() if count}
 

@@ -110,6 +110,8 @@ def main():
                         help='Minimum kmerQ quality score')
     parser.add_argument('--min-read-end-distance', type=int,
                         help='Minimum distance from indel to read end (ToreadEnd column)')
+    parser.add_argument('--keep', action='append', default=[], metavar='COLUMN=VALUE',
+                        help='Keep rows whose COLUMN equals VALUE; may be given more than once')
     parser.add_argument('--report', 
                         help='Output filter report TSV file showing rows removed per step')
     
@@ -151,6 +153,10 @@ def main():
     if args.min_read_end_distance:
         filter_steps.append(('min_read_end_distance', 'ToreadEnd', ('gte', args.min_read_end_distance)))
     
+    for keep in args.keep:
+        column, value = keep.split('=', 1)
+        filter_steps.append((f'{column}={value}', column, value))
+
     # Apply filters with reporting
     print(f"Applying {len(filter_steps)} filters...", file=sys.stderr)
     filtered_df, report = apply_filters_with_report(df, filter_steps)

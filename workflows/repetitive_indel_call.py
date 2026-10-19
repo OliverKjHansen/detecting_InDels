@@ -41,7 +41,6 @@ scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_ba
                 f"--key-parameters {pipeline.key_parameters()}")
 
 # Final filtering thresholds.
-min_kmerq = config["final_filters"]["min_kmerq"]
 min_read_end_distance = config["final_filters"]["min_read_end_distance"]
 
 
@@ -247,12 +246,12 @@ for species, samples in config["samples"].items():
             python {scripts}/filtering_small_indels.py {merged_indels} \\
                 -o {results_calls} \\
                 --haploid-check True \\
-                --min-quality {min_kmerq} \\
+                --keep kmerQ_pass=pass \\
                 --min-read-end-distance {min_read_end_distance} \\
                 --report {results_report}
             python {scripts}/filtering_opportunities.py {merged_opportunities} \\
                 -o {results_opportunities} \\
-                --min-kmerq {min_kmerq}
+                --keep kmerQ_pass=pass
             """
 
             # Step 7 — cell-type classification, for the samples listed under

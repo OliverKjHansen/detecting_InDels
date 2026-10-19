@@ -131,7 +131,7 @@ def test_reads_crossing_a_window_edge_add_up_to_the_whole_contig(tmp_path):
     whole = nonrepetitive_scan(paths)
     parts = [nonrepetitive_scan(paths, start, end) for start, end in [(0, 1100), (1100, 6000)]]
 
-    key = ("contig", "context", "tissue", "mapQ", "kmerQ")
+    key = [column for column in rows_of(whole[1])[0] if column != "count"]
     assert [row for calls, _, _ in parts for row in rows_of(calls)] == rows_of(whole[0])
     assert {row["readID"] for row in rows_of(whole[0])} == {"left", "right"}
     assert summed_opportunities([opportunities for _, opportunities, _ in parts], key) \

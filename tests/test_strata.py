@@ -11,13 +11,17 @@ from scans import nonrepetitive_scan, rows_of, tandem_repeat_scan
 
 @pytest.fixture
 def dummy_keys(monkeypatch):
-    """One more read key and one more site key: the read's name, and the lowest quality tested."""
+    """
+    One more read key and one more site key: the read's name, and the lowest
+    quality tested with the exact distance to the read end, which splits the
+    opportunities finer than any key already there.
+    """
     keys = strata.keys
 
     def more_keys(**parameters):
         read_keys, site_keys = keys(**parameters)
         return (read_keys + [("dummy_read", lambda read: read.name)],
-                site_keys + [("dummy_site", lambda site: f"q{min(site.qualities)}")])
+                site_keys + [("dummy_site", lambda site: f"{min(site.qualities)}/{site.read_end_distance}")])
 
     monkeypatch.setattr(strata, "keys", more_keys)
 
@@ -32,7 +36,9 @@ def tables(fixture_paths):
 def test_a_key_added_once_is_a_column_of_both_tables_in_both_scans(dummy_keys, fixture_paths):
     for name, rows in tables(fixture_paths).items():
         assert rows, name
-        assert all(row["dummy_read"].startswith("read_") and row["dummy_site"] == f"q{row['kmerQ']}"
+        assert all(row["dummy_read"].startswith("read_") for row in rows), name
+        # The site key saw the bases kmerQ_pass tests.
+        assert all((int(row["dummy_site"].split("/")[0]) >= 93) == (row["kmerQ_pass"] == "pass")
                    for row in rows), name
         if "calls" in name:   # a call carries its own read's value
             assert all(row["dummy_read"] == row["readID"] for row in rows), name

@@ -106,6 +106,8 @@ def main():
                         help='Filter by context (comma-separated for multiple)')
     parser.add_argument('--min-count', type=int,
                         help='Minimum count threshold')
+    parser.add_argument('--keep', action='append', default=[], metavar='COLUMN=VALUE',
+                        help='Keep rows whose COLUMN equals VALUE; may be given more than once')
     parser.add_argument('--report',
                         help='Output filter report TSV file showing rows removed per step')
     
@@ -142,6 +144,10 @@ def main():
     if args.min_count:
         filter_steps.append(('min_count', 'count', ('gte', args.min_count)))
     
+    for keep in args.keep:
+        column, value = keep.split('=', 1)
+        filter_steps.append((f'{column}={value}', column, value))
+
     # Apply filters with reporting
     print(f"Applying {len(filter_steps)} filters...", file=sys.stderr)
     filtered_df, report = apply_filters_with_report(df, filter_steps)

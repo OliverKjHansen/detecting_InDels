@@ -13,7 +13,9 @@ from make_fixtures import CONTIG
 # The pipeline's parameters, as config.yaml sets them; a test can pass others.
 COVERAGE_BAND = (0.5, 2.0)
 INDEL_SIZES = (1, 3)
-KEY_PARAMETERS = {"subread_support_bins": [0.8, 0.9, 1.0]}
+KEY_PARAMETERS = {"subread_support_bins": [0.8, 0.9, 1.0], "min_kmerq": 93,
+                  "read_length_bins": [4000, 8000, 12000, 16000, 20000],
+                  "read_end_distance_bins": [25, 100, 300, 1000]}
 
 
 def rows_of(text):

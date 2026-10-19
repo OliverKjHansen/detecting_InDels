@@ -70,9 +70,9 @@ def haploid_check(calls, locations, merged, species, sample):
         out.writelines(f"{row}\t{species}\t{sample}\n" for row in rows)
 
 
-def final_filtering(merged, final_calls, report, min_kmerq, *extra):
+def final_filtering(merged, final_calls, report, *extra):
     run_script("filtering_small_indels.py", merged, "-o", final_calls, "--haploid-check", "True",
-               "--min-quality", str(min_kmerq), *map(str, extra), "--report", report)
+               "--keep", "kmerQ_pass=pass", *map(str, extra), "--report", report)
 
 
 def made(path):
@@ -146,8 +146,7 @@ def cluster(tmp_path_factory, fixture_paths):
         write_haploid_records(bam, calls, locations)
         merged = made(path("nonrepetitive_merged_calls"))
         haploid_check(calls, locations, merged, species, sample)
-        final_filtering(merged, made(path("nonrepetitive_results_calls")), path("nonrepetitive_results_report"),
-                        filters["min_kmerq"])
+        final_filtering(merged, made(path("nonrepetitive_results_calls")), path("nonrepetitive_results_report"))
 
         # Workflow 4.
         with contextlib.ExitStack() as files:
@@ -173,7 +172,7 @@ def cluster(tmp_path_factory, fixture_paths):
             merged = made(path("repetitive_merged_calls", model=model))
             haploid_check(path("repetitive_calls", contig=mf.CONTIG, model=model), locations, merged, species, sample)
             final_filtering(merged, made(path("repetitive_results_calls", model=model)),
-                            path("repetitive_results_report", model=model), filters["min_kmerq"],
+                            path("repetitive_results_report", model=model),
                             "--min-read-end-distance", filters["min_read_end_distance"])
     return root
 

@@ -60,10 +60,10 @@ def main():
         with open(f"{results}/merged_indels.tsv", "w") as merged:
             run("filtering_haploid_mappping.py", calls, locations, stdout=merged)
         run("filtering_small_indels.py", f"{results}/merged_indels.tsv", "-o", f"{results}/indels.tsv",
-            "--haploid-check", "True", "--min-quality", filters["min_kmerq"], *options,
+            "--haploid-check", "True", "--keep", "kmerQ_pass=pass", *options,
             "--report", f"{results}/filter_report.tsv")
         run("filtering_opportunities.py", f"{results}/opportunities.tsv",
-            "-o", f"{results}/opportunities_q{filters['min_kmerq']}.tsv", "--min-kmerq", filters["min_kmerq"])
+            "-o", f"{results}/opportunities_pass.tsv", "--keep", "kmerQ_pass=pass")
 
     # Workflow 3: the scan (step 2), the haploid check (5), final filtering (7).
     w3 = f"{local}/nonrepetitive_indels"

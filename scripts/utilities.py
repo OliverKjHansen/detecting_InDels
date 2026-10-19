@@ -158,7 +158,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     if calls_out is not None:
         print("#contig", "start", "end", "ref", "alt",
         "indel_type","unique","indel_string","canonical_indel","read_length",
-        "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd",
+        "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
         "position","readID", "diploid_direction", *strata.columns,
         sep= "\t", file=calls_out) #header for output
 
@@ -225,9 +225,13 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     if cached is None:
                         cached = reads[key] = (alignment.reference_end, alignment.query_sequence, alignment.query_qualities,
                                                (alignment.mapping_quality,)
-                                               + strata.of_read(Read(query_name, d.get(query_name, "NA"))),
+                                               + strata.of_read(Read(query_name, d.get(query_name, "NA"),
+                                                                     alignment.query_length, alignment.is_reverse)),
                                                subread_support(subread_tags(alignment)))
-                    _, read_seq, base_qualities, read_key, support = cached
+                    readend, read_seq, base_qualities, read_key, support = cached
+                    # An opportunity's anchor is the base before its k-mer, as a call's is the base before its gap.
+                    anchor = position - 1
+                    to_read_end = min(anchor - alignment.reference_start, readend - anchor)
 
                     for indel_length in sizes: #indel lengths here means kmer length
                         run = read_seq[read_pos-1:read_pos+indel_length+1]   #run dependent on indel length # includes kmer + flanking bases
@@ -255,7 +259,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
                         tested_support = None if support is None else (
                             support[read_pos-1:read_pos+1]+support[read_pos+indel_length-1:read_pos+indel_length+1])
-                        data[(lexi,) + read_key + strata.of_site(Site(kmerq, tested_support))] += 1
+                        data[(lexi,) + read_key + strata.of_site(Site(kmerq, tested_support, to_read_end))] += 1
 
                 # ---- calls ----
                 if calls_out is None:
@@ -305,11 +309,11 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     #00|xxx|00
                     def tested(values): # the bases tested, for qualities and subread support alike
                         return values[max(0, read_pos-1):read_pos+1]+values[read_pos_after+1:read_pos_after+3]
-                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support))
+                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support), ToreadEnd)
 
                     row = (contig, read_pos+1,read_pos+1,hcheck[0:-1],hcheck[0], #start and end are the same for delettion, becaus its is in the read
                            "deletion", seen, deletion_context, canonical_context(deletion_context), len(read_seq),
-                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,
+                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
                            position+1,query_name, diploid_strand)
                 else:
                 # -------------------
@@ -327,15 +331,15 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     #x0|0x0|0x
                     def tested(values): # the bases tested; the middle base twice for 1 bp, which doesn't matter
                         return values[max(0, read_pos):read_pos+2]+values[max(0, read_pos)+indel_length:read_pos+indel_length+2]
-                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support))
+                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support), ToreadEnd)
 
                     row = (contig, read_pos+1,read_pos + indel_length +1,read_seq[read_pos],read_seq[read_pos:read_pos + indel_length +1],
                            "insertion", seen, insertion_context, canonical_context(insertion_context), len(read_seq),
-                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,
+                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
                            position+1,query_name, diploid_strand)
 
-                print(*row, *strata.of_read(Read(query_name, d.get(query_name, "NA"))), *strata.of_site(site),
-                      sep="\t", file=calls_out)
+                read = Read(query_name, d.get(query_name, "NA"), alignment.query_length, alignment.is_reverse)
+                print(*row, *strata.of_read(read), *strata.of_site(site), sep="\t", file=calls_out)
 
                 # The read, for remapping to the haploid assembly
                 if fastq_out is not None and query_name not in fastq_reads:
@@ -467,7 +471,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     for out in calls_out.values():
         print("#contig", "start", "end", "ref", "alt",
               "indel_type", "unique", "indel_string", "canonical_indel", "read_length",
-              "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd",
+              "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
               "position", "readID", "diploid_direction",
               "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
               *strata.columns,
@@ -538,9 +542,13 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     cached = qualities.get(key)
                     if cached is None:
                         cached = qualities[key] = (alignment.reference_end, alignment.query_qualities,
-                                                   strata.of_read(Read(query_name, d.get(query_name, "NA"))),
+                                                   strata.of_read(Read(query_name, d.get(query_name, "NA"),
+                                                                       alignment.query_length, alignment.is_reverse)),
                                                    subread_support(subread_tags(alignment)))
-                    _, base_qualities, read_key, support = cached
+                    readend, base_qualities, read_key, support = cached
+                    # An opportunity's anchor is the base before its window, as a call's is the base before its gap.
+                    anchor = position - 1
+                    to_read_end = min(anchor - alignment.reference_start, readend - anchor)
                     mapQ = alignment.mapping_quality
 
                     for model, tr in opportunity_tracts:
@@ -553,7 +561,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                         tested_support = None if support is None else (
                             support[read_pos - 1:read_pos + 1] + support[read_pos + k - 1:read_pos + k + 1])
                         counts[model][(tr['canonical_motif'], k, mapQ) + read_key
-                                      + strata.of_site(Site(kmerq, tested_support))] += 1
+                                      + strata.of_site(Site(kmerq, tested_support, to_read_end))] += 1
 
                 # ---- calls ----
                 if not call_models:
@@ -608,14 +616,14 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                                 + values[read_pos_after + 1:read_pos_after + 3])
                     del_q = tested(base_qualities)
                     # Quality 0, and no support, when no base is left to test.
-                    site = Site(del_q or (0,), (call_support and tested(call_support)) or None)
+                    site = Site(del_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd)
 
                     row = (contig,
                            read_pos + 1, read_pos + 1,
                            hcheck[0:-1], hcheck[0],
                            "deletion", seen, deletion_context, canonical_repeat_indel(deletion_context),
                            len(read_seq),
-                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd,
+                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
                            position + 1, query_name, diploid_strand)
                 else:
                     # INSERTION
@@ -625,7 +633,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                                 + values[max(0, read_pos) + indel_length:read_pos + indel_length + 2])
                     ins_q = tested(base_qualities)
                     # Quality 0, and no support, when no base is left to test.
-                    site = Site(ins_q or (0,), (call_support and tested(call_support)) or None)
+                    site = Site(ins_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd)
 
                     row = (contig,
                            read_pos + 1, read_pos + indel_length + 1,
@@ -633,10 +641,12 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                            read_seq[read_pos:read_pos + indel_length + 1],
                            "insertion", seen, insertion_context, canonical_repeat_indel(insertion_context),
                            len(read_seq),
-                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd,
+                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
                            position + 1, query_name, diploid_strand)
 
-                keys = strata.of_read(Read(query_name, d.get(query_name, "NA"))) + strata.of_site(site)
+                keys = (strata.of_read(Read(query_name, d.get(query_name, "NA"), alignment.query_length,
+                                            alignment.is_reverse))
+                        + strata.of_site(site))
                 for model, tr in call_tracts:
                     print(*row,
                           tr['canonical_motif'], tr['k'], tr['copies'],

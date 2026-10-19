@@ -250,10 +250,14 @@ scan:
 strata:
   # The lowest share of covering subreads that match, among the bases tested.
   subread_support_bins: [0.8, 0.9, 1.0]
+  # kmerQ_pass: whether every base tested has at least this Phred quality.
+  min_kmerq: 93
+  # Read length, bp.
+  read_length_bins: [4000, 8000, 12000, 16000, 20000]
+  # Distance from the anchor to the nearer end of the read's alignment, bp.
+  read_end_distance_bins: [25, 100, 300, 1000]
 
 final_filters:
-  # Minimum Phred base quality across the InDel 4-mer.
-  min_kmerq: 93
   # Workflow 4: InDels nearer a read end than this many bp are dropped.
   min_read_end_distance: 100
 

@@ -20,13 +20,15 @@ or a site adds a field here, and both scans have to fill it.
 import bisect
 from collections import namedtuple
 
-# What a read key sees: the read's name and its tissue label ("NA" without one).
-Read = namedtuple("Read", "name tissue")
+# What a read key sees: the read's name, its tissue label ("NA" without one),
+# its length in bases, and whether it is aligned to the reverse strand.
+Read = namedtuple("Read", "name tissue length reverse")
 
-# What a site key sees, for the read bases tested: their base qualities, and
-# the share of covering subreads that match each of them (None if the read has
-# no subread tags).
-Site = namedtuple("Site", "qualities support")
+# What a site key sees, for the read bases tested: their base qualities, the
+# share of covering subreads that match each of them (None if the read has no
+# subread tags), and the distance from the anchor to the nearer end of the
+# read's alignment.
+Site = namedtuple("Site", "qualities support read_end_distance")
 
 
 def binned(edges):
@@ -42,15 +44,25 @@ def keys(**parameters):
     the `strata` block of config.yaml.
     """
     support_bin = binned(parameters["subread_support_bins"])
+    length_bin = binned(parameters["read_length_bins"])
+    distance_bin = binned(parameters["read_end_distance_bins"])
+    min_kmerq = parameters["min_kmerq"]
     read_keys = [
         ("tissue", lambda read: read.tissue),
+        ("read_length_bin", lambda read: length_bin(read.length)),
+        # The strand of the assembly the read is aligned to.
+        ("aligned_strand", lambda read: "-" if read.reverse else "+"),
+        # The SMRT Cell: the movie, the first part of a PacBio read name.
+        ("smrt_cell", lambda read: read.name.split("/", 1)[0]),
     ]
     site_keys = [
-        # The lowest base quality among the bases tested.
-        ("kmerQ", lambda site: min(site.qualities)),
+        # Whether every base tested reaches min_kmerq: pass/fail rather than
+        # the 94 quality levels, to keep the opportunity table small.
+        ("kmerQ_pass", lambda site: "pass" if min(site.qualities) >= min_kmerq else "fail"),
         # The lowest share of covering subreads that match, among the bases
         # tested; NA for reads without subread tags.
         ("subread_support", lambda site: "NA" if site.support is None else support_bin(min(site.support))),
+        ("read_end_distance_bin", lambda site: distance_bin(site.read_end_distance)),
     ]
     return read_keys, site_keys
 

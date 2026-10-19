@@ -45,8 +45,6 @@ scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_ba
                 f"--indel-sizes {' '.join(map(str, config['scan']['indel_sizes']))} "
                 f"--key-parameters {pipeline.key_parameters()}")
 
-# Final filtering threshold: minimum Phred base quality across the InDel 4-mer.
-min_kmerq = config["final_filters"]["min_kmerq"]
 
 
 # Resource requests.
@@ -270,11 +268,11 @@ for species, samples in config["samples"].items():
         python {scripts}/filtering_small_indels.py {merged_indels} \\
             -o {results_calls} \\
             --haploid-check True \\
-            --min-quality {min_kmerq} \\
+            --keep kmerQ_pass=pass \\
             --report {results_report}
         python {scripts}/filtering_opportunities.py {merged_opportunities} \\
             -o {results_opportunities} \\
-            --min-kmerq {min_kmerq}
+            --keep kmerQ_pass=pass
         """
 
         # Step 8 — cell-type classification, for the samples listed under
