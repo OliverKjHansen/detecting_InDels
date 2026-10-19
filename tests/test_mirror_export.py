@@ -168,7 +168,8 @@ def cluster(tmp_path_factory, fixture_paths):
                 opportunities_out={model: opened("repetitive_window_opportunities", model=model) for model in MODELS},
                 fastq_out=opened("repetitive_window_reads"),
                 coverage_band=coverage_band, key_parameters=pipeline.config["strata"],
-                flank_width=pipeline.config["scan"]["flank_width"])
+                flank_width=pipeline.config["scan"]["flank_width"],
+                reach=max(pipeline.config["repeats"]["periods"]))
         locations = made(path("repetitive_haploid_locations"))
         all_calls = f"{os.path.dirname(locations)}/all_calls.tsv"
         with open(all_calls, "w") as out:

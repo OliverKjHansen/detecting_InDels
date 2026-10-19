@@ -497,7 +497,8 @@ and every unresolved-haplotype region. Intermediates go to
      read and of the site (an event without two read bases on each side is
      not counted);
    - becomes a call if it carries a 1–3 bp InDel anchored there that passes the
-     homopolymer rule, and then goes to the FASTQ.
+     homopolymer rule and touches no masked base (see [The anchor
+     base](#the-anchor-base)), and then goes to the FASTQ.
 3. **Join.** Per contig, the windows' calls are concatenated, their opportunity
    counts summed per value of every other column, and their FASTQs
    concatenated keeping each read once.
@@ -524,8 +525,9 @@ and every unresolved-haplotype region. Intermediates go to
 ## Workflow 4: InDels inside repeats
 
 [workflows/repetitive_indel_call.py](workflows/repetitive_indel_call.py) calls, for
-each repeat model, the InDels anchored inside that model's tracts whose length is
-a whole number of repeat units (a multiple of the tract's k), of any size.
+each repeat model, the InDels in that model's tracts whose length is a whole
+number of repeat units (a multiple of the tract's k), of any size: anchored
+inside a tract or just before one (see [The anchor base](#the-anchor-base)).
 Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 
 | Step | Target | Runs per | Output |
@@ -557,19 +559,21 @@ scanning that model alone, which [tests/test_integration.py](tests/test_integrat
 checks.
 
 At each position that passes the coverage window and lies inside a measured
-tract of a model, every read with a base there:
+tract of a model, or up to 6 bases before one, every read with a base there:
 
 - adds one opportunity under the tract's motif and k, with its tissue, mapping
-  quality and kmerQ (a read's first and last base are not counted);
-- becomes a call for that model if it carries an InDel anchored there whose
-  length is a multiple of the tract's k. The call carries the tract's
+  quality and kmerQ (a read's first and last base are not counted), if the
+  position is inside the tract;
+- becomes a call for that model if it carries an InDel anchored there that is
+  counted in a tract ([The anchor base](#the-anchor-base)) and whose length is
+  a multiple of that tract's k. The call carries the tract's
   `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity` and `model`.
 
 How the two callers differ:
 
 | | Workflow 3, outside repeats | Workflow 4, inside repeats |
 |---|---|---|
-| Positions scanned | outside the mask | inside a tract of the model |
+| Events counted | touching no masked base, from the anchor to k bases on | touching a tract of the model, from the anchor to 6 bases on |
 | Excluded group | masked | tracts overlapping it dropped |
 | Unresolved-haplotype regions | masked | tracts overlapping one dropped |
 | InDel size | 1–3 bp | any multiple of the tract's k |
@@ -618,16 +622,28 @@ mapping quality (`map_mapq`) instead.
 ### The anchor base
 
 pysam reports an InDel on the reference base just before the inserted or deleted
-sequence: the anchor. Every positional test (coverage, mask, tract) is made at
-the anchor, and a call's `position` column is the anchor's 1-based coordinate on
-the contig.
+sequence: the anchor. The coverage test is made at the anchor, and a call's
+`position` column is the anchor's 1-based coordinate on the contig. An
+opportunity's anchor is the base before its k-mer or gap.
 
-No padding is added around masked tracts. If the aligner shifts an InDel in a
-repeat to its leftmost equivalent position, the anchor is the base before the
-tract. Workflow 4 then does not see the InDel, while workflow 3 sees it just
-outside its mask and calls it if it is 1–3 bp and passes the homopolymer rule.
-[repetitive_mutation_rate.ipynb](plotting/repetitive_mutation_rate.ipynb)
-discusses what this does to the M0 calls.
+pbmm2 places an InDel that can slide at its leftmost equivalent position, so
+slippage in a pure tract is anchored on the base before the tract, or before a
+partial unit in front of it (`…A|CACACA…`, deleting `AC`), and slippage of a
+tract that follows another on the first tract's last base. So the mask and the
+tracts are tested on every base an event touches, not the anchor alone (L1 in
+[the workflow 3 review](documents/nonrepetitive_indel_review.md), R1 and R2 in
+[the workflow 4 review](documents/workflow4_review.md)):
+
+- **Workflow 3** counts an event of k bases anchored at base a, call or
+  opportunity, deletion or insertion, only if bases a to a+k are all unmasked.
+- **Workflow 4** counts a call in the tract of the first base after the anchor,
+  up to k and at most the longest period (6) bases on, that lies in a tract of
+  the model, or else in the anchor's tract.
+
+So an event of 1–3 bp near a tract is counted by exactly one of the two
+workflows. A longer event that only reaches a tract more than 6 bases after
+its anchor is counted by neither: workflow 3 calls only 1–3 bp. Workflow 4's
+opportunities are still the read bases inside the tract (R6, ticket 22).
 
 ### Coverage
 
@@ -640,11 +656,12 @@ share it.
 
 ### Mask and tracts
 
-Workflow 3 skips every position inside its mask: the union of the M0, M1 and M2
-tracts (every tract, before overlap resolution), the excluded group and the
-unresolved-haplotype regions. Workflow 4 uses only positions inside a measured
-tract of the model being called: a tract that overlaps none of the excluded
-group and no unresolved-haplotype region. After overlap resolution a base lies
+Workflow 3 skips every event that touches its mask (see [The anchor
+base](#the-anchor-base)): the union of the M0, M1 and M2 tracts (every tract,
+before overlap resolution), the excluded group and the unresolved-haplotype
+regions. Workflow 4 uses only the measured tracts of the model being called: a
+tract that overlaps none of the excluded group and no unresolved-haplotype
+region. After overlap resolution a base lies
 in at most one tract per model, so each position has a single tract, motif and
 k. (The code's tie-breaks, the
 largest k for a call and the smallest for an opportunity, only matter for BEDs
@@ -1125,6 +1142,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
+| [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
 | [tests/test_classification_bins.py](tests/test_classification_bins.py) | the two classification scripts binning reads the same way |
 | [tests/test_compare_tables.py](tests/test_compare_tables.py) | the mirror replay's table comparison: by content, whatever the row order, number format or appended columns |

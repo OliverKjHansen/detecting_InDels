@@ -1,5 +1,7 @@
 import pysam
 import csv
+import math
+from bisect import bisect_right
 from collections import defaultdict, namedtuple
 from intervaltree import IntervalTree
 
@@ -29,31 +31,40 @@ def read_tag_columns(alignment):
     values = [tag(alignment, name) for name in ("np", "ec", "rq", "fn", "rn")] + [alignment.mapping_quality]
     return ["NA" if value is None else value for value in values]
 
-def load_filters_with_tree(bedfile, window_start=None, window_end=None): #for intervals interval trees are quicker then the previous sweep-line approach Ol(og(n)) = O(n)
+class Mask:
     """
-    Reads bed file and creates an IntervalTree for O(log n) lookups.
-    Much faster than sweep-line when checking if a position is in any interval.
-    With window_start/window_end only the intervals overlapping
-    [window_start, window_end) are kept, which are all the intervals a position
-    in that window can fall in.
-
-    Returns:
-        IntervalTree: Tree for fast interval overlap queries
+    Workflow 3's mask: the BED's intervals, merged, and how far the unmasked
+    sequence runs from a position. With window_start/window_end only the
+    intervals a scan of [window_start, window_end) can meet are kept: from the
+    base before the window (an opportunity's anchor) to `reach` bases after it
+    (the bases an event anchored in the window touches).
     """
-    tree = IntervalTree()
 
-    with open(bedfile, 'r') as file:
-        for line in file:
-            columns = line.strip().split('\t')
-            start, end = int(columns[1]), int(columns[2])
-            if window_start is not None and end <= window_start:
-                continue
-            if window_end is not None and start >= window_end:
-                continue
-            # Create interval [start, end) - end is exclusive
-            tree[start:end] = True
-    
-    return tree
+    def __init__(self, bedfile, window_start=None, window_end=None, reach=0):
+        intervals = []
+        with open(bedfile) as handle:
+            for line in handle:
+                columns = line.strip().split("\t")
+                start, end = int(columns[1]), int(columns[2])
+                if window_start is not None and end < window_start:
+                    continue
+                if window_end is not None and start >= window_end + reach:
+                    continue
+                intervals.append((start, end))
+        self.starts, self.ends = [], []
+        for start, end in sorted(intervals):
+            if self.ends and start <= self.ends[-1]:
+                self.ends[-1] = max(self.ends[-1], end)
+            else:
+                self.starts.append(start)
+                self.ends.append(end)
+
+    def clear(self, position):
+        """How many bases from `position` on are unmasked: 0 if it is masked, infinite if no masked base follows."""
+        i = bisect_right(self.starts, position) - 1
+        if i >= 0 and self.ends[i] > position:
+            return 0
+        return self.starts[i + 1] - position if i + 1 < len(self.starts) else math.inf
 
 
 def load_read_classification(classification_file):
@@ -206,7 +217,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     sizes = range(smallest, largest + 1)
 
     fasta = pysam.FastaFile(fastafile)
-    interval_tree = load_filters_with_tree(filters, window_start, window_end) # IntervalTree
+    mask = Mask(filters, window_start, window_end, reach=largest)
     d = load_tissue_classification(tissue_file)
     classified = load_read_classification(classification_file)
     strata = Strata(**key_parameters)
@@ -262,8 +273,14 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
             position = pileupcolumn.reference_pos # right. the position in the reference
 
-            if interval_tree[position]: #saved me many lines of code
+            # An event of k bases anchored at base a, call or opportunity, is
+            # counted only if a to a+k are unmasked: InDels that slide to the
+            # base before a tract are the tract's (L1). A call is anchored
+            # here, an opportunity on the base before.
+            clear = mask.clear(position)
+            if not clear:
                 continue
+            anchor_clear = mask.clear(position - 1)
 
             if position >= next_eviction:
                 reads = {key: entry for key, entry in reads.items() if entry.end > position}
@@ -290,7 +307,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                 # The gap before this read base, for an insertion, and the
                 # k-mers starting at it, for deletions, each tested on two read
                 # bases on each side, as the calls are.
-                if opportunities_out is not None and read_pos >= 2:
+                if opportunities_out is not None and read_pos >= 2 and anchor_clear > smallest:
                     entry = entry_of(alignment)
                     read_seq, base_qualities, support = entry.sequence, entry.qualities, entry.support
                     read_length = len(read_seq)
@@ -314,10 +331,12 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                             context = gaps[pair] = canonical_context(pair) # grouped with the other strand
                         gap = keys(read_pos - 1, read_pos) # the same bases tested for every size
                         for indel_length in sizes:
+                            if indel_length >= anchor_clear:
+                                break # it would touch the mask, as would any longer one
                             data[("insertion", indel_length, context) + gap] += 1
 
                     for indel_length in sizes: #indel lengths here means kmer length
-                        if not has_flanks(read_pos - 1, read_pos + indel_length, read_length):
+                        if indel_length >= anchor_clear or not has_flanks(read_pos - 1, read_pos + indel_length, read_length):
                             break # nor does any longer k-mer
                         run = read_seq[read_pos-1:read_pos+indel_length+1]   #run dependent on indel length # includes kmer + flanking bases
                         info = runs.get(run)
@@ -339,6 +358,8 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     continue
 
                 indel_length = abs(indel)
+                if indel_length >= clear:
+                    continue # a base it touches is masked (L1)
                 # The last read base before the gap and the first after it.
                 before, after = read_pos, read_pos + 1 + (indel_length if indel > 0 else 0)
                 if not has_flanks(before, after, alignment.query_length):
@@ -470,11 +491,33 @@ def load_tr_bed_with_tree(bedfile, window_start=None, window_end=None):
     return tree
 
 
+def assigned_tract(tracts, anchor, size, reach):
+    """
+    The tract an InDel of `size` bases anchored at `anchor` is counted in,
+    among `tracts` (intervals within `reach` bases of the anchor), or None.
+
+    pbmm2 places an InDel that can slide at its leftmost position, so
+    slippage in a tract is anchored on the base before it, or before a
+    partial unit in front of it (R1), and slippage of a tract right after
+    another on the first tract's last base (R2). So the InDel is counted in
+    the tract of the first base after the anchor, up to `size` and at most
+    `reach` bases on, that lies in a tract, or else the anchor's: the bases
+    workflow 3 tests against its mask (L1). Of the tracts there, the one
+    with the largest k whose k divides the size; None if none does.
+    """
+    for base in [*range(anchor + 1, anchor + min(size, reach) + 1), anchor]:
+        here = [iv for iv in tracts if iv.begin <= base < iv.end]
+        if here:
+            matching = [iv for iv in here if size % iv.data['k'] == 0]
+            return max(matching, key=lambda iv: iv.data['k']).data if matching else None
+    return None
+
+
 def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                        average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
-                       *, coverage_band, key_parameters, flank_width, classification_file="NA"):
+                       *, coverage_band, key_parameters, flank_width, reach, classification_file="NA"):
     """
     Call InDels and count opportunities inside tandem repeat tracts for several
     repeat models (M0, M1, M2) in one pass over the BAM.
@@ -490,7 +533,9 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     models.
 
     Calls mirror nonrepetitive_scan() but:
-    - Use the TR BED as an *inclusion* filter (positions must be inside a TR interval).
+    - Use the TR BED as an *inclusion* filter: an InDel is the tract's if a
+      base it touches, from its anchor to `reach` bases on, is in the tract,
+      the tract after the anchor first (assigned_tract()).
     - InDel size filter: abs(indel) % k == 0 (any size, not just 1-3 bp).
     - Homopolymer filter is NOT applied (k=1 homopolymer InDels are the signal).
     - Extra output columns: canonical_motif, k, copies, trf_purity, model_purity, model.
@@ -522,7 +567,9 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     low_depth, high_depth = (average_coverage_of_species * factor for factor in coverage_band)
 
     fasta = pysam.FastaFile(fastafile)
-    trees = {model: load_tr_bed_with_tree(bedfile, window_start, window_end)
+    # The tracts a call anchored in the window can be counted in.
+    trees = {model: load_tr_bed_with_tree(bedfile, window_start,
+                                          None if window_end is None else window_end + reach)
              for model, bedfile in tr_beds.items()}
 
     d = load_tissue_classification(tissue_file)
@@ -575,14 +622,21 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
             position = pileupcolumn.reference_pos
 
-            # Only process positions INSIDE a TR interval, per model
-            hits = {}
+            # Only positions inside a tract, or up to `reach` bases before
+            # one, where a call can be anchored that is counted in it.
+            near = {}
             for model, tree in trees.items():
-                model_hits = tree[position]
-                if model_hits:
-                    hits[model] = model_hits
-            if not hits:
+                found = tree.overlap(position, position + reach + 1)
+                if found:
+                    near[model] = found
+            if not near:
                 continue
+            # The tracts the position is in, for its opportunities.
+            hits = {}
+            for model, found in near.items():
+                inside = [iv for iv in found if iv.begin <= position]
+                if inside:
+                    hits[model] = inside
 
             if position >= next_eviction:
                 reads = {key: entry for key, entry in reads.items() if entry.end > position}
@@ -590,7 +644,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
             pileups = pileupcolumn.pileups
 
-            call_models = [model for model in hits if model in calls_out]
+            call_models = [model for model in near if model in calls_out]
             if call_models:
                 indel_count = sum(
                     1 for pr in pileups
@@ -641,14 +695,12 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
                 indel_length = abs(indel)
 
-                # Per model, pick the matching interval with the largest k
-                # (most specific period for this InDel size)
+                # Per model, the tract the InDel is counted in, if any.
                 call_tracts = []
                 for model in call_models:
-                    matching = [iv for iv in hits[model]
-                                if indel_length % iv.data['k'] == 0]
-                    if matching:
-                        call_tracts.append((model, max(matching, key=lambda iv: iv.data['k']).data))
+                    tract = assigned_tract(near[model], position, indel_length, reach)
+                    if tract is not None:
+                        call_tracts.append((model, tract))
                 if not call_tracts:
                     continue
 

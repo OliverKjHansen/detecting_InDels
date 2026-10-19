@@ -12,12 +12,13 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 # reads carrying a call in any model to one FASTQ.
 #
 # Usage: python tandem_repeat_scan.py <contig> <bam> <fasta> <avg_coverage> <tissue> <start> <end> <reads.fastq> \
-#            --coverage-band <low> <high> --flank-width <bp> --key-parameters <json> \
+#            --coverage-band <low> <high> --flank-width <bp> --reach <bp> --key-parameters <json> \
 #            --model M0 <M0.bed> <M0_calls.tsv> <M0_opportunities.tsv> \
 #            --model M1 ...
 #
 # --coverage-band and --flank-width are `scan` parameters in config.yaml, and
-# --key-parameters its `strata` block, as JSON.
+# --key-parameters its `strata` block, as JSON. --reach is how far after its
+# anchor an InDel is looked for in a tract: the longest of `repeats.periods`.
 #
 # Every output is written to a .tmp file and renamed only when the whole window
 # is done, so a job that dies never leaves a finished-looking output behind.
@@ -36,6 +37,7 @@ def main():
     parser.add_argument("fastq", help="reads carrying a call in any model")
     parser.add_argument("--coverage-band", type=float, nargs=2, required=True, metavar=("LOW", "HIGH"))
     parser.add_argument("--flank-width", type=int, required=True, metavar="BP")
+    parser.add_argument("--reach", type=int, required=True, metavar="BP")
     parser.add_argument("--read-classification", default="NA", metavar="TSV",
                         help="read_classification.sh's table of the sample's reads (default: none)")
     parser.add_argument("--key-parameters", type=json.loads, required=True, metavar="JSON")
@@ -57,6 +59,7 @@ def main():
         coverage_band=args.coverage_band,
         key_parameters=args.key_parameters,
         flank_width=args.flank_width,
+        reach=args.reach,
         classification_file=args.read_classification,
     )
 

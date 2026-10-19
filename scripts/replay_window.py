@@ -109,7 +109,8 @@ def main():
             os.makedirs(f"{w4}/{model}", exist_ok=True)
             model_args += ["--model", model, tracts(model),
                            f"{w4}/{model}/calls.tsv", f"{w4}/{model}/opportunities.tsv"]
-        run("tandem_repeat_scan.py", *inputs, f"{w4}/reads.fastq", *scan_options, *model_args)
+        run("tandem_repeat_scan.py", *inputs, f"{w4}/reads.fastq", *scan_options,
+            "--reach", max(current["repeats"]["periods"]), *model_args)
         for model in models:
             replay("repetitive", f"{w4}/{model}/calls.tsv", f"{w4}/reads.fastq", f"{w4}/{model}",
                    "--min-read-end-distance", filters["min_read_end_distance"])

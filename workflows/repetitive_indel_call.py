@@ -41,9 +41,11 @@ models = config["repeats"]["models"]
 
 # Step 1 splits each contig into windows of this many bp, one scan job per window.
 chunk_size = config["scan"]["window_size"]
-# The positions scanned.
+# The positions scanned. An InDel is looked for in a tract up to the longest
+# period after its anchor, where leftmost placement can put slippage (L1).
 scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
                 f"--flank-width {config['scan']['flank_width']} "
+                f"--reach {max(config['repeats']['periods'])} "
                 f"--key-parameters {pipeline.key_parameters()}")
 
 # Final filtering thresholds.
