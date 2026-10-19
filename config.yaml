@@ -159,6 +159,14 @@ layout:
   tandem_repeats:        "{output}/repetitive_dna/{species}/{sample}/{contig}_{model}.bed"
   tandem_repeats_sample: "{output}/repetitive_dna/{species}/{sample}/{model}.bed"
   repeats_summary:       "{results}/repetitive_dna/{species}/{sample}/{model}_summary.tsv"
+  # The excluded group, also by repetitive_dna.py: homopolymer runs and tracts
+  # with periods above repeats.periods (TRF per window), per contig, their
+  # union, and the bases they cover per sample.
+  homopolymers:          "{output}/repetitive_dna/{species}/{sample}/excluded/{contig}_homopolymers.bed"
+  long_periods_window:   "{output}/repetitive_dna/{species}/{sample}/excluded/chunks/{contig}_long_periods_{start}.bed"
+  long_periods:          "{output}/repetitive_dna/{species}/{sample}/excluded/{contig}_long_periods.bed"
+  excluded:              "{output}/repetitive_dna/{species}/{sample}/excluded/{contig}.bed"
+  excluded_summary:      "{results}/repetitive_dna/{species}/{sample}/excluded_summary.tsv"
 
   # Per-read cell-type likelihoods from the methylation model.
   likelihoods: "{classification}/{species}/{sample}/{sample}/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv"
@@ -185,7 +193,9 @@ layout:
 
   # Written by repetitive_indel_call.py (workflow 4): the reads and their
   # remapping are shared by the models, everything else is per model.
-  repetitive_window_calls:         "{output}/repetitive_indels/{species}/{sample}/{model}/calls/chunks/{contig}_{start}_{end}.tsv"
+  repetitive_tracts:               "{output}/repetitive_indels/{species}/{sample}/{model}/tracts/{contig}.bed"
+  repetitive_tracts_summary:       "{results}/repetitive_indels/{species}/{sample}/tracts_summary.tsv"
+  repetitive_window_calls:        "{output}/repetitive_indels/{species}/{sample}/{model}/calls/chunks/{contig}_{start}_{end}.tsv"
   repetitive_window_opportunities: "{output}/repetitive_indels/{species}/{sample}/{model}/opportunities/chunks/{contig}_{start}_{end}.tsv"
   repetitive_window_reads:         "{output}/repetitive_indels/{species}/{sample}/fastq/chunks/{contig}_{start}_{end}.fastq"
   repetitive_calls:                "{output}/repetitive_indels/{species}/{sample}/{model}/calls/{contig}.tsv"
@@ -220,7 +230,8 @@ precompute:
 # Workflow 2.
 repeats:
   models: [M0, M1, M2]
-  # Tandem repeat periods annotated. Homopolymers (k = 1) are not.
+  # Tandem repeat periods annotated by the models. Homopolymers (k = 1) and
+  # longer periods are the excluded group, below.
   periods: [2, 3, 4, 5, 6]
   # M0 and M2, mreps -exp: at least this many full copies.
   mreps_min_exponent: 3
@@ -234,6 +245,13 @@ repeats:
   # tract crossing a boundary is seen whole; a longer tract can be cut in two.
   trf_window_size: 5_000_000
   trf_overlap: 1_000_000
+  # The excluded group (decisions Q8, Q16): masked from workflow 3, and
+  # workflow 4 drops the tracts that overlap it. Homopolymers: runs of one base
+  # at least this long.
+  homopolymer_min_length: 6
+  # Tandem repeats with periods from max(periods) + 1 up to this (TRF's
+  # largest), found by TRF with M1's trf_params and windows.
+  long_period_max: 2000
 
 # Workflows 3 and 4.
 scan:

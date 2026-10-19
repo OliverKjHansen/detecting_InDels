@@ -72,6 +72,16 @@ def main():
     replay(f"{w3}/calls.tsv", data.path("nonrepetitive_haploid_locations", species, sample), w3)
     tables = [("workflow 3", w3, f"{cluster}/nonrepetitive_indels")]
 
+    def tracts(model):
+        """
+        The tracts workflow 4 scans: those it measures, or, in a window exported
+        before it dropped the tracts that overlap an excluded region, all the
+        model's tracts, which it scanned then.
+        """
+        measured = data.path("repetitive_tracts", species, sample, contig=contig, model=model)
+        return measured if os.path.exists(measured) else \
+            data.path("tandem_repeats", species, sample, contig=contig, model=model)
+
     # Workflow 4: the scan of every model (step 1), the haploid check (4),
     # final filtering (6).
     if os.path.isdir(f"{cluster}/repetitive_indels"):
@@ -79,7 +89,7 @@ def main():
         model_args = []
         for model in models:
             os.makedirs(f"{w4}/{model}", exist_ok=True)
-            model_args += ["--model", model, data.path("tandem_repeats", species, sample, contig=contig, model=model),
+            model_args += ["--model", model, tracts(model),
                            f"{w4}/{model}/calls.tsv", f"{w4}/{model}/opportunities.tsv"]
         run("tandem_repeat_scan.py", *inputs, f"{w4}/reads.fastq", *coverage_band, *model_args)
         for model in models:

@@ -1,18 +1,26 @@
 import sys
 
 # Usage: parse_trf.py <trf_ngs_txt> <k> <species> <sample> <model>
-#                     [<contig> <offset> <core_start> <core_end>]
+#                     [<contig> <offset> [<core_start> <core_end>]]
 #
 # Parses TRF -ngs output for a single period k and emits the unified repeat
 # annotation TSV, tagged with the TRF model it came from (M1, M2).
 #
-# The four optional arguments are for runs on a slice of a contig, where TRF
+# k can also be a range of periods, MIN-MAX, as for the tracts with periods
+# above the repeat models' (the excluded group). Then a tract whose consensus
+# motif is whole copies of a motif shorter than MIN is skipped: TRF can report
+# a short-period repeat again at a multiple of its period, (AC)n as ACACACAC,
+# and that tract belongs to the short period. For a single k, as M1 is split,
+# nothing is skipped; overlap resolution keeps the smallest period instead.
+#
+# The optional arguments are for runs on a slice of a contig, where TRF
 # sees a window rather than the whole sequence:
 #   contig      name to report, since the FASTA header is "contig:start-end"
 #   offset      0-based start of the slice, added to every coordinate
 #   core_start  half-open range of contig positions this window owns; a tract
 #   core_end    is kept only if its start falls inside it, so windows that
-#               overlap do not report the same tract twice
+#               overlap do not report the same tract twice. Without them every
+#               tract is kept.
 #
 # Two impurity measures are reported:
 #
@@ -98,9 +106,17 @@ def hamming_pct_matches(repeat_seq, motif):
     return matches / n * 100.0
 
 
+def has_shorter_period(motif, shorter_than):
+    """True if the motif is whole copies of a motif shorter than `shorter_than` bp."""
+    return any(len(motif) % d == 0 and motif == motif[:d] * (len(motif) // d)
+               for d in range(1, min(shorter_than, len(motif))))
+
+
 def main():
     input_file = sys.argv[1]
-    k          = int(sys.argv[2])
+    # One period k, or a range MIN-MAX.
+    low, is_range, high = sys.argv[2].partition("-")
+    low, high  = int(low), int(high or low)
     species    = sys.argv[3]
     sample     = sys.argv[4]
     model      = sys.argv[5]
@@ -132,9 +148,9 @@ def main():
                 continue
 
             period = int(fields[2])
-            if period != k:
-                # awk pre-filter in the GWF target should guarantee this;
-                # kept as a safety check.
+            if not low <= period <= high:
+                # For a single k the awk pre-filter in the GWF target should
+                # guarantee this; kept as a safety check.
                 continue
 
             start_1based = int(fields[0])
@@ -143,6 +159,9 @@ def main():
             trf_purity   = float(fields[5])  # TRF's SW-alignment % matches
             motif_seq    = fields[13]         # TRF consensus motif (used for tiling)
             repeat_seq   = fields[14]         # actual genomic repeat sequence
+
+            if is_range and has_shorter_period(motif_seq.upper(), low):
+                continue
 
             # 0-based half-open coordinates, shifted to contig coordinates
             start = start_1based - 1 + offset
@@ -155,7 +174,7 @@ def main():
             canonical     = canonicalise(motif_seq)
             model_purity  = hamming_pct_matches(repeat_seq, motif_seq)
 
-            print(contig_name or current_contig, start, end, canonical, k, copies,
+            print(contig_name or current_contig, start, end, canonical, period, copies,
                   f"{trf_purity:.2f}", f"{model_purity:.2f}", model,
                   species, sample, sep="\t")
 

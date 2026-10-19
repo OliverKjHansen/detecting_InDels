@@ -7,13 +7,14 @@ from pipeline import Pipeline, summed_counts
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
 # reads at positions that are not masked. The mask is the union of every repeat
-# model from repetitive_dna.py (M0, M1, M2) and the unresolved-haplotype regions
+# model from repetitive_dna.py (M0, M1, M2), its excluded group (homopolymer
+# runs and tracts with longer periods) and the unresolved-haplotype regions
 # from precompute.py.
 #
-# Homopolymers are not in the mask, because repetitive_dna.py does not annotate
-# k=1. They are handled inside the caller instead: an InDel whose sequence plus
-# one flanking base on each side changes base at most once is dropped, and the
-# opportunity counter applies the same rule, so numerator and denominator agree.
+# Homopolymer runs shorter than the excluded ones are not in the mask. They are
+# handled inside the caller instead: an InDel whose sequence plus one flanking
+# base on each side changes base at most once is dropped, and the opportunity
+# counter applies the same rule, so numerator and denominator agree.
 #
 # The BAM is read once per window: one scan job writes the calls, the
 # opportunities and a FASTQ of the reads carrying a call. The steps around it
@@ -92,19 +93,21 @@ for species, samples in config["samples"].items():
         fastqs        = {contig: path("nonrepetitive_reads", contig=contig) for contig in long_contigs}
 
         # Step 1 — the mask of every contig: every base any repeat model calls
-        # repetitive, plus the unresolved-haplotype regions. The repeat BEDs
-        # carry a header line, which is dropped before merging.
+        # repetitive, the unresolved-haplotype regions, and the excluded group
+        # (homopolymer runs and tracts with longer periods), merged.
         repeat_beds     = [path("tandem_repeats", contig=contig, model=model) for contig in long_contigs for model in models]
         unresolved_beds = [path("unresolved", contig=contig) for contig in long_contigs]
+        excluded_beds   = [path("excluded", contig=contig) for contig in long_contigs]
         # The same files for the contig in the shell loop's $contig.
         contig_repeat_beds = " ".join(path("tandem_repeats", contig="${contig}", model=model) for model in models)
         contig_unresolved  = path("unresolved", contig="${contig}")
+        contig_excluded    = path("excluded", contig="${contig}")
         contig_mask        = path("nonrepetitive_mask", contig="${contig}")
         contig_names       = " ".join(long_contigs)
 
         gwf.target(
             f"non_rep_Mask_{species}_{sample}_{assembly_type}",
-            inputs=repeat_beds + unresolved_beds,
+            inputs=repeat_beds + unresolved_beds + excluded_beds,
             outputs=list(masks.values()),
             cores=1,
             memory="8g",
@@ -112,12 +115,8 @@ for species, samples in config["samples"].items():
         ) << f"""
         set -e
         mkdir -p {mask_dir}
-        WORK=$(mktemp -d)
-        trap 'rm -rf "$WORK"' EXIT
         for contig in {contig_names}; do
-            awk 'FNR>1 {{print $1 "\\t" $2 "\\t" $3}}' {contig_repeat_beds} > $WORK/mask.bed
-            cut -f1-3 {contig_unresolved} >> $WORK/mask.bed
-            sort -k1,1 -k2,2n $WORK/mask.bed | bedtools merge -i - > {contig_mask}.tmp
+            python {scripts}/merge_regions.py {contig_repeat_beds} {contig_unresolved} {contig_excluded} > {contig_mask}.tmp
             mv {contig_mask}.tmp {contig_mask}
         done
         """

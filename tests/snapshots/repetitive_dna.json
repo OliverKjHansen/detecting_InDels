@@ -1103,5 +1103,229 @@
    "{ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv"
   ],
   "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed > {ROOT}/output/repetitive_dna/monkey/s3/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n            "
+ },
+ "excluded_c1_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_10000000.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "8g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c1_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c1_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c1.bed"
+  ],
+  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1/excluded\n            python {ROOT}/scripts/find_homopolymers.py {ROOT}/output/precomute/ape/s1/contigs/c1.fa 6 > {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_homopolymers.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_0.bed {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_10000000.bed > {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_long_periods.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_long_periods.bed.tmp > {ROOT}/output/repetitive_dna/ape/s1/excluded/c1.bed.tmp\n            mv {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_homopolymers.bed\n            mv {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_long_periods.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_long_periods.bed\n            mv {ROOT}/output/repetitive_dna/ape/s1/excluded/c1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c1.bed\n            "
+ },
+ "excluded_c2_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c2_long_periods_0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "8g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c2_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c2_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c2.bed"
+  ],
+  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1/excluded\n            python {ROOT}/scripts/find_homopolymers.py {ROOT}/output/precomute/ape/s1/contigs/c2.fa 6 > {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_homopolymers.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c2_long_periods_0.bed > {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_long_periods.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_long_periods.bed.tmp > {ROOT}/output/repetitive_dna/ape/s1/excluded/c2.bed.tmp\n            mv {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_homopolymers.bed\n            mv {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_long_periods.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_long_periods.bed\n            mv {ROOT}/output/repetitive_dna/ape/s1/excluded/c2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/c2.bed\n            "
+ },
+ "excluded_c2_ape_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa",
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/chunks/c2_long_periods_0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "8g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/c2_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/c2_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/c2.bed"
+  ],
+  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2/excluded\n            python {ROOT}/scripts/find_homopolymers.py {ROOT}/output/precomute/ape/s2/contigs/c2.fa 6 > {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_homopolymers.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s2/excluded/chunks/c2_long_periods_0.bed > {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_long_periods.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_long_periods.bed.tmp > {ROOT}/output/repetitive_dna/ape/s2/excluded/c2.bed.tmp\n            mv {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_homopolymers.bed\n            mv {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_long_periods.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_long_periods.bed\n            mv {ROOT}/output/repetitive_dna/ape/s2/excluded/c2.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/excluded/c2.bed\n            "
+ },
+ "excluded_c2_monkey_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa",
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks/c2_long_periods_0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "8g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/c2.bed"
+  ],
+  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/excluded\n            python {ROOT}/scripts/find_homopolymers.py {ROOT}/output/precomute/monkey/s3/contigs/c2.fa 6 > {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_homopolymers.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks/c2_long_periods_0.bed > {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_long_periods.bed.tmp\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_long_periods.bed.tmp > {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2.bed.tmp\n            mv {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_homopolymers.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_homopolymers.bed\n            mv {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_long_periods.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_long_periods.bed\n            mv {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2.bed\n            "
+ },
+ "excluded_summary_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c1_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c2_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c1_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c2_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "2g",
+   "walltime": "00:30:00"
+  },
+  "outputs": [
+   "{ROOT}/results/repetitive_dna/ape/s1/excluded_summary.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/repetitive_dna/ape/s1\n        printf \"class\\tregions\\tbp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s1/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"homopolymer\", n + 0, bp + 0, bp / 13500000, \"ape\", \"s1\"}' {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_homopolymers.bed {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_homopolymers.bed >> {ROOT}/results/repetitive_dna/ape/s1/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"long_period\", n + 0, bp + 0, bp / 13500000, \"ape\", \"s1\"}' {ROOT}/output/repetitive_dna/ape/s1/excluded/c1_long_periods.bed {ROOT}/output/repetitive_dna/ape/s1/excluded/c2_long_periods.bed >> {ROOT}/results/repetitive_dna/ape/s1/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"excluded\", n + 0, bp + 0, bp / 13500000, \"ape\", \"s1\"}' {ROOT}/output/repetitive_dna/ape/s1/excluded/c1.bed {ROOT}/output/repetitive_dna/ape/s1/excluded/c2.bed >> {ROOT}/results/repetitive_dna/ape/s1/excluded_summary.tsv.tmp\n        mv {ROOT}/results/repetitive_dna/ape/s1/excluded_summary.tsv.tmp {ROOT}/results/repetitive_dna/ape/s1/excluded_summary.tsv\n        "
+ },
+ "excluded_summary_ape_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/c2_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/c2_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "2g",
+   "walltime": "00:30:00"
+  },
+  "outputs": [
+   "{ROOT}/results/repetitive_dna/ape/s2/excluded_summary.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/repetitive_dna/ape/s2\n        printf \"class\\tregions\\tbp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s2/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"homopolymer\", n + 0, bp + 0, bp / 1500000, \"ape\", \"s2\"}' {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_homopolymers.bed >> {ROOT}/results/repetitive_dna/ape/s2/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"long_period\", n + 0, bp + 0, bp / 1500000, \"ape\", \"s2\"}' {ROOT}/output/repetitive_dna/ape/s2/excluded/c2_long_periods.bed >> {ROOT}/results/repetitive_dna/ape/s2/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"excluded\", n + 0, bp + 0, bp / 1500000, \"ape\", \"s2\"}' {ROOT}/output/repetitive_dna/ape/s2/excluded/c2.bed >> {ROOT}/results/repetitive_dna/ape/s2/excluded_summary.tsv.tmp\n        mv {ROOT}/results/repetitive_dna/ape/s2/excluded_summary.tsv.tmp {ROOT}/results/repetitive_dna/ape/s2/excluded_summary.tsv\n        "
+ },
+ "excluded_summary_monkey_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_homopolymers.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_long_periods.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "2g",
+   "walltime": "00:30:00"
+  },
+  "outputs": [
+   "{ROOT}/results/repetitive_dna/monkey/s3/excluded_summary.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/repetitive_dna/monkey/s3\n        printf \"class\\tregions\\tbp\\tshare\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"homopolymer\", n + 0, bp + 0, bp / 1500000, \"monkey\", \"s3\"}' {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_homopolymers.bed >> {ROOT}/results/repetitive_dna/monkey/s3/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"long_period\", n + 0, bp + 0, bp / 1500000, \"monkey\", \"s3\"}' {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2_long_periods.bed >> {ROOT}/results/repetitive_dna/monkey/s3/excluded_summary.tsv.tmp\n        awk -v OFS='\\t' '{n++; bp += $3 - $2} END {print \"excluded\", n + 0, bp + 0, bp / 1500000, \"monkey\", \"s3\"}' {ROOT}/output/repetitive_dna/monkey/s3/excluded/c2.bed >> {ROOT}/results/repetitive_dna/monkey/s3/excluded_summary.tsv.tmp\n        mv {ROOT}/results/repetitive_dna/monkey/s3/excluded_summary.tsv.tmp {ROOT}/results/repetitive_dna/monkey/s3/excluded_summary.tsv\n        "
+ },
+ "long_period_trf_c1_0_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c1:1-6000000 > $WORK/window.fa\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 2000 -ngs -h -l 7 > $WORK/trf.txt\n                python {ROOT}/scripts/parse_trf.py $WORK/trf.txt 7-2000 ape s1 long_period \\\n                    c1 0 > {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_0.bed\n                "
+ },
+ "long_period_trf_c1_10000000_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_10000000.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c1:9000001-12000000 > $WORK/window.fa\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 2000 -ngs -h -l 7 > $WORK/trf.txt\n                python {ROOT}/scripts/parse_trf.py $WORK/trf.txt 7-2000 ape s1 long_period \\\n                    c1 9000000 > {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_10000000.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_10000000.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_10000000.bed\n                "
+ },
+ "long_period_trf_c1_5000000_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_5000000.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c1:4000001-11000000 > $WORK/window.fa\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 2000 -ngs -h -l 7 > $WORK/trf.txt\n                python {ROOT}/scripts/parse_trf.py $WORK/trf.txt 7-2000 ape s1 long_period \\\n                    c1 4000000 > {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_5000000.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_5000000.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_5000000.bed\n                "
+ },
+ "long_period_trf_c2_0_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c2_long_periods_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c2:1-1500000 > $WORK/window.fa\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 2000 -ngs -h -l 7 > $WORK/trf.txt\n                python {ROOT}/scripts/parse_trf.py $WORK/trf.txt 7-2000 ape s1 long_period \\\n                    c2 0 > {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c2_long_periods_0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c2_long_periods_0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c2_long_periods_0.bed\n                "
+ },
+ "long_period_trf_c2_0_ape_s2_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa",
+   "{ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/excluded/chunks/c2_long_periods_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/excluded/chunks\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa c2:1-1500000 > $WORK/window.fa\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 2000 -ngs -h -l 7 > $WORK/trf.txt\n                python {ROOT}/scripts/parse_trf.py $WORK/trf.txt 7-2000 ape s2 long_period \\\n                    c2 0 > {ROOT}/output/repetitive_dna/ape/s2/excluded/chunks/c2_long_periods_0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/excluded/chunks/c2_long_periods_0.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/excluded/chunks/c2_long_periods_0.bed\n                "
+ },
+ "long_period_trf_c2_0_monkey_s3_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa",
+   "{ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks/c2_long_periods_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa c2:1-1500000 > $WORK/window.fa\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 2000 -ngs -h -l 7 > $WORK/trf.txt\n                python {ROOT}/scripts/parse_trf.py $WORK/trf.txt 7-2000 monkey s3 long_period \\\n                    c2 0 > {ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks/c2_long_periods_0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks/c2_long_periods_0.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks/c2_long_periods_0.bed\n                "
  }
 }
