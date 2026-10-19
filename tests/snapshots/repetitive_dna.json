@@ -1,0 +1,1107 @@
+{
+ "M0_merge_k_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed\n                "
+ },
+ "M0_merge_k_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed\n                "
+ },
+ "M0_merge_k_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed\n                "
+ },
+ "M0_merge_k_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed\n                "
+ },
+ "M0_mreps_k2_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 2 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed\n                "
+ },
+ "M0_mreps_k2_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 2 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed\n                "
+ },
+ "M0_mreps_k2_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 2 ape s2 M0 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed\n                "
+ },
+ "M0_mreps_k2_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 2 monkey s3 M0 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed\n                "
+ },
+ "M0_mreps_k3_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 3 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed\n                "
+ },
+ "M0_mreps_k3_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 3 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed\n                "
+ },
+ "M0_mreps_k3_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 3 ape s2 M0 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed\n                "
+ },
+ "M0_mreps_k3_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 3 monkey s3 M0 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed\n                "
+ },
+ "M0_mreps_k4_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 4 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed\n                "
+ },
+ "M0_mreps_k4_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 4 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed\n                "
+ },
+ "M0_mreps_k4_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 4 ape s2 M0 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed\n                "
+ },
+ "M0_mreps_k4_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 4 monkey s3 M0 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed\n                "
+ },
+ "M0_mreps_k5_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 5 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed\n                "
+ },
+ "M0_mreps_k5_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 5 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed\n                "
+ },
+ "M0_mreps_k5_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 5 ape s2 M0 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed\n                "
+ },
+ "M0_mreps_k5_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 5 monkey s3 M0 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed\n                "
+ },
+ "M0_mreps_k6_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 6 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed\n                "
+ },
+ "M0_mreps_k6_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 6 ape s1 M0 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed\n                "
+ },
+ "M0_mreps_k6_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 6 ape s2 M0 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed\n                "
+ },
+ "M0_mreps_k6_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 6 monkey s3 M0 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed\n                "
+ },
+ "M1_merge_k_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_10000000.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_10000000.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed\n                "
+ },
+ "M1_merge_k_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k6_0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed\n                "
+ },
+ "M1_merge_k_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k6_0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed\n                "
+ },
+ "M1_merge_k_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k6_0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed\n                "
+ },
+ "M1_trf_c1_0_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c1:1-6000000 > $WORK/window.fa\n                # -ngs -> machine-readable stdout, -h -> suppress HTML\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 6 -ngs -h -l 7 > $WORK/trf.txt\n                for k in 2 3 4 5 6; do\n                    awk -v k=$k '/^@/{print} !/^@/{if ($3==k) print}' $WORK/trf.txt > $WORK/trf_${k}.txt\n                    python {ROOT}/scripts/parse_trf.py $WORK/trf_${k}.txt $k ape s1 M1                         c1 0 0 5000000                         > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_0.bed.tmp\n                    mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_0.bed\n                done\n                "
+ },
+ "M1_trf_c1_10000000_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_10000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_10000000.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c1:9000001-12000000 > $WORK/window.fa\n                # -ngs -> machine-readable stdout, -h -> suppress HTML\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 6 -ngs -h -l 7 > $WORK/trf.txt\n                for k in 2 3 4 5 6; do\n                    awk -v k=$k '/^@/{print} !/^@/{if ($3==k) print}' $WORK/trf.txt > $WORK/trf_${k}.txt\n                    python {ROOT}/scripts/parse_trf.py $WORK/trf_${k}.txt $k ape s1 M1                         c1 9000000 10000000 12000000                         > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_10000000.bed.tmp\n                    mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_10000000.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_10000000.bed\n                done\n                "
+ },
+ "M1_trf_c1_5000000_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_5000000.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_5000000.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c1:4000001-11000000 > $WORK/window.fa\n                # -ngs -> machine-readable stdout, -h -> suppress HTML\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 6 -ngs -h -l 7 > $WORK/trf.txt\n                for k in 2 3 4 5 6; do\n                    awk -v k=$k '/^@/{print} !/^@/{if ($3==k) print}' $WORK/trf.txt > $WORK/trf_${k}.txt\n                    python {ROOT}/scripts/parse_trf.py $WORK/trf_${k}.txt $k ape s1 M1                         c1 4000000 5000000 10000000                         > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_5000000.bed.tmp\n                    mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_5000000.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k${k}_5000000.bed\n                done\n                "
+ },
+ "M1_trf_c2_0_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k6_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa c2:1-1500000 > $WORK/window.fa\n                # -ngs -> machine-readable stdout, -h -> suppress HTML\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 6 -ngs -h -l 7 > $WORK/trf.txt\n                for k in 2 3 4 5 6; do\n                    awk -v k=$k '/^@/{print} !/^@/{if ($3==k) print}' $WORK/trf.txt > $WORK/trf_${k}.txt\n                    python {ROOT}/scripts/parse_trf.py $WORK/trf_${k}.txt $k ape s1 M1                         c2 0 0 1500000                         > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k${k}_0.bed.tmp\n                    mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k${k}_0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k${k}_0.bed\n                done\n                "
+ },
+ "M1_trf_c2_0_s2_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa",
+   "{ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k6_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa c2:1-1500000 > $WORK/window.fa\n                # -ngs -> machine-readable stdout, -h -> suppress HTML\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 6 -ngs -h -l 7 > $WORK/trf.txt\n                for k in 2 3 4 5 6; do\n                    awk -v k=$k '/^@/{print} !/^@/{if ($3==k) print}' $WORK/trf.txt > $WORK/trf_${k}.txt\n                    python {ROOT}/scripts/parse_trf.py $WORK/trf_${k}.txt $k ape s2 M1                         c2 0 0 1500000                         > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k${k}_0.bed.tmp\n                    mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k${k}_0.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k${k}_0.bed\n                done\n                "
+ },
+ "M1_trf_c2_0_s3_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa",
+   "{ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa.fai"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k2_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k3_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k4_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k5_0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k6_0.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                samtools faidx {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa c2:1-1500000 > $WORK/window.fa\n                # -ngs -> machine-readable stdout, -h -> suppress HTML\n                {ROOT}/tools/trf $WORK/window.fa 2 7 7 80 10 50 6 -ngs -h -l 7 > $WORK/trf.txt\n                for k in 2 3 4 5 6; do\n                    awk -v k=$k '/^@/{print} !/^@/{if ($3==k) print}' $WORK/trf.txt > $WORK/trf_${k}.txt\n                    python {ROOT}/scripts/parse_trf.py $WORK/trf_${k}.txt $k monkey s3 M1                         c2 0 0 1500000                         > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k${k}_0.bed.tmp\n                    mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k${k}_0.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k${k}_0.bed\n                done\n                "
+ },
+ "M2_merge_k_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed\n                "
+ },
+ "M2_merge_k_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed\n                "
+ },
+ "M2_merge_k_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed\n                "
+ },
+ "M2_merge_k_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed\n                "
+ },
+ "M2_mreps_k2_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 2 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed\n                "
+ },
+ "M2_mreps_k2_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 2 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed\n                "
+ },
+ "M2_mreps_k2_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 2 ape s2 M2 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed\n                "
+ },
+ "M2_mreps_k2_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 2 -maxperiod 2 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 2 monkey s3 M2 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed\n                "
+ },
+ "M2_mreps_k3_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 3 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed\n                "
+ },
+ "M2_mreps_k3_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 3 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed\n                "
+ },
+ "M2_mreps_k3_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 3 ape s2 M2 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed\n                "
+ },
+ "M2_mreps_k3_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 3 -maxperiod 3 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 3 monkey s3 M2 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed\n                "
+ },
+ "M2_mreps_k4_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 4 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed\n                "
+ },
+ "M2_mreps_k4_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 4 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed\n                "
+ },
+ "M2_mreps_k4_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 4 ape s2 M2 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed\n                "
+ },
+ "M2_mreps_k4_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 4 -maxperiod 4 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 4 monkey s3 M2 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed\n                "
+ },
+ "M2_mreps_k5_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 5 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed\n                "
+ },
+ "M2_mreps_k5_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 5 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed\n                "
+ },
+ "M2_mreps_k5_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 5 ape s2 M2 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed\n                "
+ },
+ "M2_mreps_k5_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 5 -maxperiod 5 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 5 monkey s3 M2 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed\n                "
+ },
+ "M2_mreps_k6_c1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c1.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c1 6 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed\n                "
+ },
+ "M2_mreps_k6_c2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s1/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s1/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 6 ape s1 M2 > {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed\n                "
+ },
+ "M2_mreps_k6_c2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/ape/s2/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/ape/s2/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 6 ape s2 M2 > {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed\n                "
+ },
+ "M2_mreps_k6_c2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/precomute/monkey/s3/contigs/c2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed"
+  ],
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3/per_k\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                {ROOT}/tools/mreps -minperiod 6 -maxperiod 6 -exp 3 -res 1 -allowsmall -fasta {ROOT}/output/precomute/monkey/s3/contigs/c2.fa > $WORK/mreps.txt\n                python {ROOT}/scripts/parse_mreps_canonical.py $WORK/mreps.txt c2 6 monkey s3 M2 > {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed\n                "
+ },
+ "cat_M0_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/M0.bed",
+   "{ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed > {ROOT}/output/repetitive_dna/ape/s1/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv\n            "
+ },
+ "cat_M0_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/M0.bed",
+   "{ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed > {ROOT}/output/repetitive_dna/ape/s2/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv\n            "
+ },
+ "cat_M0_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/M0.bed",
+   "{ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed > {ROOT}/output/repetitive_dna/monkey/s3/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv\n            "
+ },
+ "cat_M1_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/M1.bed",
+   "{ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed > {ROOT}/output/repetitive_dna/ape/s1/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv\n            "
+ },
+ "cat_M1_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/M1.bed",
+   "{ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed > {ROOT}/output/repetitive_dna/ape/s2/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv\n            "
+ },
+ "cat_M1_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/M1.bed",
+   "{ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed > {ROOT}/output/repetitive_dna/monkey/s3/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv\n            "
+ },
+ "cat_M2_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s1/M2.bed",
+   "{ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed > {ROOT}/output/repetitive_dna/ape/s1/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv\n            "
+ },
+ "cat_M2_s2_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/ape/s2/M2.bed",
+   "{ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed > {ROOT}/output/repetitive_dna/ape/s2/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv\n            "
+ },
+ "cat_M2_s3_diploid": {
+  "inputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "10g",
+   "walltime": "8:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_dna/monkey/s3/M2.bed",
+   "{ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed > {ROOT}/output/repetitive_dna/monkey/s3/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n            "
+ }
+}

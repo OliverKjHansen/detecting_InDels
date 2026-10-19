@@ -1,0 +1,18 @@
+{
+ "ClassificationReads_ape_s1": {
+  "inputs": [
+   "{ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "06:00:00"
+  },
+  "outputs": [
+   "{ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv",
+   "{ROOT}/results/repetitive_indels/ape/s1/classification_reads.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1 {ROOT}/results/repetitive_indels/ape/s1\n        bash {ROOT}/scripts/classification_read_counts.sh \\\n            {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv\n        cp {ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv {ROOT}/results/repetitive_indels/ape/s1/classification_reads.tsv\n        "
+ }
+}
