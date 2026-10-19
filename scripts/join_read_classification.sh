@@ -59,48 +59,8 @@ awk -F'\t' '
 
 # 2. Scores per read, reading the big table once and keeping only those reads.
 awk -F'\t' -v OFS='\t' -v prefix="$germline_prefix" -v somatic="$somatic_types" \
-    -v edges="$bin_edges" -v labels="$bin_labels" '
-    # The label of the first edge d is below, or the last label.
-    function bin(d,    i) {
-        for (i = 1; i <= n_edges; i++) if (d < edge[i]) return label[i]
-        return label[n_edges + 1]
-    }
-
-    BEGIN {
-        n_edges = split(edges, edge, ",")
-        for (i = 1; i <= n_edges; i++) edge[i] += 0
-        if (split(labels, label, ",") != n_edges + 1) {
-            print "need one more bin label than bin edges" > "/dev/stderr"; exit 1
-        }
-    }
-
-    NR == FNR { wanted[$1]; next }
-
-    FNR == 1 {
-        split(somatic, list, ",")
-        for (i in list) is_somatic[list[i]]
-        for (i = 1; i <= NF; i++) {
-            if (index($i, prefix) == 1) germline_col[i]
-            if ($i in is_somatic)       somatic_col[i]
-            if ($i == "CpGs_onRead")    cpg_col = i
-        }
-        if (length(germline_col) == 0) { print "no columns start with " prefix > "/dev/stderr"; exit 1 }
-        if (length(somatic_col) == 0)  { print "none of " somatic " found"    > "/dev/stderr"; exit 1 }
-        print "readID", "max_germline", "max_somatic", "classification_diff", "classification_bin", "CpGs_onRead"
-        next
-    }
-
-    !($1 in wanted) { next }
-
-    {
-        first = 1
-        for (i in germline_col) { v = $i + 0; if (first || v > g) { g = v; first = 0 } }
-        first = 1
-        for (i in somatic_col)  { v = $i + 0; if (first || v > s) { s = v; first = 0 } }
-        d = g - s
-        print $1, g, s, d, bin(d), (cpg_col ? $cpg_col : "NA")
-    }
-' "$work/wanted_reads.txt" "$likelihoods" > "$work/read_scores.tsv"
+    -v edges="$bin_edges" -v labels="$bin_labels" -v wanted="$work/wanted_reads.txt" \
+    -f "$(dirname "$0")/classify_reads.awk" "$likelihoods" > "$work/read_scores.tsv"
 
 # 3. Left join onto the calls: every call row is kept, unmatched reads get NA.
 awk -F'\t' -v OFS='\t' '

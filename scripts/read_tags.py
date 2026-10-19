@@ -54,9 +54,9 @@ def tag(alignment, name):
     return alignment.get_tag(name) if alignment.has_tag(name) else None
 
 
-def describe(alignment, tissue):
+def describe(alignment, tissue, methylation_bin):
     """The Read that read keys see."""
-    return Read(alignment.query_name, tissue, alignment.query_length, alignment.is_reverse,
+    return Read(alignment.query_name, tissue, methylation_bin, alignment.query_length, alignment.is_reverse,
                 alignment.mapping_quality, tag(alignment, "np"), tag(alignment, "rq"),
                 tag(alignment, "fn"), tag(alignment, "rn"))
 

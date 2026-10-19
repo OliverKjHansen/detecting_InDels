@@ -73,6 +73,13 @@ for species, samples in config["samples"].items():
         else:
             tissue        = "NA"
             tissue_inputs = []
+        # Samples with methylation scores: each read's germline/somatic bin.
+        if pipeline.is_listed("methylation_samples", species, sample):
+            classification_inputs = [path("read_classification")]
+            sample_scan_options   = f"{scan_options} --read-classification {classification_inputs[0]}"
+        else:
+            classification_inputs = []
+            sample_scan_options   = scan_options
 
         # Shared by the models: the reads carrying calls, and their remapping.
         fastq_dir   = folder("repetitive_reads")
@@ -120,12 +127,12 @@ for species, samples in config["samples"].items():
                 # and write the reads carrying a call, for haploid remapping.
                 gwf.target(
                     f"TRScan_{contig}_{start}_{species}_{sample}",
-                    inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs,
+                    inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs + classification_inputs,
                     outputs=list(w_calls.values()) + list(w_opportunities.values()) + [w_fastq],
                     cores=1,
                 ) << f"""
                 mkdir -p {chunk_dirs}
-                python {scripts}/tandem_repeat_scan.py {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_fastq} {scan_options} {model_args}
+                python {scripts}/tandem_repeat_scan.py {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_fastq} {sample_scan_options} {model_args}
                 """
 
             # Step 2 — join the windows back into one file per contig.

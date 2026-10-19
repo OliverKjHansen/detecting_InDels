@@ -78,6 +78,13 @@ for species, samples in config["samples"].items():
         else:
             tissue        = "NA"
             tissue_inputs = []
+        # Samples with methylation scores: each read's germline/somatic bin.
+        if pipeline.is_listed("methylation_samples", species, sample):
+            classification_inputs = [path("read_classification")]
+            sample_scan_options   = f"{scan_options} --read-classification {classification_inputs[0]}"
+        else:
+            classification_inputs = []
+            sample_scan_options   = scan_options
 
         mask_dir          = folder("nonrepetitive_mask")
         calls_dir         = folder("nonrepetitive_calls")
@@ -147,12 +154,12 @@ for species, samples in config["samples"].items():
                 # haploid remapping.
                 gwf.target(
                     f"non_rep_Scan_{contig}_{start}_{species}_{sample}_{assembly_type}",
-                    inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs,
+                    inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs + classification_inputs,
                     outputs=[w_calls, w_opportunities, w_fastq],
                     cores=1,
                 ) << f"""
                 mkdir -p {folder("nonrepetitive_window_calls")} {folder("nonrepetitive_window_opportunities")} {folder("nonrepetitive_window_reads")}
-                python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq} {scan_options}
+                python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq} {sample_scan_options}
                 """
 
         # Step 3 — join the windows back into one file per contig, for every

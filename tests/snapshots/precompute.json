@@ -156,6 +156,21 @@
   ],
   "spec": "\n            cat {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed\n            "
  },
+ "read_classification_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "06:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precomute/ape/s1/read_classification.tsv"
+  ],
+  "spec": "\n            mkdir -p {ROOT}/output/precomute/ape/s1\n            bash {ROOT}/scripts/read_classification.sh {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv {ROOT}/output/precomute/ape/s1/read_classification.tsv Sperm. Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial -10,-8,-6,-4,-2,-1,0,1,2,4,6,8,10 -12,-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,12\n            "
+ },
  "sorting_tissue_classification_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/read_labels/ape/s1/s1_read_labels.txt"

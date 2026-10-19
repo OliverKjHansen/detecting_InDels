@@ -36,6 +36,8 @@ def main():
     parser.add_argument("fastq", help="reads carrying a call in any model")
     parser.add_argument("--coverage-band", type=float, nargs=2, required=True, metavar=("LOW", "HIGH"))
     parser.add_argument("--flank-width", type=int, required=True, metavar="BP")
+    parser.add_argument("--read-classification", default="NA", metavar="TSV",
+                        help="read_classification.sh's table of the sample's reads (default: none)")
     parser.add_argument("--key-parameters", type=json.loads, required=True, metavar="JSON")
     parser.add_argument("--model", nargs=4, action="append", required=True,
                         metavar=("NAME", "BED", "CALLS", "OPPORTUNITIES"))
@@ -55,6 +57,7 @@ def main():
         coverage_band=args.coverage_band,
         key_parameters=args.key_parameters,
         flank_width=args.flank_width,
+        classification_file=args.read_classification,
     )
 
     for path, handle in handles.items():

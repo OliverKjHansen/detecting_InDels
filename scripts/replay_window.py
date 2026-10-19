@@ -47,6 +47,10 @@ def main():
     tissue = data.path("tissue", species, sample) if data.is_listed("tissue_samples", species, sample) else "NA"
     inputs = [contig, data.alignment(species, sample), data.path("assembly", species, sample),
               data.path("coverage", species, sample), tissue, start, end]
+    # The reads' germline/somatic bins, if the window has them.
+    classification = data.path("read_classification", species, sample)
+    if os.path.exists(classification):
+        scan_options += ["--read-classification", classification]
 
     local, cluster = f"{window}/local", f"{window}/cluster"
     os.makedirs(local, exist_ok=True)

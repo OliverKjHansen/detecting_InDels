@@ -222,7 +222,7 @@ roots under `paths`. All of these are made outside this repository.
 | Haploid assembly | `{fasta}/{species}/{sample}/haploid_assembly/{sample}_haploid.fa` | 3, 4 |
 | Reads aligned to the diploid assembly, indexed | `{bam}/{species}/{sample}/kinetics/{sample}_kinetics_diploid.bam`, or the `alignment_overrides` entry | 1, 3, 4 |
 | Read → tissue labels | `{read_labels}/{species}/{sample}/{sample}_read_labels.txt` | 1, `tissue_samples` only |
-| Per-read cell-type likelihoods | `{classification}/{species}/{sample}/{sample}/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv` | 3, 4, `methylation_samples` only |
+| Per-read cell-type likelihoods | `{classification}/{species}/{sample}/{sample}/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv` | 1, 3, 4, `methylation_samples` only |
 
 The callers record PacBio's per-read tags when the BAM has them: `np` and `ec`,
 and the per-base subread tags `sa`, `sm` and `sx`. A missing tag is written as
@@ -269,6 +269,7 @@ directory is spelled `precomute` in the code).
 | 3a. Unresolved haplotypes | `unresolved_haplotype_{species}_{sample}_{contig}_{start}_diploid` | 40 Mb window | `unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed` |
 | 3b. Join the windows | `merge_unresolved_{species}_{sample}_{contig}_diploid` | contig | `unresolved_haplotypes/{contig}.bed` |
 | 4. Tissue table | `sorting_tissue_classification_{species}_{sample}_diploid` | sample in `tissue_samples` | `sorted_tissue_classification.tsv` |
+| 5. Read classification | `read_classification_{species}_{sample}_diploid` | sample in `methylation_samples` | `read_classification.tsv`: every read's germline/somatic score and bin, by [read_classification.sh](scripts/read_classification.sh) |
 
 **Split.** `faSplit byname` writes one FASTA per contig, for mreps in workflow 2.
 
@@ -858,6 +859,7 @@ tables.
 | Key | Meaning |
 |---|---|
 | `tissue` | the read's tissue label, or `NA` |
+| `methylation_bin` | the read's germline/somatic bin, one of the 14 of the `classification` block, from precompute's `read_classification.tsv`; `NA` for reads without a score and for samples not under `methylation_samples` |
 | `read_length_bin` | the read's length, binned by `strata.read_length_bins` |
 | `aligned_strand` | the strand of the assembly the read is aligned to: `+`, or `-` for flag 16 |
 | `smrt_cell` | the SMRT Cell (movie): the first part of the read's name |

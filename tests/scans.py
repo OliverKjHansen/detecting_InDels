@@ -38,7 +38,7 @@ def nonrepetitive_scan(paths, window_start=None, window_end=None,
         paths["coverage"], paths["tissue"], window_start, window_end,
         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
         coverage_band=coverage_band, indel_sizes=indel_sizes, key_parameters=KEY_PARAMETERS,
-        flank_width=FLANK_WIDTH,
+        flank_width=FLANK_WIDTH, classification_file=paths.get("classification", "NA"),
     )
     return calls.getvalue(), opportunities.getvalue(), fastq.getvalue()
 
@@ -53,6 +53,7 @@ def tandem_repeat_scan(beds, paths, window_start=None, window_end=None, coverage
         paths["coverage"], paths["tissue"], window_start, window_end,
         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
         coverage_band=coverage_band, key_parameters=KEY_PARAMETERS, flank_width=FLANK_WIDTH,
+        classification_file=paths.get("classification", "NA"),
     )
     return ({model: out.getvalue() for model, out in calls.items()},
             {model: out.getvalue() for model, out in opportunities.items()},

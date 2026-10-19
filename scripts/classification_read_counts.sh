@@ -31,9 +31,8 @@
 #
 # The scores per read are those of join_read_classification.sh: the highest
 # likelihood among the germline columns (the ones whose name starts with
-# germline_prefix) minus the highest among somatic_types, cut into the same bins.
-# Both scripts take the bins from config.yaml; tests/test_classification_bins.py
-# checks that they bin alike.
+# germline_prefix) minus the highest among somatic_types, cut into the same bins
+# by the same program, classify_reads.awk.
 #
 # Output: one row per bin, in bin order.
 #
@@ -59,50 +58,16 @@ if [ ! -r "$likelihoods" ]; then
 fi
 
 # One row per read, streamed: the table covers the whole sample and is far too
-# big to load. Nothing is kept per read, only the totals per bin.
+# big to load. Reads are scored and binned by classify_reads.awk, as in
+# join_read_classification.sh; only the totals per bin are kept.
 awk -F'\t' -v OFS='\t' -v prefix="$germline_prefix" -v somatic="$somatic_types" \
-    -v edges="$bin_edges" -v labels="$bin_labels" '
-    # The label of the first edge d is below, or the last label.
-    function bin(d,    i) {
-        for (i = 1; i <= n_edges; i++) if (d < edge[i]) return label[i]
-        return label[n_edges + 1]
-    }
-
-    BEGIN {
-        n_edges = split(edges, edge, ",")
-        for (i = 1; i <= n_edges; i++) edge[i] += 0
-        if (split(labels, label, ",") != n_edges + 1) {
-            print "need one more bin label than bin edges" > "/dev/stderr"; exit 1
-        }
-    }
-
-    FNR == 1 {
-        split(somatic, list, ",")
-        for (i in list) is_somatic[list[i]]
-        for (i = 1; i <= NF; i++) {
-            if (index($i, prefix) == 1) germline_col[i]
-            if ($i in is_somatic)       somatic_col[i]
-            if ($i == "CpGs_onRead")    cpg_col = i
-        }
-        if (length(germline_col) == 0) { print "no columns start with " prefix > "/dev/stderr"; exit 1 }
-        if (length(somatic_col) == 0)  { print "none of " somatic " found"    > "/dev/stderr"; exit 1 }
-        next
-    }
-
-    {
-        first = 1
-        for (i in germline_col) { v = $i + 0; if (first || v > g) { g = v; first = 0 } }
-        first = 1
-        for (i in somatic_col)  { v = $i + 0; if (first || v > s) { s = v; first = 0 } }
-        b = bin(g - s)
-        reads[b]++
-        if (cpg_col) cpgs[b] += $cpg_col + 0
-    }
-
-    END {
-        for (b in reads) print b, reads[b], cpgs[b] + 0
-    }
-' "$likelihoods" | sort -k1,1n > "$out.body"
+    -v edges="$bin_edges" -v labels="$bin_labels" \
+    -f "$(dirname "$0")/classify_reads.awk" "$likelihoods" \
+| awk -F'\t' -v OFS='\t' '
+    NR == 1 { next }
+    { reads[$5]++; if ($6 != "NA") cpgs[$5] += $6 }
+    END { for (b in reads) print b, reads[b], cpgs[b] + 0 }
+' | sort -k1,1n > "$out.body"
 
 {
     printf 'classification_bin\treads\tCpGs\n'

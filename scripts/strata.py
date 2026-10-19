@@ -20,12 +20,14 @@ or a site adds a field here, and both scans have to fill it.
 import bisect
 from collections import namedtuple
 
-# What a read key sees: the read's name, its tissue label ("NA" without one),
-# its length in bases, whether it is aligned to the reverse strand, its
-# mapping quality to the diploid assembly, and its PacBio tags np (passes), rq
+# What a read key sees: the read's name, its tissue label and its
+# germline/somatic bin from the methylation model ("NA" without one), its
+# length in bases, whether it is aligned to the reverse strand, its mapping
+# quality to the diploid assembly, and its PacBio tags np (passes), rq
 # (predicted accuracy), fn and rn (full passes on each strand of the
 # molecule), None where the read has no such tag.
-Read = namedtuple("Read", "name tissue length reverse mapq passes accuracy forward_passes reverse_passes")
+Read = namedtuple("Read", "name tissue methylation_bin length reverse mapq passes accuracy "
+                          "forward_passes reverse_passes")
 
 # What a site key sees, for the read bases tested: their base qualities, the
 # share of covering subreads that match each of them (None if the read has no
@@ -64,6 +66,9 @@ def keys(**parameters):
     min_kmerq = parameters["min_kmerq"]
     read_keys = [
         ("tissue", lambda read: read.tissue),
+        # All 14 bins of classify_reads.awk, so the germline threshold
+        # can be chosen later; NA for reads or samples without a score.
+        ("methylation_bin", lambda read: read.methylation_bin),
         ("read_length_bin", lambda read: length_bin(read.length)),
         # The strand of the assembly the read is aligned to.
         ("aligned_strand", lambda read: "-" if read.reverse else "+"),

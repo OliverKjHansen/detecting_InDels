@@ -13,12 +13,14 @@ from strata import Site, Strata
 ReadEntry = namedtuple("ReadEntry", "end sequence qualities key tags support events")
 
 
-def read_entry(alignment, tissue_table, strata, fasta, contig):
+def read_entry(alignment, tissue_table, classification_table, strata, fasta, contig):
     """The ReadEntry of an alignment."""
     tags = subread_tags(alignment)
     reference = fasta.fetch(contig, alignment.reference_start, alignment.reference_end).upper()
+    name = alignment.query_name
     return ReadEntry(alignment.reference_end, alignment.query_sequence, alignment.query_qualities,
-                     strata.of_read(describe(alignment, tissue_table.get(alignment.query_name, "NA"))),
+                     strata.of_read(describe(alignment, tissue_table.get(name, "NA"),
+                                             classification_table.get(name, "NA"))),
                      tags, subread_support(tags), events(alignment, reference))
 
 
@@ -52,6 +54,19 @@ def load_filters_with_tree(bedfile, window_start=None, window_end=None): #for in
             tree[start:end] = True
     
     return tree
+
+
+def load_read_classification(classification_file):
+    """
+    readID -> germline/somatic bin, from read_classification.sh's table.
+    Samples without methylation scores pass "NA": every read is NA.
+    """
+    if classification_file == "NA":
+        return {}
+    with open(classification_file) as f:
+        header = f.readline().rstrip("\n").split("\t")
+        read, label = header.index("readID"), header.index("classification_bin")
+        return {fields[read]: fields[label] for fields in (line.rstrip("\n").split("\t") for line in f)}
 
 
 def load_tissue_classification(tissue_file):
@@ -128,7 +143,7 @@ def homopolymer_check(seq):
 def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
-                       *, coverage_band, indel_sizes, key_parameters, flank_width):
+                       *, coverage_band, indel_sizes, key_parameters, flank_width, classification_file="NA"):
     """
     Call InDels of the sizes in indel_sizes, (smallest, largest) in bp, and
     count opportunities outside the mask in one pass over the BAM, and write
@@ -140,7 +155,8 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     Only positions whose depth is within coverage_band, (low, high) multiples
     of the sample's mean coverage, are scanned. key_parameters are the
     `strata` block of config.yaml. Each call carries flank_width bases of the
-    assembly on each side of its anchor.
+    assembly on each side of its anchor. classification_file is
+    read_classification.sh's table of the sample's reads, or "NA".
 
     Calls: InDels of those sizes at positions outside the mask (the filters
     BED), except those whose sequence plus one flanking base on each side is a
@@ -169,6 +185,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     fasta = pysam.FastaFile(fastafile)
     interval_tree = load_filters_with_tree(filters, window_start, window_end) # IntervalTree
     d = load_tissue_classification(tissue_file)
+    classified = load_read_classification(classification_file)
     strata = Strata(**key_parameters)
 
     min_mapping_qual = 0 # to have more contorl over pysam
@@ -195,7 +212,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
         key = (alignment.query_name, alignment.reference_start, alignment.flag)
         entry = reads.get(key)
         if entry is None:
-            entry = reads[key] = read_entry(alignment, d, strata, fasta, contig)
+            entry = reads[key] = read_entry(alignment, d, classified, strata, fasta, contig)
         return entry
 
     # Canonical k-mer and homopolymer check of a run (k-mer plus its flanking
@@ -431,7 +448,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                        average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
-                       *, coverage_band, key_parameters, flank_width):
+                       *, coverage_band, key_parameters, flank_width, classification_file="NA"):
     """
     Call InDels and count opportunities inside tandem repeat tracts for several
     repeat models (M0, M1, M2) in one pass over the BAM.
@@ -463,7 +480,8 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     Only positions whose depth is within coverage_band, (low, high) multiples
     of the sample's mean coverage, are scanned. key_parameters are the
     `strata` block of config.yaml. Each call carries flank_width bases of the
-    assembly on each side of its anchor.
+    assembly on each side of its anchor. classification_file is
+    read_classification.sh's table of the sample's reads, or "NA".
 
     With window_start/window_end, only positions in [window_start, window_end)
     are scanned; each position belongs to one window, so windows never report
@@ -482,6 +500,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
              for model, bedfile in tr_beds.items()}
 
     d = load_tissue_classification(tissue_file)
+    classified = load_read_classification(classification_file)
 
     min_mapping_qual = 0
     min_base_qual = 0
@@ -511,7 +530,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
         key = (alignment.query_name, alignment.reference_start, alignment.flag)
         entry = reads.get(key)
         if entry is None:
-            entry = reads[key] = read_entry(alignment, d, strata, fasta, contig)
+            entry = reads[key] = read_entry(alignment, d, classified, strata, fasta, contig)
         return entry
 
     fastq_reads = set()

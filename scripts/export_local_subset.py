@@ -274,6 +274,9 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     if source.is_listed("tissue_samples", species, sample):
         source_tissue, tissue = both("tissue")
         copy_rows_of_reads(source_tissue, tissue, names, header=True)
+    source_classification, classification = both("read_classification")
+    if source.is_listed("methylation_samples", species, sample) and os.path.exists(source_classification):
+        copy_rows_of_reads(source_classification, classification, names, header=True)
     models = source.config["repeats"]["models"]
     for model in models:
         copy_overlapping(*both("tandem_repeats", contig=contig, model=model), contig, left, right, header=True)
