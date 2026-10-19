@@ -1,0 +1,47 @@
+# Full toolchain, including the external binaries and R packages that pip
+# cannot provide. Use this on the cluster:
+#
+#   conda env create -f environment.yml
+#   conda activate detecting-indels
+#   export INDEL_PROFILE=cluster
+#
+# On macOS some of these (notably pbmm2) have no osx-arm64 build; for local work
+# use requirements.txt instead and rely on `make test`, which exercises the
+# pure-Python analysis code against tests/fixtures/ and needs no binaries.
+
+name: detecting-indels
+
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - python=3.11
+
+  # Workflow engine
+  - gwf>=1.7
+
+  # Analysis
+  - pysam>=0.21
+  - pandas>=1.3
+  - intervaltree>=3.1
+  - pyyaml>=5.4
+
+  # Testing
+  - pytest>=7.0
+
+  # External binaries invoked from workflow recipes
+  - samtools
+  - bedtools
+  - pbmm2
+  - trf
+  - ucsc-fasplit
+
+  # Plotting
+  - r-base
+  - r-ggplot2
+  - r-dplyr
+  - r-tidyr
+
+# NOTE: mreps is not packaged in bioconda. It is built from source and its
+# location is set per profile under `tools.mreps` in config.yaml.

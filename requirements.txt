@@ -1,0 +1,17 @@
+# Python dependencies for local development.
+#
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+#
+# The external binaries (samtools, bedtools, pbmm2, mreps, trf, faSplit) and the
+# R packages are NOT installable with pip - see environment.yml for a conda
+# environment that provides the full toolchain on the cluster.
+
+gwf>=1.7
+pysam>=0.21
+pandas>=1.3
+intervaltree>=3.1
+pyyaml>=5.4
+
+# Testing
+pytest>=7.0

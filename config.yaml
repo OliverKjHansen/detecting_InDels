@@ -2,7 +2,7 @@
 samples:
   human: [ob2v, ob003h, ob006, ob007, ob008, ob009, da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
   marmoset: [marmoset, lambiek, sidonia]
-  chimp: [stephan, carl, marlock, martin, mongo, yoran] #martin
+  chimp: [stephan, carl, marlock, mongo, yoran] #martin
   bonobo: [matos]
   gorilla: [mbewe, samson, kipenzi] 
   baboon: [sethi]     # bs5v: contaminated
@@ -21,7 +21,7 @@ tissue_samples:
   gibbon: [pink_eric]
   pig_tailed_macaque: [lenny]
   rhesus_macaque: [R21008, R22013, R15079]
-  long_tailed_macaque: [J12013, J17017] # J17017
+  long_tailed_macaque: [J12013] # J17017
   marmoset: [marmoset, lambiek, sidonia]
 
 # Samples with per-read cell-type likelihoods from the methylation model. Both
@@ -36,6 +36,63 @@ methylation_samples:
 #the  sample benjie is not here, 
 sperm_samples:
   human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
+
+# Age of the individual in years, from the sample sheet. One age per animal, so
+# a sample sequenced from several tissues has a single entry. Samples with no
+# age on the sheet are absent here: human/aa_sperm, marmoset/lambiek and
+# marmoset/sidonia. Samples that are on the sheet but not switched on in
+# `samples` above are kept, so the age is there when they are.
+sample_age:
+  human:
+    ob2v: 15
+    ob003h: 56
+    ob006: 64
+    ob007: 44
+    ob008: 62
+    ob009: 60
+    la4: 24
+    da1: 49
+    tsaed: 35
+    chk: 25
+    la: 27
+    ph: 35
+    tr: 38
+  marmoset:
+    marmoset: 11
+  chimp:
+    carl: 32
+    stephan: 14
+    marlock: 28
+    benjie: 33
+    martin: 28
+    mongo: 21
+    yoran: 37
+  bonobo:
+    matos: 61
+  gorilla:
+    samson: 43
+    mbewe: 22
+    kipenzi: 21
+  baboon:
+    bs5v: 5
+    sethi: 15
+  gibbon:
+    gibbon_testis: 6
+    gibbon_sperm: 6
+    tarzan: 38
+    pink_eric: 24
+  orangutan:
+    sibu: 45
+    kevin: 43
+  pig_tailed_macaque:
+    lenny: 4
+  rhesus_macaque:
+    R15079: 9
+    R21008: 4
+    R22013: 3
+  long_tailed_macaque:
+    J17017: 8
+    J12013: 13
 
 #tissue that contains testis 
 # yoran	pink_eric	lenny	marmoset lambiek	matos sibu	kevin	R15079

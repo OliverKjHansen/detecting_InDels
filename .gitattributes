@@ -1,0 +1,3 @@
+# Commit notebooks without outputs; the copies on disk keep theirs.
+# The filter itself is set up per clone; see "Analysis notebooks" in the README.
+*.ipynb filter=strip-notebook-outputs

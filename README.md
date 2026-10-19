@@ -134,13 +134,27 @@ config.yaml at the binary (more on the [mreps webpage](http://mreps.univ-mlv.fr/
 ```bash
 git clone https://github.com/gregorykucherov/mreps.git
 cd mreps
+git checkout 5e0ec29    # mreps 2.6, the version used here
 make
 ./mreps -res 1 -fasta test/sequence.fasta   # quick check
 ```
 
 TRF must support `-ngs` and `-l`, as TRF 4.10 does. `tools.trf` points at the
 binary, so a build from [source](https://github.com/Benson-Genomics-Lab/TRF)
-works as well as the bioconda package.
+works as well as the bioconda package:
+
+```bash
+git clone https://github.com/Benson-Genomics-Lab/TRF.git
+cd TRF
+git checkout 355c1f9    # the version used here: 13 commits after tag v4.10.0-rc.2
+mkdir build && cd build
+../configure && make    # the binary is build/src/trf
+```
+
+The local source copies in `TRF/` and `mreps/` are at those two commits. The
+cluster binaries in config.yaml are built the same way, but which commits they
+were built from hasn't been checked; `mreps -version` and `trf -v` on the
+cluster would confirm it.
 
 For local work (tests and notebooks), [requirements.txt](requirements.txt) is
 enough:
@@ -861,6 +875,20 @@ ggplot2, and the IRkernel Jupyter kernel.
 | [repetitive_mutation_rate.ipynb](plotting/repetitive_mutation_rate.ipynb) | `results/repetitive_indels/` and the summaries | rates inside repeats per period, motif, tract length and tissue, compared between models |
 | [nonrepetitive_indels.ipynb](plotting/nonrepetitive_indels.ipynb) | `results/nonrepetitive_indels/` and `results/repetitive_indels/` | rates outside repeats per size, context, contig and tissue, and against one-unit InDels in repeat tracts |
 
+Committed notebooks carry no outputs, while the copies on disk keep theirs.
+[.gitattributes](.gitattributes) sends every notebook through
+[scripts/strip_notebook_outputs.py](scripts/strip_notebook_outputs.py) on its
+way into git. The filter is defined per clone, so set it up once after cloning:
+
+```bash
+git config filter.strip-notebook-outputs.clean "python3 scripts/strip_notebook_outputs.py"
+git config filter.strip-notebook-outputs.required true
+```
+
+Without the first line, git commits notebooks with their outputs. The second
+makes `git add` stop with an error if the filter fails, for instance on a
+notebook that isn't valid JSON, rather than staging it unfiltered.
+
 `results/` is small enough to copy from the cluster with rsync.
 [scripts/fetch_results.py](scripts/fetch_results.py) automates that, but it was
 written for an earlier layout: it expects `paths.output_root` and a `remote`
@@ -892,6 +920,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_pure_functions.py](tests/test_pure_functions.py) | canonicalisation, the homopolymer rule, reading the `sa` tag, Hamming purity, walking the haploid CIGAR |
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
 | [tests/test_config.py](tests/test_config.py) | config.yaml and the workflow sources, read as text |
+| [tests/test_strip_notebook_outputs.py](tests/test_strip_notebook_outputs.py) | the notebook clean filter, alone and through git |
 
 The fixtures in `tests/fixtures/` come from
 [tests/make_fixtures.py](tests/make_fixtures.py), which `conftest.py` runs when
@@ -927,9 +956,14 @@ scripts/
   recanonicalise_motifs.py         relabel motifs in files from before strands were collapsed
   trf_diagnose.sh                  what makes TRF slow in a region
   fetch_results.py                 rsync results/ from the cluster (earlier layout)
+  strip_notebook_outputs.py        git clean filter: notebooks are committed without outputs
 plotting/                          analysis notebooks (R)
 tests/                             pytest suite and fixture generator
 ```
+
+Not tracked by git: `results/`, `mirror/`, `plots/`, `figs/` and `papers/`
+(local data, figures and papers), `TRF/` and `mreps/` (tool sources, see
+*Requirements*), and `tests/fixtures/`, which `make_fixtures.py` rebuilds.
 
 Scripts the workflows no longer use:
 

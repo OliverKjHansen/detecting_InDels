@@ -5,6 +5,7 @@ test
 .DS_Store
 ._.DS_Store
 .*
+!.gitattributes
 
 ### Output ###
 output/
@@ -12,4 +13,18 @@ fasplit/
 old_output/
 
 unit_tests/
+
+### Local data, figures, papers and tool sources (top level only) ###
+/results/
+/mirror/
+/plots/
+/figs/
+/papers/
+/TRF/
+/mreps/
+
+### Generated ###
+__pycache__/
+# Rebuilt by tests/make_fixtures.py, which conftest.py runs when they're missing.
+/tests/fixtures/
 
