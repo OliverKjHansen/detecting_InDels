@@ -69,7 +69,7 @@ def test_layout_templates_resolve_against_the_declared_roots(cfg):
     """
     roots = {key: "ROOT" for key in cfg["paths"]}
     fields = {"species": "SPECIES", "sample": "SAMPLE", "contig": "CONTIG", "model": "MODEL",
-              "start": 0, "end": 1, "k": 2, "assembly_type": cfg["assembly_type"]}
+              "haplotype": "HAPLOTYPE", "start": 0, "end": 1, "k": 2, "assembly_type": cfg["assembly_type"]}
     for key, template in cfg["layout"].items():
         try:
             template.format(**roots, **fields)

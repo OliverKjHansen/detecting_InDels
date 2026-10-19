@@ -291,6 +291,10 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
         copy_overlapping(*both("repetitive_tracts", contig=contig, model=model), contig, left, right, header=True)
     for workflow in ["nonrepetitive"] + (["repetitive"] if has_workflow4 else []):
         copy_rows_of_reads(*both(f"{workflow}_haploid_locations"), names)
+        for haplotype in source.haplotypes:
+            origin, copy = both(f"{workflow}_haplotype_locations", haplotype=haplotype)
+            if os.path.exists(origin):   # absent if the workflow ran before the hap1/hap2 test
+                copy_rows_of_reads(origin, copy, names)
 
     # The cluster's tables for the window, to compare a local run with.
     log("  the cluster's tables for the window")

@@ -60,13 +60,21 @@ def main():
         subprocess.run([sys.executable, os.path.join(SCRIPTS, script), *map(str, args)],
                        stdout=stdout or log, stderr=log, check=True)
 
-    def replay(calls, locations, reads, results, *options):
+    def replay(workflow, calls, reads, results, *options):
         """
         The haploid check and the final filters, from a scan's calls,
-        opportunities and reads (the FASTQ the workflows remap).
+        opportunities and reads (the FASTQ the workflows remap), with the
+        hap1/hap2 test if the window has the reads' alignments to each
+        haplotype.
         """
+        haplotypes = []
+        for haplotype in current["precompute"]["haplotype_prefixes"]:
+            records = data.path(f"{workflow}_haplotype_locations", species, sample, haplotype=haplotype)
+            if os.path.exists(records):
+                haplotypes += ["--haplotype", f"{haplotype}={records}"]
         with open(f"{results}/merged_indels.tsv", "w") as merged:
-            run("filtering_haploid_mappping.py", calls, locations, reads, stdout=merged)
+            run("filtering_haploid_mappping.py", calls, data.path(f"{workflow}_haploid_locations", species, sample),
+                reads, *haplotypes, stdout=merged)
         run("filtering_small_indels.py", f"{results}/merged_indels.tsv", "-o", f"{results}/indels.tsv",
             "--keep", "kmerQ_pass=pass", *options,
             "--report", f"{results}/filter_report.tsv")
@@ -79,7 +87,7 @@ def main():
     run("nonrepetitive_scan.py", data.path("nonrepetitive_mask", species, sample, contig=contig), *inputs,
         f"{w3}/calls.tsv", f"{w3}/opportunities.tsv", f"{w3}/reads.fastq",
         *scan_options, "--indel-sizes", *current["scan"]["indel_sizes"])
-    replay(f"{w3}/calls.tsv", data.path("nonrepetitive_haploid_locations", species, sample), f"{w3}/reads.fastq", w3)
+    replay("nonrepetitive", f"{w3}/calls.tsv", f"{w3}/reads.fastq", w3)
     tables = [("workflow 3", w3, f"{cluster}/nonrepetitive_indels")]
 
     def tracts(model):
@@ -103,8 +111,8 @@ def main():
                            f"{w4}/{model}/calls.tsv", f"{w4}/{model}/opportunities.tsv"]
         run("tandem_repeat_scan.py", *inputs, f"{w4}/reads.fastq", *scan_options, *model_args)
         for model in models:
-            replay(f"{w4}/{model}/calls.tsv", data.path("repetitive_haploid_locations", species, sample),
-                   f"{w4}/reads.fastq", f"{w4}/{model}", "--min-read-end-distance", filters["min_read_end_distance"])
+            replay("repetitive", f"{w4}/{model}/calls.tsv", f"{w4}/reads.fastq", f"{w4}/{model}",
+                   "--min-read-end-distance", filters["min_read_end_distance"])
             tables.append((f"workflow 4 {model}", f"{w4}/{model}", f"{cluster}/repetitive_indels/{model}"))
 
     # Opportunities only for a whole scan job: the cluster counts them per job.

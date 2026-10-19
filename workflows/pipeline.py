@@ -86,6 +86,11 @@ class Pipeline:
         """The scans' --key-parameters: the `strata` block, as JSON quoted for the shell."""
         return shlex.quote(json.dumps(self.config["strata"], separators=(",", ":")))
 
+    @property
+    def haplotypes(self):
+        """{name: prefix}: the diploid assembly's haplotypes, hap1 and hap2, and how their contigs' names start."""
+        return self.config["precompute"]["haplotype_prefixes"]
+
     def long_contigs(self, species, sample):
         """
         {contig: length} for the contigs of the sample's assembly longer than
@@ -98,6 +103,16 @@ class Pipeline:
                 if int(length) > self.config["min_contig_length"]:
                     contigs[contig] = int(length)
         return contigs
+
+
+def remapping(reference, reads, bam, locations):
+    """
+    A shell command that aligns reads (FASTQ) to a reference with pbmm2 and
+    writes each alignment's read, flag, contig, position, mapQ and CIGAR,
+    sorted by read: the records the haploid check reads.
+    """
+    return (f"pbmm2 align {reference} {reads} {bam} --preset HIFI --sort -j 12 -J 4 -m 8G && "
+            f"samtools view {bam} | awk -v OFS='\\t' '{{print $1,$2,$3,$4,$5,$6}}' | sort -k1,1 > {locations}")
 
 
 def summed_counts(inputs, output):

@@ -3,12 +3,20 @@ The haploid check: is each call also in its read's alignment to the haploid
 assembly?
 
     python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>
+        [--haplotype hap1=<hap1_locations.tsv> --haplotype hap2=<hap2_locations.tsv>]
 
 locations.tsv holds the reads' haploid alignment records (read, flag, contig,
 position, mapQ, CIGAR) and reads.fastq the reads that were remapped, as
 sequenced. Prints the calls with the read's haploid record and the columns
 haploid_check, distance_to_indel_in_hap, softclip_haploid and other_ops.
+
+Each --haplotype gives the same reads' records against one haplotype of the
+diploid assembly alone, and adds a column {name}_check: whether the call is
+in that alignment, by the same test. A mutation is in the read, so it shows
+against both haplotypes; a germline difference between them, on a read
+aligned to the wrong one, disappears against the read's own (ticket 19).
 """
+import argparse
 import re
 import sys
 from collections import defaultdict
@@ -161,9 +169,10 @@ def haploid_records(locations_file):
   return records.drop_duplicates(subset="readID").set_index("readID")
 
 
-def check_tables(calls_files, records, reads_file):
+def check_tables(calls_files, record_sets, reads_file):
   """
-  check_call() for every call of every table, one list per table in row order.
+  check_call() for every call of every table against each set of alignment
+  records: per set, one list per table in row order.
 
   The FASTQ holds every read carrying a call, which can be most of a sample's
   reads, so it is streamed once and each read's calls are checked as it
@@ -171,29 +180,32 @@ def check_tables(calls_files, records, reads_file):
   another length there than in the call, since its position would then be
   in another read.
   """
-  checks, waiting = [], defaultdict(list)
+  tables, waiting = [], defaultdict(list)
   for number, calls_file in enumerate(calls_files):
     calls = pandas.read_csv(calls_file, sep="\t", usecols=CALL_COLUMNS, dtype=str, keep_default_na=False)
-    checks.append([UNCHECKED] * len(calls))
+    tables.append(len(calls))
     for row, call in enumerate(calls.itertuples(index=False)):
       waiting[call.readID].append((number, row, call))
+  checks = [[[UNCHECKED] * rows for rows in tables] for _ in record_sets]
 
-  flags = dict(zip(records.index, records.bitflag_hap.astype(int)))
-  cigars = dict(zip(records.index, records.cigar_hap))
+  alignments = [(dict(zip(records.index, records.bitflag_hap.astype(int))), dict(zip(records.index, records.cigar_hap)))
+                for records in record_sets]
   unusable = clipped = 0
   with pysam.FastxFile(reads_file) as reads:
     for read in reads:
       for number, row, call in waiting.pop(read.name, []):
         if int(call.read_length) != len(read.sequence):
           continue
-        check = check_call(read.sequence, flags.get(read.name), cigars.get(read.name), int(call.start),
-                           call.indel_type, call.indel_string, call.diploid_direction)
-        unusable += check[2] is None
-        clipped += check[2] is not None and check[0] is None
-        checks[number][row] = check
+        for set_number, (flags, cigars) in enumerate(alignments):
+          check = check_call(read.sequence, flags.get(read.name), cigars.get(read.name), int(call.start),
+                             call.indel_type, call.indel_string, call.diploid_direction)
+          checks[set_number][number][row] = check
+        haploid = checks[0][number][row]
+        unusable += haploid[2] is None
+        clipped += haploid[2] is not None and haploid[0] is None
 
-  total = sum(len(table) for table in checks)
-  unchecked = sum(check[0] is None for table in checks for check in table)
+  total = sum(tables)
+  unchecked = sum(check[0] is None for table in checks[0] for check in table)
   print(f"{unchecked:,} of {total:,} calls without a haploid check: {unusable:,} on reads without a "
         f"flag 0 or 16 haploid record, {clipped:,} clipped off by the haploid alignment or with one of "
         f"another length, "
@@ -203,25 +215,32 @@ def check_tables(calls_files, records, reads_file):
 
 
 def main():
-  # Usage: python filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>
   # Several call tables (e.g. one per contig) are checked against the locations
   # and the reads, which are read only once, and written out as one table with
   # one header. The reads are the FASTQ that was remapped to the haploid
-  # assembly.
-  if len(sys.argv) < 4:
-    sys.exit("Usage: filtering_haploid_mappping.py <calls.tsv> [<calls.tsv> ...] <locations.tsv> <reads.fastq>")
-  *calls_files, locations_file, reads_file = sys.argv[1:]
+  # assembly and to each haplotype.
+  parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+  parser.add_argument("calls", nargs="+", help="call tables")
+  parser.add_argument("locations", help="the reads' haploid alignment records")
+  parser.add_argument("reads", help="the remapped reads, as FASTQ")
+  parser.add_argument("--haplotype", action="append", default=[], metavar="NAME=LOCATIONS",
+                      help="the reads' alignment records against one haplotype alone")
+  args = parser.parse_args()
+  haplotypes = [entry.split("=", 1) for entry in args.haplotype]
 
-  records = haploid_records(locations_file)
-  checks = check_tables(calls_files, records, reads_file)
-  for file_number, calls_file in enumerate(calls_files):
-    check_calls(calls_file, records, checks[file_number], print_header=(file_number == 0))
+  records = haploid_records(args.locations)
+  checks = check_tables(args.calls, [records] + [haploid_records(path) for _, path in haplotypes], args.reads)
+  for file_number, calls_file in enumerate(args.calls):
+    check_calls(calls_file, records, checks[0][file_number],
+                {f"{name}_check": checks[1 + i][file_number] for i, (name, _) in enumerate(haplotypes)},
+                print_header=(file_number == 0))
 
 
-def check_calls(calls_file, records, checks, print_header):
+def check_calls(calls_file, records, checks, haplotype_checks, print_header):
   """
-  Print one call table with its read's haploid record and its checks. Every
-  call is printed: the ones the check could not make have NA in its columns.
+  Print one call table with its read's haploid record, its checks and, per
+  haplotype column, whether the call is in that haplotype's alignment. Every
+  call is printed: the ones a check could not make have NA in its columns.
   The call's own columns are printed as written.
   """
   calls = pandas.read_csv(calls_file, sep="\t", dtype=str, keep_default_na=False)
@@ -230,6 +249,8 @@ def check_calls(calls_file, records, checks, print_header):
   new_columns = ["haploid_check", "distance_to_indel_in_hap", "softclip_haploid", "other_ops"]
   for column, values in zip(new_columns, zip(*checks) if checks else [[]] * len(new_columns)):
     merged[column] = pandas.Series(values, index=merged.index, dtype=object)
+  for column, column_checks in haplotype_checks.items():
+    merged[column] = pandas.Series([check[0] for check in column_checks], index=merged.index, dtype=object)
   merged.to_csv(sys.stdout, sep="\t", index=False, header=print_header, na_rep="NA")
 
 

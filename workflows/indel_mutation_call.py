@@ -2,7 +2,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import Pipeline, summed_counts
+from pipeline import Pipeline, remapping, summed_counts
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -211,9 +211,28 @@ for species, samples in config["samples"].items():
         ) << f"""
         mkdir -p {haploid_dir}
         cat {fastq_list} > {combined_fastq}
-        pbmm2 align {haploid} {combined_fastq} {remapped_bam} --preset HIFI --sort -j 12 -J 4 -m 8G
-        samtools view {remapped_bam} | awk -v OFS='\\t' '{{print $1,$2,$3,$4,$5,$6}}' | sort -k1,1 > {haploid_locations}
+        {remapping(haploid, combined_fastq, remapped_bam, haploid_locations)}
         """
+
+        # Step 4b — the same reads aligned to each haplotype of the diploid
+        # assembly alone, for the hap1/hap2 test.
+        haplotype_locations = {}
+        for haplotype in pipeline.haplotypes:
+            reference = path("haplotype_assembly", haplotype=haplotype)
+            haplotype_bam = path("nonrepetitive_haplotype_bam", haplotype=haplotype)
+            haplotype_locations[haplotype] = path("nonrepetitive_haplotype_locations", haplotype=haplotype)
+            gwf.target(
+                f"non_rep_HaplotypeMapping_{haplotype}_{species}_{sample}_{assembly_type}",
+                inputs=[combined_fastq, reference],
+                outputs=[haplotype_bam, haplotype_locations[haplotype]],
+                cores=16,
+                memory="100g",
+                walltime="24:00:00",
+            ) << f"""
+            {remapping(reference, combined_fastq, haplotype_bam, haplotype_locations[haplotype])}
+            """
+        haplotype_options = " ".join(f"--haplotype {haplotype}={locations}"
+                                     for haplotype, locations in haplotype_locations.items())
 
         calls_list           = " ".join(calls.values())
         opportunities_list   = " ".join(opportunities.values())
@@ -228,14 +247,14 @@ for species, samples in config["samples"].items():
         # kept once) with species/sample added.
         gwf.target(
             f"non_rep_HaploidFilter_{species}_{sample}_{assembly_type}",
-            inputs=list(calls.values()) + [haploid_locations, combined_fastq],
+            inputs=list(calls.values()) + [haploid_locations, combined_fastq] + list(haplotype_locations.values()),
             outputs=[merged_indels],
             cores=1,
             memory="20g",
             walltime="12:00:00",
         ) << f"""
         mkdir -p {merged_dir}
-        python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} {combined_fastq} > {merged_indels}.tmp
+        python {scripts}/filtering_haploid_mappping.py {calls_list} {haploid_locations} {combined_fastq} {haplotype_options} > {merged_indels}.tmp
         awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' {merged_indels}.tmp > {merged_indels}
         rm -f {merged_indels}.tmp
         """

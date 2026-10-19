@@ -214,7 +214,9 @@
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -225,14 +227,16 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_ape_s1_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -243,14 +247,16 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_ape_s1_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -261,13 +267,15 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_ape_s2_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -278,13 +286,15 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_ape_s2_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -295,13 +305,15 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_ape_s2_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -312,13 +324,15 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_monkey_s3_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -329,13 +343,15 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M0/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_monkey_s3_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -346,13 +362,15 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M1/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidFilter_monkey_s3_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq"
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -363,7 +381,7 @@
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M2/merged\n            python {ROOT}/scripts/filtering_haploid_mappping.py {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq --haplotype hap1={ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv --haplotype hap2={ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp\n            awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv\n            rm -f {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv.tmp\n            "
  },
  "TRHaploidMapping_ape_s1": {
   "inputs": [
@@ -382,7 +400,7 @@
    "{ROOT}/output/repetitive_indels/ape/s1/haploid/remapped.bam",
    "{ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/ape/s1/haploid\n        cat {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq > {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/ape/s1/haploid_assembly/s1_haploid.fa {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s1/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G\n        samtools view {ROOT}/output/repetitive_indels/ape/s1/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/ape/s1/haploid\n        cat {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq > {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/ape/s1/haploid_assembly/s1_haploid.fa {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s1/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/ape/s1/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s1/haploid/locations.tsv\n        "
  },
  "TRHaploidMapping_ape_s2": {
   "inputs": [
@@ -400,7 +418,7 @@
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/remapped.bam",
    "{ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/ape/s2/haploid\n        cat {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq > {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/ape/s2/haploid_assembly/s2_haploid.fa {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s2/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G\n        samtools view {ROOT}/output/repetitive_indels/ape/s2/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/ape/s2/haploid\n        cat {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq > {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/ape/s2/haploid_assembly/s2_haploid.fa {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s2/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/ape/s2/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s2/haploid/locations.tsv\n        "
  },
  "TRHaploidMapping_monkey_s3": {
   "inputs": [
@@ -418,7 +436,109 @@
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/remapped.bam",
    "{ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/haploid\n        cat {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq > {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/monkey/s3/haploid_assembly/s3_haploid.fa {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq {ROOT}/output/repetitive_indels/monkey/s3/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G\n        samtools view {ROOT}/output/repetitive_indels/monkey/s3/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv\n        "
+  "spec": "\n        mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/haploid\n        cat {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq > {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq\n        pbmm2 align {ROOT}/fasta/monkey/s3/haploid_assembly/s3_haploid.fa {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq {ROOT}/output/repetitive_indels/monkey/s3/haploid/remapped.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/monkey/s3/haploid/remapped.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/monkey/s3/haploid/locations.tsv\n        "
+ },
+ "TRHaplotypeMapping_hap1_ape_s1": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq",
+   "{ROOT}/output/precomute/ape/s1/haplotypes/hap1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 16,
+   "memory": "100g",
+   "walltime": "24:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap1.bam",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv"
+  ],
+  "spec": "\n            pbmm2 align {ROOT}/output/precomute/ape/s1/haplotypes/hap1.fa {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s1/haploid/hap1.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/ape/s1/haploid/hap1.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s1/haploid/hap1_locations.tsv\n            "
+ },
+ "TRHaplotypeMapping_hap1_ape_s2": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq",
+   "{ROOT}/output/precomute/ape/s2/haplotypes/hap1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 16,
+   "memory": "100g",
+   "walltime": "24:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap1.bam",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv"
+  ],
+  "spec": "\n            pbmm2 align {ROOT}/output/precomute/ape/s2/haplotypes/hap1.fa {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s2/haploid/hap1.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/ape/s2/haploid/hap1.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s2/haploid/hap1_locations.tsv\n            "
+ },
+ "TRHaplotypeMapping_hap1_monkey_s3": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq",
+   "{ROOT}/output/precomute/monkey/s3/haplotypes/hap1.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 16,
+   "memory": "100g",
+   "walltime": "24:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1.bam",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv"
+  ],
+  "spec": "\n            pbmm2 align {ROOT}/output/precomute/monkey/s3/haplotypes/hap1.fa {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq {ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/monkey/s3/haploid/hap1_locations.tsv\n            "
+ },
+ "TRHaplotypeMapping_hap2_ape_s1": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq",
+   "{ROOT}/output/precomute/ape/s1/haplotypes/hap2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 16,
+   "memory": "100g",
+   "walltime": "24:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap2.bam",
+   "{ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv"
+  ],
+  "spec": "\n            pbmm2 align {ROOT}/output/precomute/ape/s1/haplotypes/hap2.fa {ROOT}/output/repetitive_indels/ape/s1/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s1/haploid/hap2.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/ape/s1/haploid/hap2.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s1/haploid/hap2_locations.tsv\n            "
+ },
+ "TRHaplotypeMapping_hap2_ape_s2": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq",
+   "{ROOT}/output/precomute/ape/s2/haplotypes/hap2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 16,
+   "memory": "100g",
+   "walltime": "24:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap2.bam",
+   "{ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv"
+  ],
+  "spec": "\n            pbmm2 align {ROOT}/output/precomute/ape/s2/haplotypes/hap2.fa {ROOT}/output/repetitive_indels/ape/s2/haploid/all.fastq {ROOT}/output/repetitive_indels/ape/s2/haploid/hap2.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/ape/s2/haploid/hap2.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/ape/s2/haploid/hap2_locations.tsv\n            "
+ },
+ "TRHaplotypeMapping_hap2_monkey_s3": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq",
+   "{ROOT}/output/precomute/monkey/s3/haplotypes/hap2.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 16,
+   "memory": "100g",
+   "walltime": "24:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2.bam",
+   "{ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv"
+  ],
+  "spec": "\n            pbmm2 align {ROOT}/output/precomute/monkey/s3/haplotypes/hap2.fa {ROOT}/output/repetitive_indels/monkey/s3/haploid/all.fastq {ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2.bam --preset HIFI --sort -j 12 -J 4 -m 8G && samtools view {ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2.bam | awk -v OFS='\\t' '{print $1,$2,$3,$4,$5,$6}' | sort -k1,1 > {ROOT}/output/repetitive_indels/monkey/s3/haploid/hap2_locations.tsv\n            "
  },
  "TRMergeAndPlot_ape_s1_M0": {
   "inputs": [

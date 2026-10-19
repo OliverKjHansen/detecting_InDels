@@ -52,6 +52,27 @@ for species, samples in pipeline.config["samples"].items():
         faSplit byname {assembly} {contigs_dir}/
         """
 
+        # Step 1b — each haplotype of the diploid assembly alone, its contigs
+        # told apart by how their names start, for the hap1/hap2 test.
+        haplotype_assemblies = {haplotype: pipeline.path("haplotype_assembly", species, sample, haplotype=haplotype)
+                                for haplotype in pipeline.haplotypes}
+        split_commands = "\n        ".join(
+            f"awk -v prefix='>{prefix}' '/^>/ {{keep = index($0, prefix) == 1}} keep' {assembly} > {haplotype_assemblies[haplotype]}"
+            for haplotype, prefix in pipeline.haplotypes.items())
+
+        gwf.target(
+            f"haplotypes_{species}_{sample}_{assembly_type}",
+            inputs=[assembly],
+            outputs=list(haplotype_assemblies.values()),
+            cores=1,
+            memory="4g",
+            walltime="04:00:00",
+        ) << f"""
+        set -e
+        mkdir -p {pipeline.folder("haplotype_assembly", species, sample)}
+        {split_commands}
+        """
+
         # Step 2 — average depth across the positions samtools reports.
         long_contigs_bed = pipeline.path("long_contigs", species, sample)
 

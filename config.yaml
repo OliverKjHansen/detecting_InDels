@@ -134,7 +134,8 @@ tools:
 # File layout. These templates are the single source of truth for where data
 # lives; workflows never build paths by hand. Placeholders are filled from
 # `paths` and `assembly_type` above, plus species/sample/contig/model, the period
-# k, and, for files written per window of a contig, start/end.
+# k, the haplotype (hap1 or hap2), and, for files written per window of a
+# contig, start/end.
 # ---------------------------------------------------------------------------
 layout:
   # Raw inputs.
@@ -153,6 +154,7 @@ layout:
   unresolved_summary: "{results}/precompute/{species}/{sample}/unresolved_summary.tsv"
   tissue:       "{output}/precomute/{species}/{sample}/sorted_tissue_classification.tsv"
   read_classification: "{output}/precomute/{species}/{sample}/read_classification.tsv"
+  haplotype_assembly: "{output}/precomute/{species}/{sample}/haplotypes/{haplotype}.fa"
 
   # Written by repetitive_dna.py: per period k (M1 also per window), then one
   # BED per contig per model, and per sample. repeat_bases is every base in a
@@ -187,6 +189,8 @@ layout:
   nonrepetitive_haploid_reads:        "{output}/nonrepetitive_indels/{species}/{sample}/haploid/all.fastq"
   nonrepetitive_haploid_bam:          "{output}/nonrepetitive_indels/{species}/{sample}/haploid/remapped.bam"
   nonrepetitive_haploid_locations:    "{output}/nonrepetitive_indels/{species}/{sample}/haploid/locations.tsv"
+  nonrepetitive_haplotype_bam:        "{output}/nonrepetitive_indels/{species}/{sample}/haploid/{haplotype}.bam"
+  nonrepetitive_haplotype_locations:  "{output}/nonrepetitive_indels/{species}/{sample}/haploid/{haplotype}_locations.tsv"
   nonrepetitive_merged_calls:         "{output}/nonrepetitive_indels/{species}/{sample}/merged/indels.tsv"
   nonrepetitive_merged_opportunities: "{output}/nonrepetitive_indels/{species}/{sample}/merged/opportunities.tsv"
   nonrepetitive_plots:                "{plots}/nonrepetitive_indels/{species}/{sample}/plots.pdf"
@@ -209,6 +213,8 @@ layout:
   repetitive_haploid_reads:        "{output}/repetitive_indels/{species}/{sample}/haploid/all.fastq"
   repetitive_haploid_bam:          "{output}/repetitive_indels/{species}/{sample}/haploid/remapped.bam"
   repetitive_haploid_locations:    "{output}/repetitive_indels/{species}/{sample}/haploid/locations.tsv"
+  repetitive_haplotype_bam:        "{output}/repetitive_indels/{species}/{sample}/haploid/{haplotype}.bam"
+  repetitive_haplotype_locations:  "{output}/repetitive_indels/{species}/{sample}/haploid/{haplotype}_locations.tsv"
   repetitive_merged_calls:         "{output}/repetitive_indels/{species}/{sample}/{model}/merged/indels.tsv"
   repetitive_merged_opportunities: "{output}/repetitive_indels/{species}/{sample}/{model}/merged/opportunities.tsv"
   repetitive_plots:                "{plots}/repetitive_indels/{species}/{sample}/{model}/plots.pdf"
@@ -231,6 +237,12 @@ precompute:
   # unresolved_min_base_quality or more.
   unresolved_min_reads: 2
   unresolved_min_base_quality: 40
+  # The diploid assembly holds both haplotypes' contigs, told apart by how
+  # their names start (hifiasm's h1tg and h2tg). Call-carrying reads are also
+  # aligned to each haplotype alone (the hap1/hap2 test).
+  haplotype_prefixes:
+    hap1: h1tg
+    hap2: h2tg
 
 # Workflow 2.
 repeats:

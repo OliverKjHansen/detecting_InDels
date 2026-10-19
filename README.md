@@ -208,6 +208,7 @@ Parameters:
 |---|---|---|
 | Unresolved-haplotype scan window | 40 Mb | `precompute.unresolved_window_size` |
 | Unresolved-haplotype evidence | ≥ 2 reads with the same base at quality ≥ 40 | `precompute.unresolved_min_reads`, `precompute.unresolved_min_base_quality` |
+| How hap1's and hap2's contig names start | `h1tg`, `h2tg` | `precompute.haplotype_prefixes` |
 | Repeat models | M0, M1, M2 | `repeats.models` |
 | Repeat periods | 2, 3, 4, 5, 6 | `repeats.periods` |
 | mreps minimum exponent (M0, M2) | 3 copies | `repeats.mreps_min_exponent` |
@@ -283,6 +284,7 @@ directory is spelled `precomute` in the code), and the one summary to
 | Step | Target | Runs per | Output |
 |---|---|---|---|
 | 1. Split the assembly | `faSplit_{species}_{sample}_diploid` | sample | `contigs/{contig}.fa` |
+| 1b. Haplotypes alone | `haplotypes_{species}_{sample}_diploid` | sample | `haplotypes/hap1.fa`, `haplotypes/hap2.fa` |
 | 2. Mean coverage | `average_coverage_{species}_{sample}` | sample | `long_contigs.bed`, `avg_coverage.txt` |
 | 3a. Unresolved haplotypes | `unresolved_haplotype_{species}_{sample}_{contig}_{start}_diploid` | 40 Mb window | `unresolved_haplotypes/chunks/{contig}_{start}_{end}.bed` |
 | 3b. Join the windows | `merge_unresolved_{species}_{sample}_{contig}_diploid` | contig | `unresolved_haplotypes/{contig}.bed` |
@@ -291,6 +293,11 @@ directory is spelled `precomute` in the code), and the one summary to
 | 5. Read classification | `read_classification_{species}_{sample}_diploid` | sample in `methylation_samples` | `read_classification.tsv`: every read's germline/somatic score and bin, by [read_classification.sh](scripts/read_classification.sh) |
 
 **Split.** `faSplit byname` writes one FASTA per contig, for mreps in workflow 2.
+
+**Haplotypes alone.** The diploid assembly holds both haplotypes' contigs,
+told apart by how their names start (`precompute.haplotype_prefixes`: hifiasm's
+`h1tg` and `h2tg`). Each haplotype's contigs are copied to a FASTA of their
+own, for the [hap1/hap2 test](#the-hap1hap2-test).
 
 **Mean coverage.** `samtools depth` runs over every contig longer than
 `min_contig_length`, and the depths it reports are averaged (positions without
@@ -470,6 +477,7 @@ and every unresolved-haplotype region. Intermediates go to
 | 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid` | 10 Mb window | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
 | 3. Join the windows | `non_rep_MergeWindows_{species}_{sample}_diploid` | sample | `calls/{contig}.tsv`, `opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
 | 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
+| 4b. Remap to each haplotype | `non_rep_HaplotypeMapping_{haplotype}_{species}_{sample}_diploid` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
 | 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{species}_{sample}_diploid` | sample | `merged/opportunities.tsv`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
 | 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
@@ -495,7 +503,9 @@ and every unresolved-haplotype region. Intermediates go to
    concatenated keeping each read once.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
-   flag, contig, position, mapping quality and CIGAR, sorted by read ID.
+   flag, contig, position, mapping quality and CIGAR, sorted by read ID. The
+   same reads are aligned the same way to hap1 alone and to hap2 alone (4b),
+   for the [hap1/hap2 test](#the-hap1hap2-test).
 5. **Haploid check.** [filtering_haploid_mappping.py](scripts/filtering_haploid_mappping.py)
    checks every call against its read's haploid alignment and its sequence in
    `haploid/all.fastq` (see [Haploid concordance](#haploid-concordance)) and
@@ -524,6 +534,7 @@ Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 | 1. Scan | `TRScan_{contig}_{start}_{species}_{sample}` | 10 Mb window | `{model}/calls/chunks/`, `{model}/opportunities/chunks/`, `fastq/chunks/` |
 | 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
 | 3. Remap to haploid | `TRHaploidMapping_{species}_{sample}` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
+| 3b. Remap to each haplotype | `TRHaplotypeMapping_{haplotype}_{species}_{sample}` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 4. Haploid check | `TRHaploidFilter_{species}_{sample}_{model}` | sample × model | `{model}/merged/indels.tsv` |
 | 5. Merge opportunities, plot | `TRMergeAndPlot_{species}_{sample}_{model}` | sample × model | `{model}/merged/opportunities.tsv`, `plots/repetitive_indels/{species}/{sample}/{model}/plots.pdf` |
 | 6. Final filtering | `TRFinalFiltering_{species}_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
@@ -745,10 +756,24 @@ alignments put an InDel in a repeat at different places. Without a match it is
 
 The check is a column, not a filter: final filtering keeps calls whatever their
 `haploid_check`, and the filter report counts the calls without one. It is to be
-compared with the hap1/hap2 test before the definition of a final call is
-settled. Tables made before this version dropped the calls the check failed,
+compared with the [hap1/hap2 test](#the-hap1hap2-test) before the definition of
+a final call is settled. Tables made before this version dropped the calls the check failed,
 with four bugs in it that failed real InDels (H1–H4 in
 [the review](documents/nonrepetitive_indel_review.md)).
+
+### The hap1/hap2 test
+
+A call can also be a germline difference between the two haplotypes, on a read
+aligned to the wrong one in the diploid assembly. A real mutation is in the
+read, so it shows against both haplotypes; a germline difference disappears
+against the haplotype the read came from. So every read carrying a call is
+also aligned to hap1 alone and to hap2 alone (see [Haplotypes
+alone](#workflow-1-precompute)), and the same check as above, the call's
+InDel anywhere in the stretch it can slide over, gives `hap1_check` and
+`hap2_check`: True, False, or `NA` where it cannot be made (no flag 0 or 16
+record, the call clipped off). True in both is what a mutation looks like;
+True in one only, a germline difference. Like the haploid check it is a
+column, not a filter.
 
 ### Distance to the read end
 
@@ -872,7 +897,9 @@ output/
 │   ├── long_contigs.bed
 │   ├── avg_coverage.txt
 │   ├── unresolved_haplotypes/{contig}.bed        per-window pieces in chunks/
-│   └── sorted_tissue_classification.tsv          tissue_samples only
+│   ├── haplotypes/                               hap1.fa, hap2.fa
+│   ├── sorted_tissue_classification.tsv          tissue_samples only
+│   └── read_classification.tsv                   methylation_samples only
 ├── repetitive_dna/{species}/{sample}/
 │   ├── per_k/                                    per period (and per window for M1)
 │   ├── {contig}_{model}.bed                      overlaps resolved
@@ -883,7 +910,8 @@ output/
 ├── nonrepetitive_indels/{species}/{sample}/
 │   ├── mask/{contig}.bed
 │   ├── calls/  opportunities/  fastq/            per contig; per window in chunks/
-│   ├── haploid/                                  all.fastq, remapped.bam, locations.tsv
+│   ├── haploid/                                  all.fastq, remapped.bam, locations.tsv,
+│   │                                             {haplotype}.bam, {haplotype}_locations.tsv
 │   └── merged/                                   indels.tsv, opportunities.tsv, before final filtering
 └── repetitive_indels/{species}/{sample}/
     ├── fastq/  haploid/                          shared by the models
@@ -948,6 +976,7 @@ positions in the read; the position on the contig is `position`.
 | `distance_to_indel_in_hap` | read bases from the call to the matching haploid InDel (0 means the same place; more where the two alignments put an InDel in a repeat at different places). `NA` without a match. |
 | `softclip_haploid` | whether the haploid CIGAR has a soft clip; `NA` without a usable haploid alignment |
 | `other_ops` | `HPN` if the haploid CIGAR has `H`, `P` or `N` operations, else `NA` |
+| `hap1_check`, `hap2_check` | whether the same InDel is in the read's alignment to hap1 alone, and to hap2 alone; `NA` where that cannot be checked. See [The hap1/hap2 test](#the-hap1hap2-test) |
 | `species`, `sample` | |
 
 ### Opportunities
@@ -1090,13 +1119,22 @@ Two approximations to keep in mind when reading the rates:
 |---|---|
 | [tests/test_pure_functions.py](tests/test_pure_functions.py) | canonicalisation, the homopolymer rule, reading the `sa` tag, Hamming purity |
 | [tests/test_haploid_check.py](tests/test_haploid_check.py) | the haploid check: findings H1–H4 of the review on its CIGAR cases, InDels in a repeat on flipped reads, the calls it cannot check kept with `NA`, the primary record chosen, and the filter report's count of unchecked calls |
+| [tests/test_haplotype_check.py](tests/test_haplotype_check.py) | the hap1/hap2 test: a planted mutation shows against both haplotypes and a germline difference against one, on either strand; precompute's split of the diploid assembly |
+| [tests/test_strata.py](tests/test_strata.py) | the stratification keys: one set, in [strata.py](scripts/strata.py), columns of calls and opportunities in both scans |
+| [tests/test_subreads.py](tests/test_subreads.py) | subread support (S1): the tags read from the other end on reverse-strand reads, and the binned support of the bases tested |
+| [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
+| [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
+| [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
+| [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
+| [tests/test_classification_bins.py](tests/test_classification_bins.py) | the two classification scripts binning reads the same way |
+| [tests/test_compare_tables.py](tests/test_compare_tables.py) | the mirror replay's table comparison: by content, whatever the row order, number format or appended columns |
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
 | [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve, and every key is read by a workflow or a notebook |
 | [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/` |
 | [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs |
 | [tests/test_unresolved_haplotypes.py](tests/test_unresolved_haplotypes.py) | the unresolved-haplotype regions: the evidence rule, and regions that overlap or touch merging to their union |
-| [tests/test_masks.py](tests/test_masks.py) | what the InDel workflows leave out, from the workflows' own targets run with bash on a one-contig sample (TRF and samtools are stand-ins): the excluded group, workflow 3's mask, the tracts workflow 4 measures, and their summaries |
+| [tests/test_masks.py](tests/test_masks.py) | what the InDel workflows leave out, from the workflows' own targets run with bash on a one-contig sample (TRF and samtools are stand-ins, from [tests/targets.py](tests/targets.py)): the excluded group, workflow 3's mask, the tracts workflow 4 measures, and their summaries |
 | [tests/test_mirror_export.py](tests/test_mirror_export.py) | the mirror exporter and the replay, end to end on a fake cluster checkout |
 | [tests/test_strip_notebook_outputs.py](tests/test_strip_notebook_outputs.py) | the notebook clean filter, alone and through git |
 

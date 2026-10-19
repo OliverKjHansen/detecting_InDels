@@ -96,6 +96,54 @@
   ],
   "spec": "\n        mkdir -p {ROOT}/output/precomute/monkey/s3/contigs\n        faSplit byname {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precomute/monkey/s3/contigs/\n        "
  },
+ "haplotypes_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "04:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precomute/ape/s1/haplotypes/hap1.fa",
+   "{ROOT}/output/precomute/ape/s1/haplotypes/hap2.fa"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precomute/ape/s1/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa > {ROOT}/output/precomute/ape/s1/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa > {ROOT}/output/precomute/ape/s1/haplotypes/hap2.fa\n        "
+ },
+ "haplotypes_ape_s2_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "04:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precomute/ape/s2/haplotypes/hap1.fa",
+   "{ROOT}/output/precomute/ape/s2/haplotypes/hap2.fa"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precomute/ape/s2/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa > {ROOT}/output/precomute/ape/s2/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa > {ROOT}/output/precomute/ape/s2/haplotypes/hap2.fa\n        "
+ },
+ "haplotypes_monkey_s3_diploid": {
+  "inputs": [
+   "{ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "4g",
+   "walltime": "04:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precomute/monkey/s3/haplotypes/hap1.fa",
+   "{ROOT}/output/precomute/monkey/s3/haplotypes/hap2.fa"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/precomute/monkey/s3/haplotypes\n        awk -v prefix='>h1tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa > {ROOT}/output/precomute/monkey/s3/haplotypes/hap1.fa\n        awk -v prefix='>h2tg' '/^>/ {keep = index($0, prefix) == 1} keep' {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa > {ROOT}/output/precomute/monkey/s3/haplotypes/hap2.fa\n        "
+ },
  "merge_unresolved_ape_s1_c1_diploid": {
   "inputs": [
    "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed"
