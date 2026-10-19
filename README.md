@@ -940,6 +940,34 @@ UPDATE_SNAPSHOTS=1 .venv/bin/python -m pytest tests/test_workflow_snapshots.py
 git diff tests/snapshots/
 ```
 
+### Replaying windows of real data
+
+The mirror is for software testing only: it shows whether the code does on a
+laptop what it does on the cluster, and no data conclusions are drawn from it.
+[scripts/export_local_subset.py](scripts/export_local_subset.py) copies windows
+of samples from the cluster, with everything workflows 3 and 4 need, and the
+cluster's tables for each window. On the cluster, from the repository root:
+
+```bash
+python scripts/export_local_subset.py human/chk:h1tg000001l:0-10000000 \
+    chimp/yoran human/ob006 chimp/carl --window-size 1000000
+```
+
+A sample without a window gets the `--window-size` window with the most
+unique calls. Copy `mirror/` to the local checkout with rsync, then replay
+every window:
+
+```bash
+for window in mirror/*/*/*/; do PYTHON=.venv/bin/python bash "$window/run_local.sh"; done
+```
+
+Each `run_local.sh` reruns both workflows' scans, haploid checks and final
+filters on its window, and compares every table with the cluster's using
+[scripts/compare_tables.py](scripts/compare_tables.py): by content, in any row
+order, with numbers compared by value and the species and sample columns the
+workflows append ignored. A window that is one whole scan job (10 Mb) has its
+opportunities compared too. The script exits 1 if any table differs.
+
 ---
 
 ## Repository layout
@@ -967,6 +995,8 @@ scripts/
   filtering_opportunities.py       final filters on the opportunities
   join_read_classification.sh      germline/somatic columns
   plot_indels.R                    diagnostic PDF
+  export_local_subset.py           copy windows of samples from the cluster, to replay locally
+  compare_tables.py                compare a replayed table with the cluster's, by content
   strip_notebook_outputs.py        git clean filter: notebooks are committed without outputs
 plotting/                          analysis notebooks (R)
 tests/                             pytest suite and fixture generator

@@ -22,10 +22,16 @@ import yaml
 
 
 class Pipeline:
-    def __init__(self, config_path="config.yaml"):
+    def __init__(self, config_path="config.yaml", base=None):
+        """
+        Relative paths in the config are taken from `base`, by default the
+        current directory. `scripts` is always the scripts/ folder of the
+        current directory, the repository root gwf runs in.
+        """
         with open(config_path) as handle:
             self.config = yaml.safe_load(handle)
-        self.roots = {name: os.path.abspath(os.path.expanduser(value))
+        base = base or os.getcwd()
+        self.roots = {name: os.path.abspath(os.path.join(base, os.path.expanduser(value)))
                       for name, value in self.config["paths"].items()}
         self.scripts = os.path.abspath("scripts")
 

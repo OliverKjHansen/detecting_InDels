@@ -40,10 +40,15 @@ BAM = f"{root}/bam/{species}/{sample}/kinetics/{sample}_kinetics_{kind}.bam"
 FASTA = f"{root}/fasta/{species}/{sample}/{kind}_assembly/{sample}_{kind}.fa"
 WORK = f"{root}/output/nonrepetitive_indels/{species}/{sample}"
 PRE = f"{root}/output/precomute/{species}/{sample}"
+# Workflow 3's tables from the cluster; windows exported before workflow 4 was
+# mirrored too keep them directly under cluster/.
+CLUSTER = f"{root}/cluster/nonrepetitive_indels"
+if not os.path.isdir(CLUSTER):
+    CLUSTER = f"{root}/cluster"
 
 bam = pysam.AlignmentFile(BAM)
 reference = pysam.FastaFile(FASTA).fetch(contig, 0, end + 100_000).upper()
-calls = pd.read_csv(f"{root}/cluster/calls.tsv", sep="\t", low_memory=False).rename(columns={"#contig": "contig"})
+calls = pd.read_csv(f"{CLUSTER}/calls.tsv", sep="\t", low_memory=False).rename(columns={"#contig": "contig"})
 calls["size"] = calls.indel_string.str.len()
 mask_bed = pd.read_csv(f"{WORK}/mask/{contig}.bed", sep="\t", header=None, names=["c", "s", "e"])
 mask_starts, mask_ends = mask_bed.s.tolist(), mask_bed.e.tolist()
@@ -159,7 +164,7 @@ print(q93[q93.unique == "unique"].sort_values(["diploid_direction", "position"])
 # ---------------------------------------------------------------------------
 section("H1-H4: the haploid check")
 # ---------------------------------------------------------------------------
-merged = pd.read_csv(f"{root}/cluster/merged_indels.tsv", sep="\t", low_memory=False)
+merged = pd.read_csv(f"{CLUSTER}/merged_indels.tsv", sep="\t", low_memory=False)
 first = {}
 with open(f"{WORK}/haploid/locations.tsv") as handle:
     for line in handle:
@@ -404,7 +409,7 @@ print(f"D4: all-Q93 windows: three bases {three / positions:.1%}, four bases {fo
 # ---------------------------------------------------------------------------
 section("D3, F1, N1")
 # ---------------------------------------------------------------------------
-opportunities = pd.read_csv(f"{root}/cluster/opportunities.tsv", sep="\t", keep_default_na=False)
+opportunities = pd.read_csv(f"{CLUSTER}/opportunities.tsv", sep="\t", keep_default_na=False)
 read_ends = sum(1 for r in bam.fetch(contig, start, end)
                 if not (r.is_secondary or r.is_supplementary) and start <= r.reference_end - 1 < end)
 print(f"D3: at most {3 * read_ends:,} truncated k-mers against {opportunities['count'].sum():,} opportunities "

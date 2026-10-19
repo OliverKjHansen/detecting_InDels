@@ -57,3 +57,13 @@ def test_a_templates_folder_needs_no_per_file_fields(pipeline, root):
     assert pipeline.folder("contig_fasta", "ape", "s1") == f"{root}/output/precomute/ape/s1/contigs"
     assert pipeline.folder("unresolved_window", "ape", "s1") == \
         f"{root}/output/precomute/ape/s1/unresolved_haplotypes/chunks"
+
+
+def test_relative_paths_can_resolve_against_another_folder(tmp_path, monkeypatch):
+    root = os.path.realpath(tmp_path / "elsewhere")
+    os.makedirs(root)
+    write_config(root)
+    monkeypatch.chdir(tmp_path)
+    from pipeline import Pipeline
+    pipeline = Pipeline(f"{root}/config.yaml", base=root)
+    assert pipeline.path("coverage", "ape", "s1") == f"{root}/output/precomute/ape/s1/avg_coverage.txt"
