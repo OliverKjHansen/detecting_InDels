@@ -216,6 +216,11 @@ layout:
 precompute:
   # Unresolved haplotypes are found per window of this many bp, one job each.
   unresolved_window_size: 40_000_000
+  # A region is the span of the reads sharing a mismatch with the assembly: at
+  # least unresolved_min_reads reads with the same base, each at base quality
+  # unresolved_min_base_quality or more.
+  unresolved_min_reads: 2
+  unresolved_min_base_quality: 40
 
 # Workflow 2.
 repeats:
@@ -239,9 +244,29 @@ repeats:
 scan:
   # Each contig is scanned in windows of this many bp, one job each.
   window_size: 10_000_000
+  # Only positions whose depth is within these multiples of the sample's mean
+  # coverage are scanned.
+  coverage_band: [0.5, 2.0]
+  # Workflow 3: the smallest and largest InDels called outside repeats, in bp.
+  indel_sizes: [1, 3]
 
 final_filters:
   # Minimum Phred base quality across the InDel 4-mer.
   min_kmerq: 93
   # Workflow 4: InDels nearer a read end than this many bp are dropped.
   min_read_end_distance: 100
+
+# Germline/somatic classification of reads with methylation scores, by
+# join_read_classification.sh (a bin on every call) and
+# classification_read_counts.sh (reads and CpGs per bin).
+classification:
+  # Germline cell types: the likelihood columns whose names start with this.
+  germline_prefix: "Sperm."
+  # Somatic cell types: these likelihood columns.
+  somatic_types: [Blood.Monocytes, Bladder.SmoothMuscle, Breast.BasalEpithelial,
+                  Lung.AlveolarMacrophages, Colon.RightEndocrine, Thyroid.Epithelial]
+  # A read's score is its best germline likelihood minus its best somatic one.
+  # It takes the label of the first edge it is below, or the last label, so
+  # there is one more label than there are edges.
+  bin_edges:  [-10, -8, -6, -4, -2, -1, 0, 1, 2, 4, 6, 8, 10]
+  bin_labels: [-12, -10, -8, -6, -4, -2, -1, 0, 1, 2, 4, 6, 8, 12]

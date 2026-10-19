@@ -108,6 +108,7 @@ def cluster(tmp_path_factory, fixture_paths):
         yaml.safe_dump(config, handle)
     pipeline = Pipeline(f"{root}/config.yaml", base=root)
     filters = pipeline.config["final_filters"]
+    coverage_band = pipeline.config["scan"]["coverage_band"]
 
     for species, sample in SAMPLES:
         path = partial(pipeline.path, species=species, sample=sample)
@@ -135,7 +136,9 @@ def cluster(tmp_path_factory, fixture_paths):
                 open(made(path("nonrepetitive_window_opportunities", **window)), "w") as opportunities, \
                 open(made(path("nonrepetitive_window_reads", **window)), "w") as fastq:
             utilities.nonrepetitive_scan(mask, mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
-                                         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq)
+                                         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
+                                         coverage_band=coverage_band,
+                                         indel_sizes=pipeline.config["scan"]["indel_sizes"])
         calls = made(path("nonrepetitive_calls", contig=mf.CONTIG))
         place(path("nonrepetitive_window_calls", **window), calls)
         locations = made(path("nonrepetitive_haploid_locations"))
@@ -154,7 +157,8 @@ def cluster(tmp_path_factory, fixture_paths):
                 mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
                 calls_out={model: opened("repetitive_window_calls", model=model) for model in MODELS},
                 opportunities_out={model: opened("repetitive_window_opportunities", model=model) for model in MODELS},
-                fastq_out=opened("repetitive_window_reads"))
+                fastq_out=opened("repetitive_window_reads"),
+                coverage_band=coverage_band)
         locations = made(path("repetitive_haploid_locations"))
         all_calls = f"{os.path.dirname(locations)}/all_calls.tsv"
         with open(all_calls, "w") as out:

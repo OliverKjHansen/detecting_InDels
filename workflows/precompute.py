@@ -17,6 +17,9 @@ scripts           = pipeline.scripts
 
 # Step 3 finds unresolved haplotypes in windows of this many bp, one job each.
 chunk_size = pipeline.config["precompute"]["unresolved_window_size"]
+# What counts as evidence of an unresolved region.
+unresolved_evidence = (f"--min-base-quality {pipeline.config['precompute']['unresolved_min_base_quality']} "
+                       f"--min-reads {pipeline.config['precompute']['unresolved_min_reads']}")
 
 
 # Resource requests.
@@ -90,7 +93,7 @@ for species, samples in pipeline.config["samples"].items():
                     outputs=[chunk_bed],
                 ) << f"""
                 mkdir -p {chunk_dir}
-                python {scripts}/resolve_haplotypes.py {contig} {start} {end} {alignment} {assembly} {coverage} > {chunk_bed}
+                python {scripts}/resolve_haplotypes.py {contig} {start} {end} {alignment} {assembly} {coverage} {unresolved_evidence} > {chunk_bed}
                 """
 
             # Step 3b — join the windows back into one BED per contig.

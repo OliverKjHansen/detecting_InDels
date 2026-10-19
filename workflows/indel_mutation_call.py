@@ -40,6 +40,9 @@ models = config["repeats"]["models"]
 
 # Step 2 splits each contig into windows of this many bp, one scan job per window.
 chunk_size = config["scan"]["window_size"]
+# The positions scanned, and the InDel sizes called and counted.
+scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
+                f"--indel-sizes {' '.join(map(str, config['scan']['indel_sizes']))}")
 
 # Final filtering threshold: minimum Phred base quality across the InDel 4-mer.
 min_kmerq = config["final_filters"]["min_kmerq"]
@@ -149,7 +152,7 @@ for species, samples in config["samples"].items():
                     cores=1,
                 ) << f"""
                 mkdir -p {folder("nonrepetitive_window_calls")} {folder("nonrepetitive_window_opportunities")} {folder("nonrepetitive_window_reads")}
-                python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq}
+                python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq} {scan_options}
                 """
 
         # Step 3 — join the windows back into one file per contig, for every
@@ -299,5 +302,6 @@ for species, samples in config["samples"].items():
             bash {scripts}/join_read_classification.sh \\
                 {results_calls} \\
                 {likelihoods} \\
-                {classified}
+                {classified} \\
+                {pipeline.classification_arguments()}
             """

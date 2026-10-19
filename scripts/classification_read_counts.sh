@@ -4,7 +4,10 @@
 #
 # Usage:
 #   classification_read_counts.sh <likelihoods.tsv> <out.tsv>
-#                                 [germline_prefix] [somatic_types]
+#                                 <germline_prefix> <somatic_types> <bin_edges> <bin_labels>
+#
+# The last four come from the `classification` block of config.yaml; the lists
+# are comma-separated.
 #
 # The calls carry a classification bin, from join_read_classification.sh, but
 # the opportunity tables do not: they count read positions per contig, context,
@@ -29,8 +32,8 @@
 # The scores per read are those of join_read_classification.sh: the highest
 # likelihood among the germline columns (the ones whose name starts with
 # germline_prefix) minus the highest among somatic_types, cut into the same bins.
-# The bin edges are duplicated from that script on purpose, so this one can run
-# without it; tests/test_classification_bins.py checks that the two agree.
+# Both scripts take the bins from config.yaml; tests/test_classification_bins.py
+# checks that they bin alike.
 #
 # Output: one row per bin, in bin order.
 #
@@ -38,15 +41,17 @@
 
 set -euo pipefail
 
-if [ "$#" -lt 2 ]; then
-    echo "Usage: $(basename "$0") <likelihoods.tsv> <out.tsv> [germline_prefix] [somatic_types]" >&2
+if [ "$#" -ne 6 ]; then
+    echo "Usage: $(basename "$0") <likelihoods.tsv> <out.tsv> <germline_prefix> <somatic_types> <bin_edges> <bin_labels>" >&2
     exit 1
 fi
 
 likelihoods=$1
 out=$2
-germline_prefix=${3:-Sperm.}
-somatic_types=${4:-Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial}
+germline_prefix=$3
+somatic_types=$4
+bin_edges=$5
+bin_labels=$6
 
 if [ ! -r "$likelihoods" ]; then
     echo "cannot read $likelihoods" >&2
@@ -55,22 +60,20 @@ fi
 
 # One row per read, streamed: the table covers the whole sample and is far too
 # big to load. Nothing is kept per read, only the totals per bin.
-awk -F'\t' -v OFS='\t' -v prefix="$germline_prefix" -v somatic="$somatic_types" '
-    function bin(d) {
-        if (d < -10) return -12
-        if (d <  -8) return -10
-        if (d <  -6) return  -8
-        if (d <  -4) return  -6
-        if (d <  -2) return  -4
-        if (d <  -1) return  -2
-        if (d <   0) return  -1
-        if (d <   1) return   0
-        if (d <   2) return   1
-        if (d <   4) return   2
-        if (d <   6) return   4
-        if (d <   8) return   6
-        if (d <  10) return   8
-        return 12
+awk -F'\t' -v OFS='\t' -v prefix="$germline_prefix" -v somatic="$somatic_types" \
+    -v edges="$bin_edges" -v labels="$bin_labels" '
+    # The label of the first edge d is below, or the last label.
+    function bin(d,    i) {
+        for (i = 1; i <= n_edges; i++) if (d < edge[i]) return label[i]
+        return label[n_edges + 1]
+    }
+
+    BEGIN {
+        n_edges = split(edges, edge, ",")
+        for (i = 1; i <= n_edges; i++) edge[i] += 0
+        if (split(labels, label, ",") != n_edges + 1) {
+            print "need one more bin label than bin edges" > "/dev/stderr"; exit 1
+        }
     }
 
     FNR == 1 {

@@ -265,3 +265,21 @@ def test_nonrepetitive_scan_windows_add_up_to_the_whole_contig(fixture_paths):
     assert [row for calls, _, _ in parts for row in rows_of(calls)] == rows_of(whole_calls)
     assert summed(opportunities for _, opportunities, _ in parts) == summed([whole_opportunities])
     assert "".join(fastq for _, _, fastq in parts) == whole_fastq
+
+
+# -- parameters from config.yaml ---------------------------------------------
+
+
+def test_positions_outside_the_coverage_band_are_skipped(fixture_paths):
+    # Every fixture position has exactly the mean depth, so a band above the
+    # mean leaves nothing to call or count.
+    calls, opportunities, _ = nonrepetitive_scan(fixture_paths, coverage_band=(1.5, 3.0))
+    assert rows_of(calls) == [] and rows_of(opportunities) == []
+    calls, opportunities, _ = scan({"M1": fixture_paths["tr_bed"]}, fixture_paths, coverage_band=(1.5, 3.0))
+    assert rows_of(calls["M1"]) == [] and rows_of(opportunities["M1"]) == []
+
+
+def test_only_indels_of_the_configured_sizes_are_called_and_counted(fixture_paths):
+    calls, opportunities, _ = nonrepetitive_scan(fixture_paths, indel_sizes=(2, 3))
+    assert {call["readID"] for call in rows_of(calls)} == {"read_del2"}
+    assert {len(row["context"]) for row in rows_of(opportunities)} == {2, 3}

@@ -4,7 +4,10 @@
 #
 # Usage:
 #   join_read_classification.sh <calls.tsv> <likelihoods.tsv> <out.tsv>
-#                               [germline_prefix] [somatic_types]
+#                               <germline_prefix> <somatic_types> <bin_edges> <bin_labels>
+#
+# The last four come from the `classification` block of config.yaml; the lists
+# are comma-separated.
 #
 # The likelihood table has one row per read: readsID, chr, start, one column per
 # cell type holding a log-likelihood (higher = better fit), then CpGs_onRead and
@@ -17,9 +20,8 @@
 #   max_somatic         highest likelihood among somatic_types
 #   classification_diff max_germline - max_somatic; positive means the read
 #                       looks germline
-#   classification_bin  the difference cut into the bins used for the
-#                       classification thresholds table:
-#                       -12 -10 -8 -6 -4 -2 -1 0 1 2 4 6 8 12
+#   classification_bin  the difference cut into bins: the label of the first
+#                       bin edge it is below, or the last label
 #   CpGs_onRead         carried through: the evidence behind the likelihoods.
 #                       A read with few CpGs scores near 0 for lack of
 #                       information, not because it is genuinely ambiguous.
@@ -29,16 +31,18 @@
 
 set -euo pipefail
 
-if [ "$#" -lt 3 ]; then
-    echo "Usage: $(basename "$0") <calls.tsv> <likelihoods.tsv> <out.tsv> [germline_prefix] [somatic_types]" >&2
+if [ "$#" -ne 7 ]; then
+    echo "Usage: $(basename "$0") <calls.tsv> <likelihoods.tsv> <out.tsv> <germline_prefix> <somatic_types> <bin_edges> <bin_labels>" >&2
     exit 1
 fi
 
 calls=$1
 likelihoods=$2
 out=$3
-germline_prefix=${4:-Sperm.}
-somatic_types=${5:-Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial}
+germline_prefix=$4
+somatic_types=$5
+bin_edges=$6
+bin_labels=$7
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -54,22 +58,20 @@ awk -F'\t' '
 ' "$calls" | sort -u > "$work/wanted_reads.txt"
 
 # 2. Scores per read, reading the big table once and keeping only those reads.
-awk -F'\t' -v OFS='\t' -v prefix="$germline_prefix" -v somatic="$somatic_types" '
-    function bin(d) {
-        if (d < -10) return -12
-        if (d <  -8) return -10
-        if (d <  -6) return  -8
-        if (d <  -4) return  -6
-        if (d <  -2) return  -4
-        if (d <  -1) return  -2
-        if (d <   0) return  -1
-        if (d <   1) return   0
-        if (d <   2) return   1
-        if (d <   4) return   2
-        if (d <   6) return   4
-        if (d <   8) return   6
-        if (d <  10) return   8
-        return 12
+awk -F'\t' -v OFS='\t' -v prefix="$germline_prefix" -v somatic="$somatic_types" \
+    -v edges="$bin_edges" -v labels="$bin_labels" '
+    # The label of the first edge d is below, or the last label.
+    function bin(d,    i) {
+        for (i = 1; i <= n_edges; i++) if (d < edge[i]) return label[i]
+        return label[n_edges + 1]
+    }
+
+    BEGIN {
+        n_edges = split(edges, edge, ",")
+        for (i = 1; i <= n_edges; i++) edge[i] += 0
+        if (split(labels, label, ",") != n_edges + 1) {
+            print "need one more bin label than bin edges" > "/dev/stderr"; exit 1
+        }
     }
 
     NR == FNR { wanted[$1]; next }

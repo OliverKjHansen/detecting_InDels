@@ -36,6 +36,8 @@ models = config["repeats"]["models"]
 
 # Step 1 splits each contig into windows of this many bp, one scan job per window.
 chunk_size = config["scan"]["window_size"]
+# The positions scanned.
+scan_options = f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))}"
 
 # Final filtering thresholds.
 min_kmerq = config["final_filters"]["min_kmerq"]
@@ -122,7 +124,7 @@ for species, samples in config["samples"].items():
                     cores=1,
                 ) << f"""
                 mkdir -p {chunk_dirs}
-                python {scripts}/tandem_repeat_scan.py {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_fastq} {model_args}
+                python {scripts}/tandem_repeat_scan.py {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_fastq} {scan_options} {model_args}
                 """
 
             # Step 2 — join the windows back into one file per contig.
@@ -278,5 +280,6 @@ for species, samples in config["samples"].items():
                 bash {scripts}/join_read_classification.sh \\
                     {results_calls} \\
                     {likelihoods} \\
-                    {classified}
+                    {classified} \\
+                    {pipeline.classification_arguments()}
                 """

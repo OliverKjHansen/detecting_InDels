@@ -1,30 +1,42 @@
-"""The germline/somatic bin edges live in two scripts; this checks they agree.
+"""The germline/somatic bins, as the two classification scripts apply them.
 
 join_read_classification.sh puts a bin on every call, and
 classification_read_counts.sh counts the sample's reads per bin so those calls
-have a denominator. Each carries its own copy of the edges, so that either can
-run without the other. A disagreement between them would silently misalign
+have a denominator. Both take the cell types, bin edges and bin labels from
+config.yaml as arguments. A disagreement between them would silently misalign
 numerator and denominator, which is what these tests are here to catch.
 """
 
+import os
 import random
 import subprocess
 from pathlib import Path
 
-import pytest
+import yaml
 
 REPO = Path(__file__).resolve().parent.parent
 JOIN = REPO / "scripts" / "join_read_classification.sh"
 COUNTS = REPO / "scripts" / "classification_read_counts.sh"
 
+with open(os.path.join(REPO, "config.yaml")) as handle:
+    CLASSIFICATION = yaml.safe_load(handle)["classification"]
+
 GERMLINE = ["Sperm.Sperm", "Sperm.Spermatocytes"]
 SOMATIC = ["Blood.Monocytes", "Bladder.SmoothMuscle", "Breast.BasalEpithelial",
            "Lung.AlveolarMacrophages", "Colon.RightEndocrine", "Thyroid.Epithelial"]
 
-# The edges as documented in both scripts: bin(d) is the first value whose edge
-# d falls below, and 12 above the last.
+# The documented bins: bin(d) is the value paired with the first edge d falls
+# below, and 12 above the last edge.
 EDGES = [(-10, -12), (-8, -10), (-6, -8), (-4, -6), (-2, -4), (-1, -2), (0, -1),
          (1, 0), (2, 1), (4, 2), (6, 4), (8, 6), (10, 8)]
+
+
+def arguments(edges=None, labels=None):
+    """The scripts' trailing arguments: germline prefix, somatic types, edges, labels."""
+    edges = CLASSIFICATION["bin_edges"] if edges is None else edges
+    labels = CLASSIFICATION["bin_labels"] if labels is None else labels
+    return [CLASSIFICATION["germline_prefix"], ",".join(CLASSIFICATION["somatic_types"]),
+            ",".join(map(str, edges)), ",".join(map(str, labels))]
 
 
 def bin_of(diff):
@@ -60,19 +72,24 @@ def write_calls(path, n_reads):
             out.write(f"c1\t1\tA\tread{i}\n")
 
 
-def counts_from_script(tmp_path, likelihoods):
+def counts_from_script(tmp_path, likelihoods, **bins):
     out = tmp_path / "counts.tsv"
-    subprocess.run(["bash", str(COUNTS), str(likelihoods), str(out)],
+    subprocess.run(["bash", str(COUNTS), str(likelihoods), str(out), *arguments(**bins)],
                    check=True, capture_output=True)
     rows = out.read_text().splitlines()[1:]
-    return {int(f[0]): int(f[1]) for f in (row.split("\t") for row in rows)}
+    return {label(f[0]): int(f[1]) for f in (row.split("\t") for row in rows)}
+
+
+def label(text):
+    """A bin label: a number, or text for bins labelled otherwise."""
+    return int(text) if text.lstrip("-").isdigit() else text
 
 
 def counts_from_join(tmp_path, likelihoods, n_reads):
     calls = tmp_path / "calls.tsv"
     joined = tmp_path / "joined.tsv"
     write_calls(calls, n_reads)
-    subprocess.run(["bash", str(JOIN), str(calls), str(likelihoods), str(joined)],
+    subprocess.run(["bash", str(JOIN), str(calls), str(likelihoods), str(joined), *arguments()],
                    check=True, capture_output=True)
     lines = joined.read_text().splitlines()
     header = lines[0].split("\t")
@@ -89,6 +106,20 @@ def counts_from_join(tmp_path, likelihoods, n_reads):
 BOUNDARY_DIFFS = [d + offset
                   for d, _ in EDGES
                   for offset in (-0.001, 0, 0.001)] + [-50, -11, 10, 10.001, 50]
+
+
+def test_the_config_holds_the_documented_bins_and_cell_types():
+    assert CLASSIFICATION["bin_edges"] == [edge for edge, _ in EDGES]
+    assert CLASSIFICATION["bin_labels"] == [label for _, label in EDGES] + [12]
+    assert CLASSIFICATION["somatic_types"] == SOMATIC
+    assert all(column.startswith(CLASSIFICATION["germline_prefix"]) for column in GERMLINE)
+
+
+def test_other_edges_give_other_bins(tmp_path):
+    likelihoods = tmp_path / "likelihoods.tsv"
+    write_likelihoods(likelihoods, [-3, -0.5, 0.5, 3], [10] * 4)
+    assert counts_from_script(tmp_path, likelihoods, edges=[0], labels=["somatic", "germline"]) == \
+        {"somatic": 2, "germline": 2}
 
 
 def test_bins_agree_on_boundaries(tmp_path):
@@ -120,7 +151,7 @@ def test_counts_and_cpgs_are_totals(tmp_path):
     write_likelihoods(likelihoods, diffs, cpgs)
 
     out = tmp_path / "counts.tsv"
-    subprocess.run(["bash", str(COUNTS), str(likelihoods), str(out)],
+    subprocess.run(["bash", str(COUNTS), str(likelihoods), str(out), *arguments()],
                    check=True, capture_output=True)
     rows = [row.split("\t") for row in out.read_text().splitlines()[1:]]
 
@@ -141,7 +172,7 @@ def test_bins_are_in_order(tmp_path):
     write_likelihoods(likelihoods, diffs, [1] * len(diffs))
 
     out = tmp_path / "counts.tsv"
-    subprocess.run(["bash", str(COUNTS), str(likelihoods), str(out)],
+    subprocess.run(["bash", str(COUNTS), str(likelihoods), str(out), *arguments()],
                    check=True, capture_output=True)
     bins = [int(row.split("\t")[0]) for row in out.read_text().splitlines()[1:]]
 
@@ -150,7 +181,7 @@ def test_bins_are_in_order(tmp_path):
 
 def test_missing_input_fails_loudly(tmp_path):
     done = subprocess.run(["bash", str(COUNTS), str(tmp_path / "nope.tsv"),
-                           str(tmp_path / "out.tsv")], capture_output=True)
+                           str(tmp_path / "out.tsv"), *arguments()], capture_output=True)
     assert done.returncode != 0
     assert not (tmp_path / "out.tsv").exists()
 
@@ -160,6 +191,6 @@ def test_unknown_column_names_fail(tmp_path):
     path = tmp_path / "likelihoods.tsv"
     path.write_text("readID\tchr\tstart\tOther.Cells\tCpGs_onRead\n"
                     "read0\tc1\t1\t-20\t10\n")
-    done = subprocess.run(["bash", str(COUNTS), str(path), str(tmp_path / "out.tsv")],
+    done = subprocess.run(["bash", str(COUNTS), str(path), str(tmp_path / "out.tsv"), *arguments()],
                           capture_output=True)
     assert done.returncode != 0

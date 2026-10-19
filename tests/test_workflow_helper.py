@@ -74,3 +74,13 @@ def test_a_folder_takes_the_fields_its_own_path_needs(pipeline, root):
         f"{root}/output/repetitive_indels/ape/s1/M1/calls"
     with pytest.raises(ValueError):
         pipeline.folder("repetitive_calls", "ape", "s1")   # the model is part of the folder
+
+
+def test_the_classification_scripts_get_their_cell_types_and_bins_from_the_config(pipeline):
+    assert pipeline.classification_arguments().split(" ") == [
+        "Sperm.",
+        "Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,"
+        "Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial",
+        "-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,10",
+        "-12,-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,12",
+    ]

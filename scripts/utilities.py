@@ -103,22 +103,27 @@ def homopolymer_check(seq):
 
 def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
-                       calls_out=None, opportunities_out=None, fastq_out=None):
+                       calls_out=None, opportunities_out=None, fastq_out=None,
+                       *, coverage_band, indel_sizes):
     """
-    Call 1-3 bp InDels and count opportunities outside the mask in one pass
-    over the BAM, and write the reads carrying a call as FASTQ.
+    Call InDels of the sizes in indel_sizes, (smallest, largest) in bp, and
+    count opportunities outside the mask in one pass over the BAM, and write
+    the reads carrying a call as FASTQ.
 
     calls_out, opportunities_out and fastq_out are open files; whichever is
     None is not produced.
 
-    Calls: 1-3 bp InDels at positions outside the mask (the filters BED),
-    except those whose sequence plus one flanking base on each side is a
+    Only positions whose depth is within coverage_band, (low, high) multiples
+    of the sample's mean coverage, are scanned.
+
+    Calls: InDels of those sizes at positions outside the mask (the filters
+    BED), except those whose sequence plus one flanking base on each side is a
     homopolymer (changes base at most once).
 
     Opportunities: every read position outside the mask, counted once per
-    InDel size 1, 2 and 3 under the canonical k-mer of that size (the smaller
-    of the k-mer and its reverse complement), per tissue, mapQ and kmerQ, with
-    the same homopolymer rule applied to the k-mer and its flanking bases.
+    InDel size under the canonical k-mer of that size (the smaller of the
+    k-mer and its reverse complement), per tissue, mapQ and kmerQ, with the
+    same homopolymer rule applied to the k-mer and its flanking bases.
 
     fastq_out gets every read carrying a call, once, as forward-strand FASTQ
     for haploid remapping.
@@ -130,6 +135,9 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     """
     with open(average_coverage_file, 'r') as f: # load in the average coverage smaple
         average_coverage_of_species = float(f.read().strip())
+    low_depth, high_depth = (average_coverage_of_species * factor for factor in coverage_band)
+    smallest, largest = indel_sizes
+    sizes = range(smallest, largest + 1)
 
     fasta = pysam.FastaFile(fastafile)
     interval_tree = load_filters_with_tree(filters, window_start, window_end) # IntervalTree
@@ -181,7 +189,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                                        ):
 
             # quality fitler on reference position before determining indel type
-            if not (average_coverage_of_species/2 <= pileupcolumn.nsegments <= average_coverage_of_species*2):
+            if not (low_depth <= pileupcolumn.nsegments <= high_depth):
                 continue
 
             position = pileupcolumn.reference_pos # right. the position in the reference
@@ -221,7 +229,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     mapQ = str(alignment.mapping_quality)
                     tissue_type = d.get(query_name, "NA")
 
-                    for indel_length in (1, 2, 3): #indel lengths here means kmer length
+                    for indel_length in sizes: #indel lengths here means kmer length
                         run = read_seq[read_pos-1:read_pos+indel_length+1]   #run dependent on indel length # includes kmer + flanking bases
                         kmerq = base_qualities[read_pos-1:read_pos+1]+base_qualities[read_pos+indel_length-1:read_pos+indel_length+1] #look weird but it makes sure that the 3 indel does not inlude the central base to insure a 4merQ
 
@@ -253,7 +261,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
                 indel = pileupread.indel
 
-                if (abs(indel) > 3) or (abs(indel) == 0): # only interested in 1,2,3 sizes
+                if not smallest <= abs(indel) <= largest:
                     continue
 
                 np = ec = sm = sx = sa = sm_pre = sx_pre = "NA" # initialise tags
@@ -398,7 +406,8 @@ def load_tr_bed_with_tree(bedfile, window_start=None, window_end=None):
 def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                        average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
-                       calls_out=None, opportunities_out=None, fastq_out=None):
+                       calls_out=None, opportunities_out=None, fastq_out=None,
+                       *, coverage_band):
     """
     Call InDels and count opportunities inside tandem repeat tracts for several
     repeat models (M0, M1, M2) in one pass over the BAM.
@@ -427,6 +436,9 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     length proxy. When a position overlaps multiple TR intervals, the one with
     the smallest k is used.
 
+    Only positions whose depth is within coverage_band, (low, high) multiples
+    of the sample's mean coverage, are scanned.
+
     With window_start/window_end, only positions in [window_start, window_end)
     are scanned; each position belongs to one window, so windows never report
     the same call twice and their opportunity counts add up to the whole
@@ -437,6 +449,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
     with open(average_coverage_file, 'r') as f:
         average_coverage_of_species = float(f.read().strip())
+    low_depth, high_depth = (average_coverage_of_species * factor for factor in coverage_band)
 
     fasta = pysam.FastaFile(fastafile)
     trees = {model: load_tr_bed_with_tree(bedfile, window_start, window_end)
@@ -489,9 +502,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                                        min_base_quality=min_base_qual,
                                        min_mapping_quality=min_mapping_qual):
 
-            if not (average_coverage_of_species / 2
-                    <= pileupcolumn.nsegments
-                    <= average_coverage_of_species * 2):
+            if not (low_depth <= pileupcolumn.nsegments <= high_depth):
                 continue
 
             position = pileupcolumn.reference_pos
@@ -653,7 +664,11 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     return
 
 
-def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, average_coverage_file):
+def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, average_coverage_file,
+                       *, min_base_quality, min_reads):
+    # A region is the span of the reads that share a mismatch with the
+    # assembly: at least min_reads reads with the same base, each at base
+    # quality min_base_quality or more.
     # Only positions in [window_start, window_end) are scanned. Regions are
     # reported with the full span of their reads, so they can reach outside
     # the window; the workflow merges regions from neighbouring windows.
@@ -696,7 +711,7 @@ def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, ave
                     
                     read_base = pileupread.alignment.query_sequence[query_position].upper()
                     baseq = pileupread.alignment.query_qualities[query_position]
-                    if baseq < 40:
+                    if baseq < min_base_quality:
                         continue
 
                     if read_base != reference_base: # if the read base is not the same as the reference base
@@ -710,7 +725,7 @@ def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, ave
                 # if position+1 == 172309:
                 #     print(mismatch_positions)
                 for base, intervals in mismatch_positions.items():
-                    if len(intervals[0]) > 1: # number of identical bases i need to see to say there is a unresolved haplotype
+                    if len(intervals[0]) >= min_reads: # number of identical bases i need to see to say there is a unresolved haplotype
                         #print(intervals)
                         start = min(intervals[0])
                         end = max(intervals[1])

@@ -183,7 +183,7 @@ in.
 | `paths.output`, `paths.results`, `paths.plots` | Where intermediates, final tables and PDFs go, relative to the repository root. |
 | `tools.mreps`, `tools.trf` | The two repeat finders. |
 | `layout` | Where every file lives: one path template per file, filled from `paths`, `assembly_type`, species, sample and, per file, contig, model, window start and end, or period k. The workflows build every path from these, through [workflows/pipeline.py](workflows/pipeline.py). |
-| `precompute`, `repeats`, `scan`, `final_filters` | The workflows' parameters, below. |
+| `precompute`, `repeats`, `scan`, `final_filters`, `classification` | The workflows' parameters, below. The scripts take them as arguments. |
 
 No workflow reads `sperm_samples` or `sample_age`; the notebooks do.
 
@@ -192,6 +192,7 @@ Parameters:
 | Parameter | Value | Key |
 |---|---|---|
 | Unresolved-haplotype scan window | 40 Mb | `precompute.unresolved_window_size` |
+| Unresolved-haplotype evidence | ≥ 2 reads with the same base at quality ≥ 40 | `precompute.unresolved_min_reads`, `precompute.unresolved_min_base_quality` |
 | Repeat models | M0, M1, M2 | `repeats.models` |
 | Repeat periods | 2, 3, 4, 5, 6 | `repeats.periods` |
 | mreps minimum exponent (M0, M2) | 3 copies | `repeats.mreps_min_exponent` |
@@ -199,10 +200,11 @@ Parameters:
 | TRF scoring (M1) | `2 7 7 80 10 50`, maximum period 6 | `repeats.trf_params` |
 | TRF window and overlap (M1) | 5 Mb, plus 1 Mb on each side | `repeats.trf_window_size`, `repeats.trf_overlap` |
 | InDel scan window | 10 Mb | `scan.window_size` |
+| Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
+| InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
 | Minimum kmerQ | 93 | `final_filters.min_kmerq` |
 | Minimum distance to the read end (workflow 4) | 100 bp | `final_filters.min_read_end_distance` |
-| Coverage window | 0.5×–2× the sample mean | scripts/utilities.py |
-| Unresolved-haplotype evidence | ≥ 2 reads with the same base at quality ≥ 40 | scripts/utilities.py |
+| Germline and somatic cell types; the 14 score bins | `Sperm.*` against six somatic types; edges −10 to 10 | `classification.germline_prefix`, `.somatic_types`, `.bin_edges`, `.bin_labels` |
 | Slurm account and per-target cores, memory, walltime | `mutationalscanning` | every workflow |
 
 ### Inputs

@@ -13,6 +13,6 @@
    "{ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv",
    "{ROOT}/results/repetitive_indels/ape/s1/classification_reads.tsv"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1 {ROOT}/results/repetitive_indels/ape/s1\n        bash {ROOT}/scripts/classification_read_counts.sh \\\n            {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv\n        cp {ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv {ROOT}/results/repetitive_indels/ape/s1/classification_reads.tsv\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1 {ROOT}/results/repetitive_indels/ape/s1\n        bash {ROOT}/scripts/classification_read_counts.sh \\\n            {ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv \\\n            Sperm. Blood.Monocytes,Bladder.SmoothMuscle,Breast.BasalEpithelial,Lung.AlveolarMacrophages,Colon.RightEndocrine,Thyroid.Epithelial -10,-8,-6,-4,-2,-1,0,1,2,4,6,8,10 -12,-10,-8,-6,-4,-2,-1,0,1,2,4,6,8,12\n        cp {ROOT}/results/nonrepetitive_indels/ape/s1/classification_reads.tsv {ROOT}/results/repetitive_indels/ape/s1/classification_reads.tsv\n        "
  }
 }

@@ -186,7 +186,7 @@
   "outputs": [
    "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c1 0 12000000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c1 0 12000000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c1_0_12000000.bed\n                "
  },
  "unresolved_haplotype_ape_s1_c2_0_diploid": {
   "inputs": [
@@ -203,7 +203,7 @@
   "outputs": [
    "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precomute/ape/s1/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
  },
  "unresolved_haplotype_ape_s2_c2_0_diploid": {
   "inputs": [
@@ -220,7 +220,7 @@
   "outputs": [
    "{ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/override/s2_diploid.bam {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precomute/ape/s2/avg_coverage.txt > {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/override/s2_diploid.bam {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precomute/ape/s2/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
  },
  "unresolved_haplotype_monkey_s3_c2_0_diploid": {
   "inputs": [
@@ -237,6 +237,6 @@
   "outputs": [
    "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precomute/monkey/s3/avg_coverage.txt > {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks\n                python {ROOT}/scripts/resolve_haplotypes.py c2 0 1500000 {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precomute/monkey/s3/avg_coverage.txt --min-base-quality 40 --min-reads 2 > {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed\n                "
  }
 }

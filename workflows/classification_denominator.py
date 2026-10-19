@@ -74,6 +74,7 @@ for species, samples in (pipeline.config.get("methylation_samples") or {}).items
         mkdir -p {nonrep_dir} {rep_dir}
         bash {scripts}/classification_read_counts.sh \\
             {likelihoods} \\
-            {nonrep}
+            {nonrep} \\
+            {pipeline.classification_arguments()}
         cp {nonrep} {rep}
         """

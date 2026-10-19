@@ -10,6 +10,10 @@ import io
 import utilities
 from make_fixtures import CONTIG
 
+# The pipeline's parameters, as config.yaml sets them; a test can pass others.
+COVERAGE_BAND = (0.5, 2.0)
+INDEL_SIZES = (1, 3)
+
 
 def rows_of(text):
     """Parse a scan's TSV output into one dict per row."""
@@ -18,18 +22,20 @@ def rows_of(text):
     return [dict(zip(header, line.split("\t"))) for line in lines[1:] if line]
 
 
-def nonrepetitive_scan(paths, window_start=None, window_end=None):
+def nonrepetitive_scan(paths, window_start=None, window_end=None,
+                       coverage_band=COVERAGE_BAND, indel_sizes=INDEL_SIZES):
     """Run nonrepetitive_scan() into strings: (calls, opportunities, FASTQ)."""
     calls, opportunities, fastq = io.StringIO(), io.StringIO(), io.StringIO()
     utilities.nonrepetitive_scan(
         paths["filters"], CONTIG, paths["bam"], paths["assembly"],
         paths["coverage"], paths["tissue"], window_start, window_end,
         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
+        coverage_band=coverage_band, indel_sizes=indel_sizes,
     )
     return calls.getvalue(), opportunities.getvalue(), fastq.getvalue()
 
 
-def tandem_repeat_scan(beds, paths, window_start=None, window_end=None):
+def tandem_repeat_scan(beds, paths, window_start=None, window_end=None, coverage_band=COVERAGE_BAND):
     """Run tandem_repeat_scan() into strings: (calls per model, opportunities per model, FASTQ)."""
     calls = {model: io.StringIO() for model in beds}
     opportunities = {model: io.StringIO() for model in beds}
@@ -38,6 +44,7 @@ def tandem_repeat_scan(beds, paths, window_start=None, window_end=None):
         beds, CONTIG, paths["bam"], paths["assembly"],
         paths["coverage"], paths["tissue"], window_start, window_end,
         calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
+        coverage_band=coverage_band,
     )
     return ({model: out.getvalue() for model, out in calls.items()},
             {model: out.getvalue() for model, out in opportunities.items()},

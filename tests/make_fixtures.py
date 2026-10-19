@@ -107,8 +107,8 @@ def write_fasta(path, contig, sequence, width=60):
 
 
 def make_read(name, reference, kind=None, position=None, length=0, *, start=0, end=None,
-              reverse=False, mapq=MAPPING_QUALITY, soft_clip=(0, 0), qualities=None,
-              subreads=None):
+              reverse=False, mapq=MAPPING_QUALITY, soft_clip=(0, 0), substitutions=None,
+              qualities=None, subreads=None):
     """
     One aligned read over reference[start:end], by default the whole contig,
     as pbmm2 writes it.
@@ -129,6 +129,9 @@ def make_read(name, reference, kind=None, position=None, length=0, *, start=0, e
 
     soft_clip: (left, right), the number of extra read bases soft-clipped off
     each end, in reference orientation. They match nothing in the contig.
+
+    substitutions: the read's base at chosen reference positions, where it
+    differs from the contig.
 
     qualities: base quality per reference position, with the key "inserted"
     for every inserted base. Other bases get BASE_QUALITY.
@@ -161,7 +164,8 @@ def make_read(name, reference, kind=None, position=None, length=0, *, start=0, e
         # Choose an inserted base differing from both neighbours so the
         # insertion does not land in a homopolymer run and get filtered.
         inserted = next(b for b in "ACGT" if b not in (reference[position], reference[position + 1]))
-    sequence = "".join(inserted if p is None else reference[p] for p in bases)
+    substitutions = substitutions or {}
+    sequence = "".join(inserted if p is None else substitutions.get(p, reference[p]) for p in bases)
 
     left, right = soft_clip
     if left:

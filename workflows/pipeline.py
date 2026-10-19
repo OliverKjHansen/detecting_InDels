@@ -16,6 +16,7 @@ absolute from there, because gwf runs the recipes from workflows/.
 """
 
 import os
+import shlex
 import string
 
 import yaml
@@ -68,6 +69,17 @@ class Pipeline:
         if sample in overrides:
             return os.path.expanduser(overrides[sample])
         return self.path("alignment", species, sample)
+
+    def classification_arguments(self):
+        """
+        The last four arguments of join_read_classification.sh and
+        classification_read_counts.sh, from the `classification` block: the
+        germline prefix, the somatic cell types, the bin edges, the bin labels.
+        """
+        block = self.config["classification"]
+        values = [block["germline_prefix"], ",".join(block["somatic_types"]),
+                  ",".join(map(str, block["bin_edges"])), ",".join(map(str, block["bin_labels"]))]
+        return " ".join(shlex.quote(value) for value in values)
 
     def long_contigs(self, species, sample):
         """
