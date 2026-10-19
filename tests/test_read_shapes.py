@@ -97,11 +97,11 @@ def test_a_reads_opportunities_are_counted_under_its_mapq(tmp_path):
     _, opportunities, _ = nonrepetitive_scan(dataset(tmp_path, [read]))
     by_mapq = {}
     for row in rows_of(opportunities):
-        by_mapq[row["mapQ"]] = by_mapq.get(row["mapQ"], 0) + int(row["count"])
+        by_mapq[row["mapQ_bin"]] = by_mapq.get(row["mapQ_bin"], 0) + int(row["count"])
     # Every read is a clean copy of the contig, so each one counts the same
     # positions: the mapQ 5 read a tenth as many as the N_CLEAN at mapQ 60.
-    assert set(by_mapq) == {"5", "60"}
-    assert by_mapq["5"] * N_CLEAN == by_mapq["60"]
+    assert set(by_mapq) == {"1-20", ">=60"}
+    assert by_mapq["1-20"] * N_CLEAN == by_mapq[">=60"]
 
 
 # -- reads that end early -----------------------------------------------------

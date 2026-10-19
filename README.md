@@ -204,6 +204,8 @@ Parameters:
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
 | Minimum kmerQ, as the key `kmerQ_pass` | 93 | `strata.min_kmerq` |
 | Bins of read length and of distance to the read end, keys on calls and opportunities | 4, 8, 12, 16, 20 kb; 25, 100, 300, 1000 bp | `strata.read_length_bins`, `strata.read_end_distance_bins` |
+| Bins of mapping quality, passes, predicted accuracy, passes on the weaker strand, and distance to the nearest other event in the read | 1, 20, 60; 5, 10, 15, 20, 30; 0.99, 0.999, 0.9999; 2, 5, 10; 5, 25, 100 bp | `strata.mapq_bins`, `.passes_bins`, `.accuracy_bins`, `.strand_passes_bins`, `.nearby_event_bins` |
+| Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
 | Minimum distance to the read end (workflow 4) | 100 bp | `final_filters.min_read_end_distance` |
 | Bins of subread support, a key on calls and opportunities | 0.8, 0.9, 1 | `strata.subread_support_bins` |
 | Germline and somatic cell types; the 14 score bins | `Sperm.*` against six somatic types; edges −10 to 10 | `classification.germline_prefix`, `.somatic_types`, `.bin_edges`, `.bin_labels` |
@@ -812,6 +814,8 @@ positions in the read; the position on the contig is `position`.
 | `read_length` | length of the read |
 | `np` | number of passes (PacBio `np` tag) |
 | `ec` | effective coverage (PacBio `ec` tag) |
+| `rq`, `fn`, `rn` | predicted accuracy, and full passes on the forward and reverse strands of the molecule (PacBio tags); `NA` without them |
+| `mapQ` | the read's mapping quality to the diploid assembly |
 | `sm`, `sx` | subreads matching / mismatching at the read base after the anchor: the first inserted base, or the first base after a deletion (PacBio `sm`, `sx`). PacBio stores these tags in the order the read was sequenced, which runs backwards along the alignment of a read aligned to the reverse strand; they are read in the alignment's order (S1). |
 | `sm_pre`, `sx_pre` | the same at the anchor |
 | `sa` | subread coverage at the anchor, decoded from PacBio's run-length-encoded `sa` tag |
@@ -820,6 +824,7 @@ positions in the read; the position on the contig is `position`.
 | `position` | 1-based coordinate of the anchor on the contig |
 | `readID` | read name |
 | `diploid_direction` | strand of the read's alignment to the diploid assembly |
+| `flank_sequence` | the assembly from `scan.flank_width` bases before the anchor to as many after it, for comparing sites between individuals |
 | `canonical_motif`, `k`, `copies`, `trf_purity`, `model_purity`, `model` | workflow 4 only: the tract the call sits in |
 | the keys | `tissue`, `kmerQ` and the other keys, the same columns as in the opportunity table: see [Keys](#keys) |
 | `bitflag_hap`, `contig_hap`, `pos_1based_hap`, `map_mapq` | the read's alignment to the haploid assembly: flag, contig, position and mapping quality |
@@ -831,14 +836,13 @@ positions in the read; the position on the contig is `position`.
 
 ### Opportunities
 
-Workflow 3's `opportunities.tsv` has one row per contig, context, mapping
-quality and value of the keys:
+Workflow 3's `opportunities.tsv` has one row per contig, context and value of
+the keys:
 
 | Column | Meaning |
 |---|---|
 | `contig` | |
 | `context` | canonical k-mer: the smaller of the k-mer and its reverse complement. Its length is the InDel size it counts for (1, 2 or 3), so 1 bp contexts are only `A` and `C`. |
-| `mapQ` | the read's mapping quality to the diploid assembly |
 | the keys | the same columns, with the same values, as at the end of each call: see [Keys](#keys) |
 | `count` | read positions |
 | `species`, `sample` | |
@@ -859,6 +863,10 @@ tables.
 | `smrt_cell` | the SMRT Cell (movie): the first part of the read's name |
 | `kmerQ_pass` | `pass` if every base tested has at least `strata.min_kmerq`, else `fail`; final filtering keeps `pass` on both tables. Calls also carry the raw `kmerQ`. |
 | `read_end_distance_bin` | distance from the anchor to the nearer end of the read's alignment, binned by `strata.read_end_distance_bins`. An opportunity's anchor is the base before its k-mer. |
+| `mapQ_bin` | the read's mapping quality to the diploid assembly, binned by `strata.mapq_bins` (N1) |
+| `np_bin`, `rq_bin` | the read's passes (`np`) and predicted accuracy (`rq`), binned by `strata.passes_bins` and `strata.accuracy_bins`; `NA` without the tag |
+| `strand_passes_bin` | full passes on the weaker strand of the molecule, the smaller of `fn` and `rn`, binned by `strata.strand_passes_bins`; `NA` without the tags |
+| `nearby_event_bin` | distance from the anchor to the read's nearest other InDel or mismatch with the assembly, binned by `strata.nearby_event_bins`; `none` if the read has none. Events at the anchor itself, such as the call's own InDel, don't count. |
 | `subread_support` | lowest share of covering subreads that match (`sm`/`sa`), among the bases tested, binned by `strata.subread_support_bins`; `NA` for reads without subread tags (Sequel II) |
 
 Every read position is counted once for each size, so the opportunities for one

@@ -1,10 +1,31 @@
 import pysam
 import csv
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from intervaltree import IntervalTree
 
-from read_tags import subread_support, subread_tags
-from strata import Read, Site, Strata
+from read_tags import describe, events, nearest_other_event, subread_support, subread_tags, tag
+from strata import Site, Strata
+
+# What a call and the opportunities both need of one read, computed once per
+# read: where its alignment ends, its sequence and base qualities, its read
+# keys, its subread tags and support in the alignment's order, and the
+# assembly positions of its own InDels and mismatches.
+ReadEntry = namedtuple("ReadEntry", "end sequence qualities key tags support events")
+
+
+def read_entry(alignment, tissue_table, strata, fasta, contig):
+    """The ReadEntry of an alignment."""
+    tags = subread_tags(alignment)
+    reference = fasta.fetch(contig, alignment.reference_start, alignment.reference_end).upper()
+    return ReadEntry(alignment.reference_end, alignment.query_sequence, alignment.query_qualities,
+                     strata.of_read(describe(alignment, tissue_table.get(alignment.query_name, "NA"))),
+                     tags, subread_support(tags), events(alignment, reference))
+
+
+def read_tag_columns(alignment):
+    """The calls' raw tag columns np, ec, rq, fn, rn and mapQ, NA where the read lacks a tag."""
+    values = [tag(alignment, name) for name in ("np", "ec", "rq", "fn", "rn")] + [alignment.mapping_quality]
+    return ["NA" if value is None else value for value in values]
 
 def load_filters_with_tree(bedfile, window_start=None, window_end=None): #for intervals interval trees are quicker then the previous sweep-line approach Ol(og(n)) = O(n)
     """
@@ -107,7 +128,7 @@ def homopolymer_check(seq):
 def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
-                       *, coverage_band, indel_sizes, key_parameters):
+                       *, coverage_band, indel_sizes, key_parameters, flank_width):
     """
     Call InDels of the sizes in indel_sizes, (smallest, largest) in bp, and
     count opportunities outside the mask in one pass over the BAM, and write
@@ -118,7 +139,8 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
     Only positions whose depth is within coverage_band, (low, high) multiples
     of the sample's mean coverage, are scanned. key_parameters are the
-    `strata` block of config.yaml.
+    `strata` block of config.yaml. Each call carries flank_width bases of the
+    assembly on each side of its anchor.
 
     Calls: InDels of those sizes at positions outside the mask (the filters
     BED), except those whose sequence plus one flanking base on each side is a
@@ -152,23 +174,29 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     min_mapping_qual = 0 # to have more contorl over pysam
     min_base_qual = 0 #--||---
 
-    # (context, mapQ, *read keys, *site keys) -> count
+    # (context, *read keys, *site keys) -> count
     data = defaultdict(int)
 
     if calls_out is not None:
         print("#contig", "start", "end", "ref", "alt",
         "indel_type","unique","indel_string","canonical_indel","read_length",
-        "np","ec","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
-        "position","readID", "diploid_direction", *strata.columns,
+        "np","ec","rq","fn","rn","mapQ","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
+        "position","readID", "diploid_direction", "flank_sequence", *strata.columns,
         sep= "\t", file=calls_out) #header for output
 
-    # Sequence, base qualities, read keys and subread support of each read,
-    # fetched once rather than at every position it covers: copying a whole HiFi read at each
-    # position is most of the cost of counting opportunities. Keyed by read,
-    # start and flag, with the read's end so reads the scan has passed can be
-    # dropped every 10 kb.
+    # Each read's ReadEntry, built once rather than at every position it
+    # covers: copying a whole HiFi read at each position is most of the cost
+    # of counting opportunities. Keyed by read, start and flag, with the read's
+    # end so reads the scan has passed can be dropped every 10 kb.
     reads = {}
     next_eviction = 0
+
+    def entry_of(alignment):
+        key = (alignment.query_name, alignment.reference_start, alignment.flag)
+        entry = reads.get(key)
+        if entry is None:
+            entry = reads[key] = read_entry(alignment, d, strata, fasta, contig)
+        return entry
 
     # Canonical k-mer and homopolymer check of a run (k-mer plus its flanking
     # bases), computed once per distinct run.
@@ -197,7 +225,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                 continue
 
             if position >= next_eviction:
-                reads = {key: value for key, value in reads.items() if value[0] > position}
+                reads = {key: entry for key, entry in reads.items() if entry.end > position}
                 next_eviction = position + 10_000
 
             pileups = pileupcolumn.pileups
@@ -220,18 +248,12 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                 # ---- opportunities ----
                 # we need at least one base on each side of the kmer
                 if opportunities_out is not None and 1 <= read_pos <= alignment.query_length - 2:
-                    key = (query_name, alignment.reference_start, alignment.flag)
-                    cached = reads.get(key)
-                    if cached is None:
-                        cached = reads[key] = (alignment.reference_end, alignment.query_sequence, alignment.query_qualities,
-                                               (alignment.mapping_quality,)
-                                               + strata.of_read(Read(query_name, d.get(query_name, "NA"),
-                                                                     alignment.query_length, alignment.is_reverse)),
-                                               subread_support(subread_tags(alignment)))
-                    readend, read_seq, base_qualities, read_key, support = cached
+                    entry = entry_of(alignment)
+                    read_seq, base_qualities, support = entry.sequence, entry.qualities, entry.support
                     # An opportunity's anchor is the base before its k-mer, as a call's is the base before its gap.
                     anchor = position - 1
-                    to_read_end = min(anchor - alignment.reference_start, readend - anchor)
+                    to_read_end = min(anchor - alignment.reference_start, entry.end - anchor)
+                    nearest = nearest_other_event(entry.events, anchor)
 
                     for indel_length in sizes: #indel lengths here means kmer length
                         run = read_seq[read_pos-1:read_pos+indel_length+1]   #run dependent on indel length # includes kmer + flanking bases
@@ -259,7 +281,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
                         tested_support = None if support is None else (
                             support[read_pos-1:read_pos+1]+support[read_pos+indel_length-1:read_pos+indel_length+1])
-                        data[(lexi,) + read_key + strata.of_site(Site(kmerq, tested_support, to_read_end))] += 1
+                        data[(lexi,) + entry.key + strata.of_site(Site(kmerq, tested_support, to_read_end, nearest))] += 1
 
                 # ---- calls ----
                 if calls_out is None:
@@ -270,21 +292,20 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                 if not smallest <= abs(indel) <= largest:
                     continue
 
-                np = ec = sm = sx = sa = sm_pre = sx_pre = "NA" # initialise tags
+                sm = sx = sa = sm_pre = sx_pre = "NA" # initialise tags
                 read_pos_after = pileupread.query_position_or_next
+                entry = entry_of(alignment)
                 readstart = alignment.reference_start
-                readend = alignment.reference_end
-                ToreadEnd = min([(position-readstart),(readend-position)]) #tjek
+                ToreadEnd = min([(position-readstart),(entry.end-position)]) #tjek
+                nearest = nearest_other_event(entry.events, position)
+                flank = fasta.fetch(contig, max(0, position - flank_width), position + flank_width + 1)
 
-                read_seq = alignment.query_sequence
-                base_qualities = alignment.query_qualities
+                read_seq = entry.sequence
+                base_qualities = entry.qualities
 
-                if alignment.has_tag("np"):
-                    np = alignment.get_tag("np") # full read
-                    ec = alignment.get_tag("ec")
                 # The subread tags in the alignment's order (S1).
-                tags = subread_tags(alignment)
-                call_support = subread_support(tags)
+                tags = entry.tags
+                call_support = entry.support
                 if tags is not None:
                     sm_all, sx_all, sa_all = tags
                     sm, sx = sm_all[read_pos+1], sx_all[read_pos+1] # the base after the anchor
@@ -309,12 +330,13 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     #00|xxx|00
                     def tested(values): # the bases tested, for qualities and subread support alike
                         return values[max(0, read_pos-1):read_pos+1]+values[read_pos_after+1:read_pos_after+3]
-                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support), ToreadEnd)
+                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support),
+                                ToreadEnd, nearest)
 
                     row = (contig, read_pos+1,read_pos+1,hcheck[0:-1],hcheck[0], #start and end are the same for delettion, becaus its is in the read
                            "deletion", seen, deletion_context, canonical_context(deletion_context), len(read_seq),
-                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
-                           position+1,query_name, diploid_strand)
+                           *read_tag_columns(alignment),sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
+                           position+1,query_name, diploid_strand, flank)
                 else:
                 # -------------------
                 # CASE 2: INSERTION
@@ -331,15 +353,15 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     #x0|0x0|0x
                     def tested(values): # the bases tested; the middle base twice for 1 bp, which doesn't matter
                         return values[max(0, read_pos):read_pos+2]+values[max(0, read_pos)+indel_length:read_pos+indel_length+2]
-                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support), ToreadEnd)
+                    site = Site(tested(base_qualities), None if call_support is None else tested(call_support),
+                                ToreadEnd, nearest)
 
                     row = (contig, read_pos+1,read_pos + indel_length +1,read_seq[read_pos],read_seq[read_pos:read_pos + indel_length +1],
                            "insertion", seen, insertion_context, canonical_context(insertion_context), len(read_seq),
-                           np,ec,sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
-                           position+1,query_name, diploid_strand)
+                           *read_tag_columns(alignment),sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
+                           position+1,query_name, diploid_strand, flank)
 
-                read = Read(query_name, d.get(query_name, "NA"), alignment.query_length, alignment.is_reverse)
-                print(*row, *strata.of_read(read), *strata.of_site(site), sep="\t", file=calls_out)
+                print(*row, *entry.key, *strata.of_site(site), sep="\t", file=calls_out)
 
                 # The read, for remapping to the haploid assembly
                 if fastq_out is not None and query_name not in fastq_reads:
@@ -350,7 +372,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     fasta.close()
 
     if opportunities_out is not None:
-        print("contig", "context", "mapQ", *strata.columns, "count", sep="\t", file=opportunities_out) #header for output
+        print("contig", "context", *strata.columns, "count", sep="\t", file=opportunities_out) #header for output
         for key, count in data.items():
             print(contig, *key, count, sep="\t", file=opportunities_out)
     return
@@ -409,7 +431,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                        average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
-                       *, coverage_band, key_parameters):
+                       *, coverage_band, key_parameters, flank_width):
     """
     Call InDels and count opportunities inside tandem repeat tracts for several
     repeat models (M0, M1, M2) in one pass over the BAM.
@@ -440,7 +462,8 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
     Only positions whose depth is within coverage_band, (low, high) multiples
     of the sample's mean coverage, are scanned. key_parameters are the
-    `strata` block of config.yaml.
+    `strata` block of config.yaml. Each call carries flank_width bases of the
+    assembly on each side of its anchor.
 
     With window_start/window_end, only positions in [window_start, window_end)
     are scanned; each position belongs to one window, so windows never report
@@ -465,25 +488,31 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
     strata = Strata(**key_parameters)
 
-    # counts[model][(canonical_motif, k, mapQ, *read keys, *site keys)] = count
+    # counts[model][(canonical_motif, k, *read keys, *site keys)] = count
     counts = {model: defaultdict(int) for model in opportunities_out}
 
     for out in calls_out.values():
         print("#contig", "start", "end", "ref", "alt",
               "indel_type", "unique", "indel_string", "canonical_indel", "read_length",
-              "np", "ec", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
-              "position", "readID", "diploid_direction",
+              "np", "ec", "rq", "fn", "rn", "mapQ", "sm", "sx", "sa", "sm_pre", "sx_pre", "ToreadEnd", "kmerQ",
+              "position", "readID", "diploid_direction", "flank_sequence",
               "canonical_motif", "k", "copies", "trf_purity", "model_purity", "model",
               *strata.columns,
               sep="\t", file=out)
 
-    # Base qualities, read keys and subread support of each read, fetched once
-    # rather than at every tract position it covers: copying a whole HiFi read's qualities at
-    # each position is most of the cost of counting opportunities. Keyed by
-    # read, start and flag, with the read's end so reads the scan has passed
-    # can be dropped every 10 kb.
-    qualities = {}
+    # Each read's ReadEntry, built once rather than at every tract position it
+    # covers: copying a whole HiFi read's qualities at each position is most of
+    # the cost of counting opportunities. Keyed by read, start and flag, with
+    # the read's end so reads the scan has passed can be dropped every 10 kb.
+    reads = {}
     next_eviction = 0
+
+    def entry_of(alignment):
+        key = (alignment.query_name, alignment.reference_start, alignment.flag)
+        entry = reads.get(key)
+        if entry is None:
+            entry = reads[key] = read_entry(alignment, d, strata, fasta, contig)
+        return entry
 
     fastq_reads = set()
 
@@ -511,7 +540,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                 continue
 
             if position >= next_eviction:
-                qualities = {key: value for key, value in qualities.items() if value[0] > position}
+                reads = {key: entry for key, entry in reads.items() if entry.end > position}
                 next_eviction = position + 10_000
 
             pileups = pileupcolumn.pileups
@@ -538,18 +567,12 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
 
                 # ---- opportunities ----
                 if opportunity_tracts and 1 <= read_pos <= alignment.query_length - 2:
-                    key = (query_name, alignment.reference_start, alignment.flag)
-                    cached = qualities.get(key)
-                    if cached is None:
-                        cached = qualities[key] = (alignment.reference_end, alignment.query_qualities,
-                                                   strata.of_read(Read(query_name, d.get(query_name, "NA"),
-                                                                       alignment.query_length, alignment.is_reverse)),
-                                                   subread_support(subread_tags(alignment)))
-                    readend, base_qualities, read_key, support = cached
+                    entry = entry_of(alignment)
+                    base_qualities, support = entry.qualities, entry.support
                     # An opportunity's anchor is the base before its window, as a call's is the base before its gap.
                     anchor = position - 1
-                    to_read_end = min(anchor - alignment.reference_start, readend - anchor)
-                    mapQ = alignment.mapping_quality
+                    to_read_end = min(anchor - alignment.reference_start, entry.end - anchor)
+                    nearest = nearest_other_event(entry.events, anchor)
 
                     for model, tr in opportunity_tracts:
                         k = tr['k']
@@ -560,8 +583,8 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                             continue
                         tested_support = None if support is None else (
                             support[read_pos - 1:read_pos + 1] + support[read_pos + k - 1:read_pos + k + 1])
-                        counts[model][(tr['canonical_motif'], k, mapQ) + read_key
-                                      + strata.of_site(Site(kmerq, tested_support, to_read_end))] += 1
+                        counts[model][(tr['canonical_motif'], k) + entry.key
+                                      + strata.of_site(Site(kmerq, tested_support, to_read_end, nearest))] += 1
 
                 # ---- calls ----
                 if not call_models:
@@ -584,21 +607,20 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                 if not call_tracts:
                     continue
 
-                np = ec = sm = sx = sa = sm_pre = sx_pre = "NA"
+                sm = sx = sa = sm_pre = sx_pre = "NA"
                 read_pos_after = pileupread.query_position_or_next
+                entry          = entry_of(alignment)
                 readstart      = alignment.reference_start
-                readend        = alignment.reference_end
-                ToreadEnd      = min(position - readstart, readend - position)
+                ToreadEnd      = min(position - readstart, entry.end - position)
+                nearest        = nearest_other_event(entry.events, position)
+                flank          = fasta.fetch(contig, max(0, position - flank_width), position + flank_width + 1)
 
-                read_seq       = alignment.query_sequence
-                base_qualities = alignment.query_qualities
+                read_seq       = entry.sequence
+                base_qualities = entry.qualities
 
-                if alignment.has_tag("np"):
-                    np = alignment.get_tag("np")
-                    ec = alignment.get_tag("ec")
                 # The subread tags in the alignment's order (S1).
-                tags = subread_tags(alignment)
-                call_support = subread_support(tags)
+                tags = entry.tags
+                call_support = entry.support
                 if tags is not None:
                     sm_all, sx_all, sa_all = tags
                     sm, sx = sm_all[read_pos + 1], sx_all[read_pos + 1]   # the base after the anchor
@@ -616,15 +638,15 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                                 + values[read_pos_after + 1:read_pos_after + 3])
                     del_q = tested(base_qualities)
                     # Quality 0, and no support, when no base is left to test.
-                    site = Site(del_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd)
+                    site = Site(del_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd, nearest)
 
                     row = (contig,
                            read_pos + 1, read_pos + 1,
                            hcheck[0:-1], hcheck[0],
                            "deletion", seen, deletion_context, canonical_repeat_indel(deletion_context),
                            len(read_seq),
-                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
-                           position + 1, query_name, diploid_strand)
+                           *read_tag_columns(alignment), sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
+                           position + 1, query_name, diploid_strand, flank)
                 else:
                     # INSERTION
                     insertion_context = read_seq[read_pos + 1:read_pos + indel_length + 1]
@@ -633,7 +655,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                                 + values[max(0, read_pos) + indel_length:read_pos + indel_length + 2])
                     ins_q = tested(base_qualities)
                     # Quality 0, and no support, when no base is left to test.
-                    site = Site(ins_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd)
+                    site = Site(ins_q or (0,), (call_support and tested(call_support)) or None, ToreadEnd, nearest)
 
                     row = (contig,
                            read_pos + 1, read_pos + indel_length + 1,
@@ -641,12 +663,10 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                            read_seq[read_pos:read_pos + indel_length + 1],
                            "insertion", seen, insertion_context, canonical_repeat_indel(insertion_context),
                            len(read_seq),
-                           np, ec, sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
-                           position + 1, query_name, diploid_strand)
+                           *read_tag_columns(alignment), sm, sx, sa, sm_pre, sx_pre, ToreadEnd, min(site.qualities),
+                           position + 1, query_name, diploid_strand, flank)
 
-                keys = (strata.of_read(Read(query_name, d.get(query_name, "NA"), alignment.query_length,
-                                            alignment.is_reverse))
-                        + strata.of_site(site))
+                keys = entry.key + strata.of_site(site)
                 for model, tr in call_tracts:
                     print(*row,
                           tr['canonical_motif'], tr['k'], tr['copies'],
@@ -661,7 +681,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                     fastq_out.write(f"@{query_name}\n{alignment.get_forward_sequence()}\n+\n{qual}\n")
 
     for model, out in opportunities_out.items():
-        print("contig", "canonical_motif", "k", "mapQ", *strata.columns, "count",
+        print("contig", "canonical_motif", "k", *strata.columns, "count",
               sep="\t", file=out)
         for key, count in counts[model].items():
             print(contig, *key, count, sep="\t", file=out)

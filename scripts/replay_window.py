@@ -36,6 +36,7 @@ def main():
         current = yaml.safe_load(handle)
     models, filters = current["repeats"]["models"], current["final_filters"]
     scan_options = ["--coverage-band", *current["scan"]["coverage_band"],
+                    "--flank-width", current["scan"]["flank_width"],
                     "--key-parameters", json.dumps(current["strata"])]
     data = Pipeline(f"{window}/config.yaml", base=window)
     # A window exported before a layout template existed lacks it; this

@@ -38,6 +38,7 @@ models = config["repeats"]["models"]
 chunk_size = config["scan"]["window_size"]
 # The positions scanned.
 scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
+                f"--flank-width {config['scan']['flank_width']} "
                 f"--key-parameters {pipeline.key_parameters()}")
 
 # Final filtering thresholds.

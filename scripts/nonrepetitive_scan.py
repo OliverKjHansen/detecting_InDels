@@ -13,9 +13,10 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 #
 # Usage: python nonrepetitive_scan.py <mask_bed> <contig> <bam> <fasta> <avg_coverage> <tissue> <start> <end> \
 #            <calls.tsv> <opportunities.tsv> <reads.fastq> \
-#            --coverage-band <low> <high> --indel-sizes <smallest> <largest> --key-parameters <json>
+#            --coverage-band <low> <high> --indel-sizes <smallest> <largest> --flank-width <bp> \
+#            --key-parameters <json>
 #
-# The first two options are the `scan` parameters in config.yaml, and
+# The first three options are the `scan` parameters in config.yaml, and
 # --key-parameters its `strata` block, as JSON.
 #
 # Every output is written to a .tmp file and renamed only when the whole window
@@ -32,6 +33,7 @@ if __name__ == "__main__":
         parser.add_argument(name)
     parser.add_argument("--coverage-band", type=float, nargs=2, required=True, metavar=("LOW", "HIGH"))
     parser.add_argument("--indel-sizes", type=int, nargs=2, required=True, metavar=("SMALLEST", "LARGEST"))
+    parser.add_argument("--flank-width", type=int, required=True, metavar="BP")
     parser.add_argument("--key-parameters", type=json.loads, required=True, metavar="JSON")
     args = parser.parse_args()
     calls, opportunities, fastq = args.calls, args.opportunities, args.fastq
@@ -43,7 +45,7 @@ if __name__ == "__main__":
                            args.start, args.end,
                            calls_out=calls_out, opportunities_out=opportunities_out, fastq_out=fastq_out,
                            coverage_band=args.coverage_band, indel_sizes=args.indel_sizes,
-                           key_parameters=args.key_parameters)
+                           key_parameters=args.key_parameters, flank_width=args.flank_width)
 
     for path in (calls, opportunities, fastq):
         os.replace(f"{path}.tmp", path)

@@ -43,6 +43,7 @@ chunk_size = config["scan"]["window_size"]
 # The positions scanned, and the InDel sizes called and counted.
 scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
                 f"--indel-sizes {' '.join(map(str, config['scan']['indel_sizes']))} "
+                f"--flank-width {config['scan']['flank_width']} "
                 f"--key-parameters {pipeline.key_parameters()}")
 
 

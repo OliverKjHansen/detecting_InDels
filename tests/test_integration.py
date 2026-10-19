@@ -135,7 +135,7 @@ def test_opportunities_are_counted_outside_the_mask(fixture_paths):
     _, opportunities, _ = nonrepetitive_scan(fixture_paths)
     rows = rows_of(opportunities)
     assert rows
-    assert {"context", "tissue", "mapQ", "kmerQ_pass", "count"} <= set(rows[0])
+    assert {"context", "tissue", "mapQ_bin", "kmerQ_pass", "count"} <= set(rows[0])
     assert sum(int(row["count"]) for row in rows) > 0
 
 
