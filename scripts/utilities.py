@@ -646,7 +646,8 @@ def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, ave
                        *, min_base_quality, min_reads):
     # A region is the span of the reads that share a mismatch with the
     # assembly: at least min_reads reads with the same base, each at base
-    # quality min_base_quality or more.
+    # quality min_base_quality or more. A region that overlaps or touches the
+    # one being built joins it, which becomes their union.
     # Only positions in [window_start, window_end) are scanned. Regions are
     # reported with the full span of their reads, so they can reach outside
     # the window; the workflow merges regions from neighbouring windows.
@@ -655,8 +656,10 @@ def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, ave
     #print("works?")
     min_mapping_qual = 0
     min_base_qual = 0
-    previous_start = 0
-    previous_end = 0
+    # The region being built, None until the first; one at the contig's first
+    # base starts at 0.
+    previous_start = None
+    previous_end = None
     with pysam.AlignmentFile(bamfile, "rb") as bam:
         #print("contig","start","end", sep= "\t")
 
@@ -708,14 +711,15 @@ def resolve_haplotypes(contig, window_start, window_end, bamfile, fastafile, ave
                         start = min(intervals[0])
                         end = max(intervals[1])
                         #print(intervals,position+1,start,end)
-                        if (previous_start == 0) and (previous_end==0):
+                        if previous_start is None:
                             previous_start = start
                             previous_end = end
-                        elif start < previous_end: # extending region
-                            previous_end = end
-                        elif start > previous_end: # new region
+                        elif start <= previous_end: # overlapping or touching: the union, never shrinking
+                            previous_start = min(previous_start, start)
+                            previous_end = max(previous_end, end)
+                        else: # new region
                             print(contig, previous_start, previous_end, sep="\t")
                             previous_start = start
                             previous_end = end
-    if previous_start != 0 and previous_end != 0:
+    if previous_start is not None:
         print(contig, previous_start, previous_end, sep="\t")

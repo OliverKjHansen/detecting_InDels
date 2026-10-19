@@ -156,7 +156,7 @@ def cluster(tmp_path_factory, fixture_paths):
         for model in MODELS:
             with open(made(path("repetitive_tracts", contig=mf.CONTIG, model=model)), "w") as measured:
                 run_script("drop_excluded_tracts.py", path("tandem_repeats", contig=mf.CONTIG, model=model),
-                           path("excluded", contig=mf.CONTIG), stdout=measured)
+                           path("excluded", contig=mf.CONTIG), path("unresolved", contig=mf.CONTIG), stdout=measured)
         with contextlib.ExitStack() as files:
             def opened(name, **fields):
                 return files.enter_context(open(made(path(name, **window, **fields)), "w"))

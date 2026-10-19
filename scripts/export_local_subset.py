@@ -280,8 +280,8 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
         copy_overlapping(*both("tandem_repeats", contig=contig, model=model), contig, left, right, header=True)
 
     # Workflows 3 and 4: the mask, the tracts workflow 4 measures (absent if it
-    # ran before it dropped the tracts that overlap an excluded region), and
-    # the haploid alignments of the window's reads.
+    # ran before it dropped the tracts that overlap an excluded or unresolved
+    # region), and the haploid alignments of the window's reads.
     log("  mask, measured tracts and haploid alignment records")
     copy_overlapping(*both("nonrepetitive_mask", contig=contig), contig, left, right, header=False)
     for model in models:

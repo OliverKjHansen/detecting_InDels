@@ -75,8 +75,8 @@ def main():
     def tracts(model):
         """
         The tracts workflow 4 scans: those it measures, or, in a window exported
-        before it dropped the tracts that overlap an excluded region, all the
-        model's tracts, which it scanned then.
+        before it dropped the tracts that overlap an excluded or unresolved
+        region, all the model's tracts, which it scanned then.
         """
         measured = data.path("repetitive_tracts", species, sample, contig=contig, model=model)
         return measured if os.path.exists(measured) else \

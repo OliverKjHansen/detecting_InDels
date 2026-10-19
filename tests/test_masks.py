@@ -1,7 +1,7 @@
 """
 What the InDel workflows leave out, built by the workflows' own targets on a
-sample with one short contig: workflow 3's mask, the tracts workflow 4
-measures, and the summaries of both.
+sample with one short contig: the excluded group, workflow 3's mask, the
+tracts workflow 4 measures, and the summaries of what is left out.
 
 Each test writes the files a target reads where the workflow before it leaves
 them, runs the target's command with bash, as gwf would, and reads what it
@@ -155,15 +155,21 @@ def annotate_repeats(sample, tracts=(), models=MODELS):
         sample.run("repetitive_dna", f"{model}_merge_k_{CONTIG}_{SPECIES}_{SAMPLE}_diploid")
 
 
-def measure_tracts(sample):
-    """The tracts workflow 4 measures, per model."""
+def write_unresolved(sample, regions):
+    """Workflow 1's unresolved-haplotype regions of the contig, (start, end) each."""
+    sample.write("unresolved", [f"{CONTIG}\t{start}\t{end}" for start, end in regions], contig=CONTIG)
+
+
+def measure_tracts(sample, unresolved=()):
+    """The tracts workflow 4 measures, per model, with these unresolved-haplotype regions."""
+    write_unresolved(sample, unresolved)
     sample.run("repetitive_indel_call", f"TRTracts_{SPECIES}_{SAMPLE}")
     return {model: sample.regions("repetitive_tracts", contig=CONTIG, model=model) for model in MODELS}
 
 
-def build_mask(sample):
-    """Workflow 3's mask, with no unresolved region."""
-    sample.write("unresolved", [], contig=CONTIG)
+def build_mask(sample, unresolved=()):
+    """Workflow 3's mask, with these unresolved-haplotype regions."""
+    write_unresolved(sample, unresolved)
     sample.run("indel_mutation_call", f"non_rep_Mask_{SPECIES}_{SAMPLE}_diploid")
     return sample.regions("nonrepetitive_mask", contig=CONTIG)
 
@@ -271,3 +277,30 @@ def test_the_bases_of_dropped_tracts_are_summarised_per_sample_and_model(tmp_pat
         ("M1", "120", "70", "50", "0.416667"),
         ("M2", "0", "0", "0", "0"),
     ]
+
+
+# -- unresolved haplotype regions (decisions Q19, Q32) -------------------------
+
+
+def test_the_share_of_the_genome_the_unresolved_regions_mask_is_written_per_sample(tmp_path, monkeypatch):
+    s = sample(tmp_path, monkeypatch)
+    write_unresolved(s, [(100, 300), (500, 550)])
+    s.run("precompute", f"unresolved_summary_{SPECIES}_{SAMPLE}_diploid")
+    assert [(row["regions"], row["bp"], row["contigs_bp"], row["share"])
+            for row in s.table("unresolved_summary")] == [("2", "250", "1000", "0.25")]
+
+
+def test_workflow_4_drops_every_tract_that_overlaps_an_unresolved_region_whole(tmp_path, monkeypatch):
+    s = sample(tmp_path, monkeypatch)
+    annotate_excluded(s)
+    annotate_repeats(s, [(100, 140, "AC", 2), (290, 320, "AG", 2), (400, 440, "AC", 2)])
+    # The second region only touches the third tract.
+    assert measure_tracts(s, unresolved=[(200, 300), (440, 460)]) == \
+        {model: [(100, 140), (400, 440)] for model in MODELS}
+
+
+def test_workflow_3_still_masks_the_unresolved_regions(tmp_path, monkeypatch):
+    s = sample(tmp_path, monkeypatch)
+    annotate_excluded(s)
+    annotate_repeats(s)
+    assert build_mask(s, unresolved=[(600, 700)]) == [(600, 700)]
