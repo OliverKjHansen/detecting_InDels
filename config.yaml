@@ -153,12 +153,15 @@ layout:
   tissue:       "{output}/precomute/{species}/{sample}/sorted_tissue_classification.tsv"
 
   # Written by repetitive_dna.py: per period k (M1 also per window), then one
-  # BED per contig per model, and per sample.
+  # BED per contig per model, and per sample. repeat_bases is every base in a
+  # tract of the model before overlap resolution, as merged intervals.
   repeats_per_k:         "{output}/repetitive_dna/{species}/{sample}/per_k/{contig}_{model}_k{k}.bed"
   repeats_per_k_window:  "{output}/repetitive_dna/{species}/{sample}/per_k/{contig}_{model}_k{k}_{start}.bed"
   tandem_repeats:        "{output}/repetitive_dna/{species}/{sample}/{contig}_{model}.bed"
+  repeat_bases:          "{output}/repetitive_dna/{species}/{sample}/bases/{contig}_{model}.bed"
   tandem_repeats_sample: "{output}/repetitive_dna/{species}/{sample}/{model}.bed"
   repeats_summary:       "{results}/repetitive_dna/{species}/{sample}/{model}_summary.tsv"
+  repeats_dropped_summary: "{results}/repetitive_dna/{species}/{sample}/{model}_dropped.tsv"
   # The excluded group, also by repetitive_dna.py: homopolymer runs and tracts
   # with periods above repeats.periods (TRF per window), per contig, their
   # union, and the bases they cover per sample.

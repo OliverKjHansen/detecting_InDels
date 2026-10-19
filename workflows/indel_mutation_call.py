@@ -94,12 +94,14 @@ for species, samples in config["samples"].items():
 
         # Step 1 — the mask of every contig: every base any repeat model calls
         # repetitive, the unresolved-haplotype regions, and the excluded group
-        # (homopolymer runs and tracts with longer periods), merged.
-        repeat_beds     = [path("tandem_repeats", contig=contig, model=model) for contig in long_contigs for model in models]
+        # (homopolymer runs and tracts with longer periods), merged. The
+        # repeat bases are those of every tract before overlap resolution, so
+        # a tract resolution drops is masked whole.
+        repeat_beds     = [path("repeat_bases", contig=contig, model=model) for contig in long_contigs for model in models]
         unresolved_beds = [path("unresolved", contig=contig) for contig in long_contigs]
         excluded_beds   = [path("excluded", contig=contig) for contig in long_contigs]
         # The same files for the contig in the shell loop's $contig.
-        contig_repeat_beds = " ".join(path("tandem_repeats", contig="${contig}", model=model) for model in models)
+        contig_repeat_beds = " ".join(path("repeat_bases", contig="${contig}", model=model) for model in models)
         contig_unresolved  = path("unresolved", contig="${contig}")
         contig_excluded    = path("excluded", contig="${contig}")
         contig_mask        = path("nonrepetitive_mask", contig="${contig}")

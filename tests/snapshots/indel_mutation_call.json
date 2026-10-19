@@ -175,12 +175,12 @@
  },
  "non_rep_Mask_ape_s1_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M2.bed",
    "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c1.bed",
    "{ROOT}/output/precomute/ape/s1/unresolved_haplotypes/c2.bed",
    "{ROOT}/output/repetitive_dna/ape/s1/excluded/c1.bed",
@@ -196,13 +196,13 @@
    "{ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/mask/c2.bed"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/mask\n        for contig in c1 c2; do\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s1/${contig}_M0.bed {ROOT}/output/repetitive_dna/ape/s1/${contig}_M1.bed {ROOT}/output/repetitive_dna/ape/s1/${contig}_M2.bed {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/${contig}.bed {ROOT}/output/repetitive_dna/ape/s1/excluded/${contig}.bed > {ROOT}/output/nonrepetitive_indels/ape/s1/mask/${contig}.bed.tmp\n            mv {ROOT}/output/nonrepetitive_indels/ape/s1/mask/${contig}.bed.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/mask/${contig}.bed\n        done\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/mask\n        for contig in c1 c2; do\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s1/bases/${contig}_M0.bed {ROOT}/output/repetitive_dna/ape/s1/bases/${contig}_M1.bed {ROOT}/output/repetitive_dna/ape/s1/bases/${contig}_M2.bed {ROOT}/output/precomute/ape/s1/unresolved_haplotypes/${contig}.bed {ROOT}/output/repetitive_dna/ape/s1/excluded/${contig}.bed > {ROOT}/output/nonrepetitive_indels/ape/s1/mask/${contig}.bed.tmp\n            mv {ROOT}/output/nonrepetitive_indels/ape/s1/mask/${contig}.bed.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/mask/${contig}.bed\n        done\n        "
  },
  "non_rep_Mask_ape_s2_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed",
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed",
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M2.bed",
    "{ROOT}/output/precomute/ape/s2/unresolved_haplotypes/c2.bed",
    "{ROOT}/output/repetitive_dna/ape/s2/excluded/c2.bed"
   ],
@@ -215,13 +215,13 @@
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s2/mask/c2.bed"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/mask\n        for contig in c2; do\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s2/${contig}_M0.bed {ROOT}/output/repetitive_dna/ape/s2/${contig}_M1.bed {ROOT}/output/repetitive_dna/ape/s2/${contig}_M2.bed {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/${contig}.bed {ROOT}/output/repetitive_dna/ape/s2/excluded/${contig}.bed > {ROOT}/output/nonrepetitive_indels/ape/s2/mask/${contig}.bed.tmp\n            mv {ROOT}/output/nonrepetitive_indels/ape/s2/mask/${contig}.bed.tmp {ROOT}/output/nonrepetitive_indels/ape/s2/mask/${contig}.bed\n        done\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/mask\n        for contig in c2; do\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/ape/s2/bases/${contig}_M0.bed {ROOT}/output/repetitive_dna/ape/s2/bases/${contig}_M1.bed {ROOT}/output/repetitive_dna/ape/s2/bases/${contig}_M2.bed {ROOT}/output/precomute/ape/s2/unresolved_haplotypes/${contig}.bed {ROOT}/output/repetitive_dna/ape/s2/excluded/${contig}.bed > {ROOT}/output/nonrepetitive_indels/ape/s2/mask/${contig}.bed.tmp\n            mv {ROOT}/output/nonrepetitive_indels/ape/s2/mask/${contig}.bed.tmp {ROOT}/output/nonrepetitive_indels/ape/s2/mask/${contig}.bed\n        done\n        "
  },
  "non_rep_Mask_monkey_s3_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed",
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed",
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M2.bed",
    "{ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/c2.bed",
    "{ROOT}/output/repetitive_dna/monkey/s3/excluded/c2.bed"
   ],
@@ -234,7 +234,7 @@
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/mask/c2.bed"
   ],
-  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/mask\n        for contig in c2; do\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/monkey/s3/${contig}_M0.bed {ROOT}/output/repetitive_dna/monkey/s3/${contig}_M1.bed {ROOT}/output/repetitive_dna/monkey/s3/${contig}_M2.bed {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/${contig}.bed {ROOT}/output/repetitive_dna/monkey/s3/excluded/${contig}.bed > {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed.tmp\n            mv {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed.tmp {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed\n        done\n        "
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/mask\n        for contig in c2; do\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/monkey/s3/bases/${contig}_M0.bed {ROOT}/output/repetitive_dna/monkey/s3/bases/${contig}_M1.bed {ROOT}/output/repetitive_dna/monkey/s3/bases/${contig}_M2.bed {ROOT}/output/precomute/monkey/s3/unresolved_haplotypes/${contig}.bed {ROOT}/output/repetitive_dna/monkey/s3/excluded/${contig}.bed > {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed.tmp\n            mv {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed.tmp {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed\n        done\n        "
  },
  "non_rep_MergeAndPlot_ape_s1_diploid": {
   "inputs": [

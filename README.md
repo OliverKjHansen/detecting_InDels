@@ -72,7 +72,10 @@ its own size rule. Every base falls in one of three groups:
 
 Homopolymers are where HiFi makes the most errors, and repeats with longer
 periods still slip faster than the background, so leaving them in the
-non-repetitive group would raise its rate.
+non-repetitive group would raise its rate. Repeat bases workflow 4 can't
+measure, the tracts that overlap the excluded group and the parts of tracts
+that [overlap resolution](#workflow-2-repeat-annotation) drops, stay masked
+from workflow 3, so they are in neither workflow either.
 
 ### The four workflows
 
@@ -328,8 +331,8 @@ their own, without those that overlap the excluded group.
 | 1a. M0 tracts | `M0_mreps_k{k}_{contig}_{species}_{sample}_diploid` | contig × k | `per_k/{contig}_M0_k{k}.bed` |
 | 1a. M2 tracts | `M2_mreps_k{k}_{contig}_{species}_{sample}_diploid` | contig × k | `per_k/{contig}_M2_k{k}.bed` |
 | 1a. M1 tracts | `M1_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window | `per_k/{contig}_M1_k{k}_{start}.bed`, one per k |
-| 1b. Resolve overlaps | `{model}_merge_k_{contig}_{species}_{sample}_diploid` | contig × model | `{contig}_{model}.bed` |
-| 2. Sample BED and summary | `cat_{model}_{species}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` |
+| 1b. Resolve overlaps | `{model}_merge_k_{contig}_{species}_{sample}_diploid` | contig × model | `{contig}_{model}.bed`, `bases/{contig}_{model}.bed` |
+| 2. Sample BED and summaries | `cat_{model}_{species}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` and `{model}_dropped.tsv` |
 | 3a. Long-period tracts | `long_period_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window | `excluded/chunks/{contig}_long_periods_{start}.bed` |
 | 3b. Excluded group | `excluded_{contig}_{species}_{sample}_diploid` | contig | `excluded/{contig}_homopolymers.bed`, `excluded/{contig}_long_periods.bed`, `excluded/{contig}.bed` |
 | 3c. Excluded summary | `excluded_summary_{species}_{sample}_diploid` | sample | `results/repetitive_dna/{species}/{sample}/excluded_summary.tsv` |
@@ -387,13 +390,19 @@ base in at most one tract per model:
 
 Keeping the smallest period keeps a repeat's fundamental period: TRF often
 reports a repeat again at multiples of its period, such as `(AT)n` at periods 4
-and 6. A dropped tract is not trimmed, so its bases outside the kept tract lose
-that model's annotation. Workflow 3 builds its mask from these resolved BEDs.
+and 6. A dropped tract is not trimmed, so its bases outside the kept tract are
+in no tract of the model, and workflow 4 does not see them. Workflow 3 masks
+them all the same, because its mask is built from every tract before
+resolution: the same step writes the bases in any of the model's tracts, as
+merged intervals, to `bases/{contig}_{model}.bed`. So those bases are in
+neither workflow, like the [excluded group](#workflow-2-repeat-annotation), and
+`{model}_dropped.tsv` counts them.
 
-**Sample BED and summary.** The contigs' resolved BEDs are concatenated into
+**Sample BED and summaries.** The contigs' resolved BEDs are concatenated into
 `{model}.bed`. The summary counts tracts per distinct combination of
 `canonical_motif`, `k`, `copies`, `trf_purity` and `model_purity`, which keeps a
-whole genome small enough to plot locally.
+whole genome small enough to plot locally. `{model}_dropped.tsv` gives the bases
+overlap resolution leaves out of the model (see [Other tables](#other-tables)).
 
 **The excluded group.** Two kinds of sequence are in neither InDel workflow:
 
@@ -452,9 +461,9 @@ and every unresolved-haplotype region. Intermediates go to
 | 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
 | 8. Germline/somatic | `non_rep_Classify_{species}_{sample}_diploid` | sample in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
-1. **Mask.** Per contig, the tracts of all three models (after overlap
-   resolution), the unresolved-haplotype regions and the excluded group,
-   merged with [merge_regions.py](scripts/merge_regions.py).
+1. **Mask.** Per contig, every tract of the three models before overlap
+   resolution (`bases/{contig}_{model}.bed`), the unresolved-haplotype regions
+   and the excluded group, merged with [merge_regions.py](scripts/merge_regions.py).
 2. **Scan.** [nonrepetitive_scan.py](scripts/nonrepetitive_scan.py) runs
    `nonrepetitive_scan()` from [utilities.py](scripts/utilities.py). At each
    position of the window that passes the coverage window and lies outside the
@@ -604,7 +613,8 @@ share it.
 ### Mask and tracts
 
 Workflow 3 skips every position inside its mask: the union of the M0, M1 and M2
-tracts, the excluded group and the unresolved-haplotype regions. Workflow 4
+tracts (every tract, before overlap resolution), the excluded group and the
+unresolved-haplotype regions. Workflow 4
 uses only positions inside a measured tract of the model being called: a tract
 that overlaps none of the excluded group. It does not mask unresolved
 haplotypes. After overlap resolution a base lies in at most one tract per model,
@@ -820,6 +830,7 @@ output/
 ├── repetitive_dna/{species}/{sample}/
 │   ├── per_k/                                    per period (and per window for M1)
 │   ├── {contig}_{model}.bed                      overlaps resolved
+│   ├── bases/{contig}_{model}.bed                the bases in any tract, before resolution
 │   ├── {model}.bed                               all contigs
 │   └── excluded/                                 {contig}_homopolymers.bed, {contig}_long_periods.bed
 │                                                 and their union {contig}.bed; TRF windows in chunks/
@@ -838,6 +849,7 @@ output/
 results/
 ├── repetitive_dna/{species}/{sample}/
 │   ├── {model}_summary.tsv
+│   ├── {model}_dropped.tsv
 │   └── excluded_summary.tsv
 ├── nonrepetitive_indels/{species}/{sample}/
 │   ├── indels.tsv
@@ -926,6 +938,11 @@ Workflow 4's table has `canonical_motif` and `k` (the tract's) in place of
 - `{model}_summary.tsv`: `canonical_motif`, `k`, `copies`, `trf_purity`,
   `model_purity`, `model`, `species`, `sample` and `count`, the number of tracts
   of each kind.
+- `{model}_dropped.tsv`: one row, the `model`, with `bp_before`, the bases in a
+  tract of the model before overlap resolution; `bp_kept`, those in the tracts
+  it keeps; `bp_dropped`, the difference, the bases of dropped tracts that no
+  kept tract covers, which are in neither InDel workflow; and `share_dropped`,
+  `bp_dropped` over `bp_before`; then `species` and `sample`.
 - `excluded_summary.tsv`: one row per `class` of the excluded group,
   `homopolymer`, `long_period` and `excluded` (their union), with `regions`
   (homopolymer runs, or merged intervals), `bp`, and `share`, the bases over

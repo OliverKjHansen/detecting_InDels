@@ -14,9 +14,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M0.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/output/repetitive_dna/ape/s1/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed\n                mv {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M0.bed\n                "
  },
  "M0_merge_k_c2_ape_s1_diploid": {
   "inputs": [
@@ -33,9 +34,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M0.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/output/repetitive_dna/ape/s1/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed\n                mv {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M0.bed\n                "
  },
  "M0_merge_k_c2_ape_s2_diploid": {
   "inputs": [
@@ -52,9 +54,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed"
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M0.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/output/repetitive_dna/ape/s2/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed\n                mv {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M0.bed\n                "
  },
  "M0_merge_k_c2_monkey_s3_diploid": {
   "inputs": [
@@ -71,9 +74,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed"
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M0.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/output/repetitive_dna/monkey/s3/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k2.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k3.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k4.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k5.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M0_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M0.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed\n                mv {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M0.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M0.bed\n                "
  },
  "M0_mreps_k2_c1_ape_s1_diploid": {
   "inputs": [
@@ -400,9 +404,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M1.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_10000000.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/output/repetitive_dna/ape/s1/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_5000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k2_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k3_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k4_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k5_10000000.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M1_k6_10000000.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed\n                mv {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M1.bed\n                "
  },
  "M1_merge_k_c2_ape_s1_diploid": {
   "inputs": [
@@ -419,9 +424,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M1.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/output/repetitive_dna/ape/s1/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed\n                mv {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M1.bed\n                "
  },
  "M1_merge_k_c2_ape_s2_diploid": {
   "inputs": [
@@ -438,9 +444,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed"
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M1.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/output/repetitive_dna/ape/s2/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed\n                mv {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M1.bed\n                "
  },
  "M1_merge_k_c2_monkey_s3_diploid": {
   "inputs": [
@@ -457,9 +464,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed"
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M1.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/output/repetitive_dna/monkey/s3/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k2_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k3_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k4_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k5_0.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M1_k6_0.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M1.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed\n                mv {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M1.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M1.bed\n                "
  },
  "M1_trf_c1_0_ape_s1_diploid": {
   "inputs": [
@@ -596,9 +604,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M2.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/output/repetitive_dna/ape/s1/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c1_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed\n                mv {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M2.bed\n                "
  },
  "M2_merge_k_c2_ape_s1_diploid": {
   "inputs": [
@@ -615,9 +624,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M2.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/output/repetitive_dna/ape/s1/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s1/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed\n                mv {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M2.bed\n                "
  },
  "M2_merge_k_c2_ape_s2_diploid": {
   "inputs": [
@@ -634,9 +644,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed"
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M2.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/output/repetitive_dna/ape/s2/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/ape/s2/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed\n                mv {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M2.bed\n                "
  },
  "M2_merge_k_c2_monkey_s3_diploid": {
   "inputs": [
@@ -653,9 +664,10 @@
    "walltime": "02:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed"
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M2.bed"
   ],
-  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed\n                "
+  "spec": "\n                set -e\n                mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/output/repetitive_dna/monkey/s3/bases\n                WORK=$(mktemp -d)\n                trap 'rm -rf \"$WORK\"' EXIT\n                awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k2.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k3.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k4.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k5.bed {ROOT}/output/repetitive_dna/monkey/s3/per_k/c2_M2_k6.bed > $WORK/all.bed\n                python {ROOT}/scripts/resolve_repeat_overlaps.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed.tmp\n                python {ROOT}/scripts/merge_regions.py $WORK/all.bed > {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M2.bed.tmp\n                mv {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed\n                mv {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M2.bed.tmp {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M2.bed\n                "
  },
  "M2_mreps_k2_c1_ape_s1_diploid": {
   "inputs": [
@@ -960,7 +972,9 @@
  "cat_M0_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M0.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -970,13 +984,15 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/M0.bed",
-   "{ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv"
+   "{ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv",
+   "{ROOT}/results/repetitive_dna/ape/s1/M0_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed > {ROOT}/output/repetitive_dna/ape/s1/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M0.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M0.bed > {ROOT}/output/repetitive_dna/ape/s1/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M0_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M0.bed {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M0.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s1/M0.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M0_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M0\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"ape\", \"s1\"}' \\\n                >> {ROOT}/results/repetitive_dna/ape/s1/M0_dropped.tsv\n            "
  },
  "cat_M0_ape_s2_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed"
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M0.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -986,13 +1002,15 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s2/M0.bed",
-   "{ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv"
+   "{ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv",
+   "{ROOT}/results/repetitive_dna/ape/s2/M0_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed > {ROOT}/output/repetitive_dna/ape/s2/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M0.bed > {ROOT}/output/repetitive_dna/ape/s2/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M0_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M0.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s2/M0.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M0_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M0\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"ape\", \"s2\"}' \\\n                >> {ROOT}/results/repetitive_dna/ape/s2/M0_dropped.tsv\n            "
  },
  "cat_M0_monkey_s3_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed"
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M0.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -1002,14 +1020,17 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/monkey/s3/M0.bed",
-   "{ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv"
+   "{ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv",
+   "{ROOT}/results/repetitive_dna/monkey/s3/M0_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed > {ROOT}/output/repetitive_dna/monkey/s3/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M0.bed > {ROOT}/output/repetitive_dna/monkey/s3/M0.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M0.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M0_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M0.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/monkey/s3/M0.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M0_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M0\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"monkey\", \"s3\"}' \\\n                >> {ROOT}/results/repetitive_dna/monkey/s3/M0_dropped.tsv\n            "
  },
  "cat_M1_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M1.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -1019,13 +1040,15 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/M1.bed",
-   "{ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv"
+   "{ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv",
+   "{ROOT}/results/repetitive_dna/ape/s1/M1_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed > {ROOT}/output/repetitive_dna/ape/s1/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M1.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M1.bed > {ROOT}/output/repetitive_dna/ape/s1/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M1_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M1.bed {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M1.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s1/M1.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M1_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M1\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"ape\", \"s1\"}' \\\n                >> {ROOT}/results/repetitive_dna/ape/s1/M1_dropped.tsv\n            "
  },
  "cat_M1_ape_s2_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed"
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M1.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -1035,13 +1058,15 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s2/M1.bed",
-   "{ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv"
+   "{ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv",
+   "{ROOT}/results/repetitive_dna/ape/s2/M1_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed > {ROOT}/output/repetitive_dna/ape/s2/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M1.bed > {ROOT}/output/repetitive_dna/ape/s2/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M1_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M1.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s2/M1.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M1_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M1\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"ape\", \"s2\"}' \\\n                >> {ROOT}/results/repetitive_dna/ape/s2/M1_dropped.tsv\n            "
  },
  "cat_M1_monkey_s3_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed"
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M1.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -1051,14 +1076,17 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/monkey/s3/M1.bed",
-   "{ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv"
+   "{ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv",
+   "{ROOT}/results/repetitive_dna/monkey/s3/M1_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed > {ROOT}/output/repetitive_dna/monkey/s3/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M1.bed > {ROOT}/output/repetitive_dna/monkey/s3/M1.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M1.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M1_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M1.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/monkey/s3/M1.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M1_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M1\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"monkey\", \"s3\"}' \\\n                >> {ROOT}/results/repetitive_dna/monkey/s3/M1_dropped.tsv\n            "
  },
  "cat_M2_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed",
-   "{ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed"
+   "{ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c1_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s1/bases/c2_M2.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -1068,13 +1096,15 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/M2.bed",
-   "{ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv"
+   "{ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv",
+   "{ROOT}/results/repetitive_dna/ape/s1/M2_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed > {ROOT}/output/repetitive_dna/ape/s1/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s1 {ROOT}/results/repetitive_dna/ape/s1\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s1/c1_M2.bed {ROOT}/output/repetitive_dna/ape/s1/c2_M2.bed > {ROOT}/output/repetitive_dna/ape/s1/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s1/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s1/M2_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s1/bases/c1_M2.bed {ROOT}/output/repetitive_dna/ape/s1/bases/c2_M2.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s1/M2.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s1/M2_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M2\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"ape\", \"s1\"}' \\\n                >> {ROOT}/results/repetitive_dna/ape/s1/M2_dropped.tsv\n            "
  },
  "cat_M2_ape_s2_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed"
+   "{ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/ape/s2/bases/c2_M2.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -1084,13 +1114,15 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s2/M2.bed",
-   "{ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv"
+   "{ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv",
+   "{ROOT}/results/repetitive_dna/ape/s2/M2_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed > {ROOT}/output/repetitive_dna/ape/s2/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/ape/s2 {ROOT}/results/repetitive_dna/ape/s2\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/ape/s2/c2_M2.bed > {ROOT}/output/repetitive_dna/ape/s2/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/ape/s2/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/ape/s2/M2_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s2/bases/c2_M2.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/ape/s2/M2.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/ape/s2/M2_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M2\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"ape\", \"s2\"}' \\\n                >> {ROOT}/results/repetitive_dna/ape/s2/M2_dropped.tsv\n            "
  },
  "cat_M2_monkey_s3_diploid": {
   "inputs": [
-   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed"
+   "{ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed",
+   "{ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M2.bed"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -1100,9 +1132,10 @@
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/monkey/s3/M2.bed",
-   "{ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv"
+   "{ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv",
+   "{ROOT}/results/repetitive_dna/monkey/s3/M2_dropped.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed > {ROOT}/output/repetitive_dna/monkey/s3/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_dna/monkey/s3 {ROOT}/results/repetitive_dna/monkey/s3\n            awk 'FNR==1 && NR==1 {print} FNR>1 {print}' {ROOT}/output/repetitive_dna/monkey/s3/c2_M2.bed > {ROOT}/output/repetitive_dna/monkey/s3/M2.bed\n\n            printf \"canonical_motif\\tk\\tcopies\\ttrf_purity\\tmodel_purity\\tmodel\\tspecies\\tsample\\tcount\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n            awk -F'\\t' -v OFS='\\t' 'NR>1 {n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}\n                END {for (key in n) print key, n[key]}' {ROOT}/output/repetitive_dna/monkey/s3/M2.bed \\\n                | sort -k2,2n -k1,1 -k3,3g >> {ROOT}/results/repetitive_dna/monkey/s3/M2_summary.tsv\n\n            before=$(awk '{bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/monkey/s3/bases/c2_M2.bed)\n            kept=$(awk 'NR > 1 {bp += $3 - $2} END {print bp + 0}' {ROOT}/output/repetitive_dna/monkey/s3/M2.bed)\n            printf \"model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n\" > {ROOT}/results/repetitive_dna/monkey/s3/M2_dropped.tsv\n            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {dropped = before - kept\n                print \"M2\", before, kept, dropped, (before > 0 ? dropped / before : 0), \"monkey\", \"s3\"}' \\\n                >> {ROOT}/results/repetitive_dna/monkey/s3/M2_dropped.tsv\n            "
  },
  "excluded_c1_ape_s1_diploid": {
   "inputs": [

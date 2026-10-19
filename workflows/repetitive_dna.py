@@ -84,6 +84,7 @@ for species, samples in config["samples"].items():
         assembly    = path("assembly")
         outdir      = pipeline.folder("tandem_repeats", species, sample)
         per_k_dir   = pipeline.folder("repeats_per_k", species, sample)
+        bases_dir   = pipeline.folder("repeat_bases", species, sample)
         excluded_dir = pipeline.folder("excluded", species, sample)
         long_period_dir = pipeline.folder("long_periods_window", species, sample)
         resultsdir  = pipeline.folder("repeats_summary", species, sample)
@@ -177,6 +178,13 @@ for species, samples in config["samples"].items():
             # Step 1b — per model: join the per-k BEDs of the contig (header kept
             # from the first file only) and resolve overlapping tracts, keeping
             # the smallest k. M1 also has one set of BEDs per window.
+            #
+            # Resolution drops a tract that overlaps a kept one whole, so the
+            # dropped tract's other bases are in no tract of the model, and
+            # workflow 4 never sees them. Workflow 3 masks them all the same:
+            # its mask is built from every base in a tract before resolution,
+            # written here as merged intervals. Those bases are then in neither
+            # workflow, like the excluded group.
             k_beds_by_model = {
                 "M0": [path("repeats_per_k", contig=contig, model="M0", k=k) for k in periods],
                 "M1": m1_window_beds,
@@ -187,21 +195,24 @@ for species, samples in config["samples"].items():
                 k_beds = k_beds_by_model[model]
                 k_bed_list = " ".join(k_beds)
                 contig_bed = path("tandem_repeats", contig=contig, model=model)
+                bases_bed  = path("repeat_bases", contig=contig, model=model)
 
                 gwf.target(
                     f"{model}_merge_k_{contig}_{species}_{sample}_{assembly_type}",
                     inputs=k_beds,
-                    outputs=[contig_bed],
+                    outputs=[contig_bed, bases_bed],
                     memory="16g",
                     walltime="02:00:00",
                 ) << f"""
                 set -e
-                mkdir -p {outdir}
+                mkdir -p {outdir} {bases_dir}
                 WORK=$(mktemp -d)
                 trap 'rm -rf "$WORK"' EXIT
                 awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {k_bed_list} > $WORK/all.bed
                 python {scripts}/resolve_repeat_overlaps.py $WORK/all.bed > {contig_bed}.tmp
+                python {scripts}/merge_regions.py $WORK/all.bed > {bases_bed}.tmp
                 mv {contig_bed}.tmp {contig_bed}
+                mv {bases_bed}.tmp {bases_bed}
                 """
 
             # Step 3a — tracts with periods above the models', from TRF run as
@@ -267,16 +278,23 @@ for species, samples in config["samples"].items():
         # counts tracts per (canonical_motif, k, copies, trf_purity, model_purity,
         # model, species, sample), i.e. BED columns 4-11, and goes to the results
         # path; the full BED stays under output.
+        #
+        # A second table gives what overlap resolution leaves out: the bases in
+        # a tract before it, those in the kept tracts, and the difference, the
+        # bases of dropped tracts that no kept tract covers. The kept tracts of
+        # a model never overlap, so their lengths add up.
         for model in models:
             model_beds = [path("tandem_repeats", contig=contig, model=model) for contig in long_contigs]
+            bases_beds = [path("repeat_bases", contig=contig, model=model) for contig in long_contigs]
             bed_list = " ".join(model_beds)
             sample_bed = path("tandem_repeats_sample", model=model)
             summary = path("repeats_summary", model=model)
+            dropped_summary = path("repeats_dropped_summary", model=model)
 
             gwf.target(
                 f"cat_{model}_{species}_{sample}_{assembly_type}",
-                inputs=model_beds,
-                outputs=[sample_bed, summary],
+                inputs=model_beds + bases_beds,
+                outputs=[sample_bed, summary, dropped_summary],
             ) << f"""
             mkdir -p {outdir} {resultsdir}
             awk 'FNR==1 && NR==1 {{print}} FNR>1 {{print}}' {bed_list} > {sample_bed}
@@ -285,6 +303,13 @@ for species, samples in config["samples"].items():
             awk -F'\\t' -v OFS='\\t' 'NR>1 {{n[$4 OFS $5 OFS $6 OFS $7 OFS $8 OFS $9 OFS $10 OFS $11]++}}
                 END {{for (key in n) print key, n[key]}}' {sample_bed} \\
                 | sort -k2,2n -k1,1 -k3,3g >> {summary}
+
+            before=$(awk '{{bp += $3 - $2}} END {{print bp + 0}}' {" ".join(bases_beds)})
+            kept=$(awk 'NR > 1 {{bp += $3 - $2}} END {{print bp + 0}}' {sample_bed})
+            printf "model\\tbp_before\\tbp_kept\\tbp_dropped\\tshare_dropped\\tspecies\\tsample\\n" > {dropped_summary}
+            awk -v OFS='\\t' -v before=$before -v kept=$kept 'BEGIN {{dropped = before - kept
+                print "{model}", before, kept, dropped, (before > 0 ? dropped / before : 0), "{species}", "{sample}"}}' \\
+                >> {dropped_summary}
             """
 
         # Step 3c — the excluded group per sample: for the homopolymer runs,

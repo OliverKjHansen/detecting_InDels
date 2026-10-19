@@ -14,6 +14,7 @@ import runpy
 import subprocess
 import sys
 
+import pytest
 import yaml
 
 from workflow_config import REPO_ROOT
@@ -138,18 +139,30 @@ def annotate_excluded(sample, trf_rows=()):
     sample.run("repetitive_dna", f"excluded_{CONTIG}_{SPECIES}_{SAMPLE}_diploid")
 
 
-def measure_tracts(sample, tracts):
-    """The tracts workflow 4 measures for each model, given these tracts in every model."""
+def annotate_repeats(sample, tracts=(), models=MODELS):
+    """
+    Workflow 2's tracts of the contig, resolved from per-k BEDs that hold
+    these tracts, (start, end, motif, k) each, for the models listed, and none
+    for the others.
+    """
     for model in MODELS:
-        sample.write_tracts("tandem_repeats", tracts, model=model, contig=CONTIG)
+        for k in sample.pipeline.config["repeats"]["periods"]:
+            rows = [tract for tract in tracts if tract[3] == k] if model in models else []
+            if model == "M1":   # TRF writes one per window
+                sample.write_tracts("repeats_per_k_window", rows, model=model, contig=CONTIG, k=k, start=0)
+            else:
+                sample.write_tracts("repeats_per_k", rows, model=model, contig=CONTIG, k=k)
+        sample.run("repetitive_dna", f"{model}_merge_k_{CONTIG}_{SPECIES}_{SAMPLE}_diploid")
+
+
+def measure_tracts(sample):
+    """The tracts workflow 4 measures, per model."""
     sample.run("repetitive_indel_call", f"TRTracts_{SPECIES}_{SAMPLE}")
     return {model: sample.regions("repetitive_tracts", contig=CONTIG, model=model) for model in MODELS}
 
 
-def build_mask(sample, tracts=()):
-    """Workflow 3's mask, with the M1 tracts given and no other tract or unresolved region."""
-    for model in MODELS:
-        sample.write_tracts("tandem_repeats", tracts if model == "M1" else (), model=model, contig=CONTIG)
+def build_mask(sample):
+    """Workflow 3's mask, with no unresolved region."""
     sample.write("unresolved", [], contig=CONTIG)
     sample.run("indel_mutation_call", f"non_rep_Mask_{SPECIES}_{SAMPLE}_diploid")
     return sample.regions("nonrepetitive_mask", contig=CONTIG)
@@ -161,6 +174,7 @@ def build_mask(sample, tracts=()):
 def test_workflow_3_masks_a_6_bp_homopolymer_and_not_a_5_bp_one(tmp_path, monkeypatch):
     s = sample(tmp_path, monkeypatch, with_runs((200, "A", 6), (401, "C", 5)))
     annotate_excluded(s)
+    annotate_repeats(s)
     assert build_mask(s) == [(200, 206)]
 
 
@@ -168,6 +182,7 @@ def test_workflow_3_masks_tracts_with_periods_above_the_models(tmp_path, monkeyp
     s = sample(tmp_path, monkeypatch)
     annotate_excluded(s, [trf_row(100, 145, "ACGTTGCAT"),   # period 9
                           trf_row(500, 530, "AACCGT")])     # period 6: the models' (M1's)
+    annotate_repeats(s)
     assert build_mask(s) == [(100, 145)]
 
 
@@ -195,7 +210,8 @@ def test_workflow_4_drops_every_tract_that_overlaps_an_excluded_region_whole(tmp
               (206, 240, "AG", 2),    # starts where the run ends
               (380, 420, "AC", 2),    # holds the 5 bp run
               (640, 700, "AAG", 3)]   # overlaps the period-9 tract
-    assert measure_tracts(s, tracts) == {model: [(206, 240), (380, 420)] for model in MODELS}
+    annotate_repeats(s, tracts)
+    assert measure_tracts(s) == {model: [(206, 240), (380, 420)] for model in MODELS}
 
 
 def test_the_excluded_bases_are_summarised_per_sample(tmp_path, monkeypatch):
@@ -214,6 +230,44 @@ def test_the_excluded_bases_are_summarised_per_sample(tmp_path, monkeypatch):
 def test_the_tracts_workflow_4_drops_are_summarised_per_sample_and_model(tmp_path, monkeypatch):
     s = sample(tmp_path, monkeypatch, with_runs((200, "A", 6)))
     annotate_excluded(s)
-    measure_tracts(s, [(150, 201, "AC", 2), (206, 240, "AG", 2), (380, 420, "AC", 2)])
+    annotate_repeats(s, [(150, 201, "AC", 2), (206, 240, "AG", 2), (380, 420, "AC", 2)])
+    measure_tracts(s)
     assert [(row["model"], row["tracts"], row["bp"], row["tracts_measured"], row["bp_measured"])
             for row in s.table("repetitive_tracts_summary")] == [(model, "3", "125", "2", "74") for model in MODELS]
+
+
+# -- tracts dropped by overlap resolution (R9) ---------------------------------
+#
+# Resolution keeps one tract per base per model: the AC tract, of the smaller
+# period, and drops the AAG tract that overlaps it whole, bases 140-190 too.
+OVERLAPPING = [(100, 140, "AC", 2), (130, 190, "AAG", 3)]
+
+
+@pytest.mark.parametrize("model", MODELS)
+def test_workflow_3_masks_every_base_of_a_tract_that_overlap_resolution_drops(tmp_path, monkeypatch, model):
+    s = sample(tmp_path, monkeypatch)
+    annotate_excluded(s)
+    annotate_repeats(s, OVERLAPPING, models=[model])
+    assert build_mask(s) == [(100, 190)]
+
+
+def test_workflow_4_still_measures_one_tract_per_base_per_model(tmp_path, monkeypatch):
+    s = sample(tmp_path, monkeypatch)
+    annotate_excluded(s)
+    annotate_repeats(s, OVERLAPPING)
+    assert measure_tracts(s) == {model: [(100, 140)] for model in MODELS}
+
+
+def test_the_bases_of_dropped_tracts_are_summarised_per_sample_and_model(tmp_path, monkeypatch):
+    s = sample(tmp_path, monkeypatch)
+    annotate_repeats(s, OVERLAPPING + [(300, 330, "AC", 2)], models=["M1"])
+    for model in MODELS:
+        s.run("repetitive_dna", f"cat_{model}_{SPECIES}_{SAMPLE}_diploid")
+    # Before resolution 100-190 and 300-330 are in a tract; 140-190 is in no
+    # tract after.
+    assert [(row["model"], row["bp_before"], row["bp_kept"], row["bp_dropped"], row["share_dropped"])
+            for model in MODELS for row in s.table("repeats_dropped_summary", model=model)] == [
+        ("M0", "0", "0", "0", "0"),
+        ("M1", "120", "70", "50", "0.416667"),
+        ("M2", "0", "0", "0", "0"),
+    ]
