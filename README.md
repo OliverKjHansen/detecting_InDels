@@ -894,12 +894,15 @@ way into git. The filter is defined per clone, so set it up once after cloning:
 
 ```bash
 git config filter.strip-notebook-outputs.clean "python3 scripts/strip_notebook_outputs.py"
+git config filter.strip-notebook-outputs.smudge cat
 git config filter.strip-notebook-outputs.required true
 ```
 
 Without the first line, git commits notebooks with their outputs. The second
-makes `git add` stop with an error if the filter fails, for instance on a
-notebook that isn't valid JSON, rather than staging it unfiltered.
+checks notebooks out as they are; a required filter needs it, or git can't
+check out a notebook (in a new worktree, say). The third makes `git add` stop
+with an error if the filter fails, for instance on a notebook that isn't valid
+JSON, rather than staging it unfiltered.
 
 `results/` is small enough to copy from the cluster with rsync. From the
 repository root of the local checkout, with `CLUSTER` the cluster login and
