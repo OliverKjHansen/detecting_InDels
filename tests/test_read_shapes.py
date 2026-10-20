@@ -11,7 +11,7 @@ spanning the contig, so every position stays inside the coverage window.
 import pysam
 
 import make_fixtures as mf
-from scans import nonrepetitive_scan, rows_of
+from scans import nonrepetitive_scan, rows_of, summed
 from read_tags import decode_runs
 
 REFERENCE = mf.build_reference()
@@ -114,15 +114,6 @@ def test_a_calls_distance_to_the_read_end_is_measured_on_its_own_read(tmp_path):
     assert call["ToreadEnd"] == "99"
 
 
-def summed_opportunities(texts, key_columns):
-    totals = {}
-    for text in texts:
-        for row in rows_of(text):
-            key = tuple(row[column] for column in key_columns)
-            totals[key] = totals.get(key, 0) + int(row["count"])
-    return {key: count for key, count in totals.items() if count}
-
-
 def test_reads_crossing_a_window_edge_add_up_to_the_whole_contig(tmp_path):
     reads = [mf.make_read("left", REFERENCE, "del", 1050, 1, start=0, end=1500),
              mf.make_read("right", REFERENCE, "ins", 1300, 1, start=1000, end=4000),
@@ -131,11 +122,9 @@ def test_reads_crossing_a_window_edge_add_up_to_the_whole_contig(tmp_path):
     whole = nonrepetitive_scan(paths)
     parts = [nonrepetitive_scan(paths, start, end) for start, end in [(0, 1100), (1100, 6000)]]
 
-    key = [column for column in rows_of(whole[1])[0] if column != "count"]
     assert [row for calls, _, _ in parts for row in rows_of(calls)] == rows_of(whole[0])
     assert {row["readID"] for row in rows_of(whole[0])} == {"left", "right"}
-    assert summed_opportunities([opportunities for _, opportunities, _ in parts], key) \
-        == summed_opportunities([whole[1]], key)
+    assert summed(opportunities for _, opportunities, _ in parts) == summed([whole[1]])
 
 
 # -- tandem repeat tracts -----------------------------------------------------

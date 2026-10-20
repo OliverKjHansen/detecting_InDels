@@ -16,7 +16,7 @@ import pysam
 import pytest
 
 import utilities
-from scans import nonrepetitive_scan, rows_of
+from scans import nonrepetitive_scan, rows_of, summed
 from scans import tandem_repeat_scan as scan
 
 CONTIG = "testcontig1"
@@ -206,13 +206,6 @@ def test_scan_windows_add_up_to_the_whole_contig(three_model_beds, fixture_paths
     windows = [(0, 2150), (2150, 2204), (2204, 2205), (2205, 6000)]
     parts = [scan(three_model_beds, fixture_paths, start, end) for start, end in windows]
 
-    def summed(texts):
-        totals = {}
-        for text in texts:
-            for row in rows_of(text):
-                key = tuple(value for column, value in row.items() if column != "count")
-                totals[key] = totals.get(key, 0) + int(row["count"])
-        return {key: count for key, count in totals.items() if count}
 
     # A tract's calls are in the window of its first base, so a read can carry
     # calls in two windows: the workflow keeps each read once when it joins
@@ -267,13 +260,6 @@ def test_nonrepetitive_scan_windows_add_up_to_the_whole_contig(fixture_paths):
     parts = [nonrepetitive_scan(fixture_paths, start, end)
              for start, end in [(0, 499), (499, 1003), (1003, 1004), (1004, 6000)]]
 
-    def summed(texts):
-        totals = {}
-        for text in texts:
-            for row in rows_of(text):
-                key = tuple(value for column, value in row.items() if column != "count")
-                totals[key] = totals.get(key, 0) + int(row["count"])
-        return {key: count for key, count in totals.items() if count}
 
     assert [row for calls, _, _ in parts for row in rows_of(calls)] == rows_of(whole_calls)
     assert summed(opportunities for _, opportunities, _ in parts) == summed([whole_opportunities])

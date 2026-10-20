@@ -14,7 +14,7 @@ gap.
 import pytest
 
 import make_fixtures as mf
-from scans import nonrepetitive_scan, rows_of
+from scans import nonrepetitive_scan, rows_of, summed
 
 REFERENCE = mf.build_reference()
 
@@ -118,6 +118,17 @@ def test_an_opportunity_is_counted_where_its_anchors_depth_is_in_the_band(tmp_pa
                                                       for k in (1, 2, 3)}
 
 
+def test_an_opportunity_is_not_counted_where_only_its_k_mers_depth_is_in_the_band(tmp_path):
+    # The other way round: four full reads, and six from base 1000 on, so
+    # depth 4 up to base 999 and 10 after it. Anchors from 1000 to 1003-k are
+    # in the band: three, two and one per full read.
+    reads = ([mf.make_read(f"full/{i}/ccs", REFERENCE) for i in range(4)]
+             + [mf.make_read(f"late/{i}/ccs", REFERENCE, start=1000) for i in range(6)])
+    paths = mf.write_dataset(str(tmp_path), REFERENCE, reads, mask=STEP_MASK)
+    assert opportunities(paths, smrt_cell="full") == {(kind, k): 4 * (4 - k) for kind in ("deletion", "insertion")
+                                                      for k in (1, 2, 3)}
+
+
 def test_a_call_is_counted_where_its_anchors_depth_is_in_the_band(tmp_path):
     # Two full reads and the two with calls go past base 999: depth 4 there.
     reads = step_reads(mf.make_read("in_band/1/ccs", REFERENCE, "del", 1000, 1, end=1100),
@@ -129,14 +140,5 @@ def test_a_call_is_counted_where_its_anchors_depth_is_in_the_band(tmp_path):
 @pytest.mark.parametrize("split", [999, 1000, 1001])
 def test_windows_still_add_up_where_the_depth_steps(tmp_path, split):
     paths = mf.write_dataset(str(tmp_path), REFERENCE, step_reads(), mask=STEP_MASK)
-
-    def totals(window_start=None, window_end=None):
-        _, table, _ = nonrepetitive_scan(paths, window_start, window_end)
-        return {tuple(v for c, v in row.items() if c != "count"): int(row["count"]) for row in rows_of(table)}
-
-    whole, parts = totals(), [totals(0, split), totals(split, mf.CONTIG_LENGTH)]
-    summed = {}
-    for part in parts:
-        for key, n in part.items():
-            summed[key] = summed.get(key, 0) + n
-    assert summed == whole
+    tables = [nonrepetitive_scan(paths, *window)[1] for window in [(None, None), (0, split), (split, mf.CONTIG_LENGTH)]]
+    assert summed(tables[1:]) == summed(tables[:1])

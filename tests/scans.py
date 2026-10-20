@@ -32,6 +32,19 @@ def rows_of(text):
     return [dict(zip(header, line.split("\t"))) for line in lines[1:] if line]
 
 
+def summed(tables):
+    """
+    Opportunity tables, as the scans write them, joined as the workflows join
+    windows: {the values of every other column: summed count}, without zeros.
+    """
+    totals = {}
+    for text in tables:
+        for row in rows_of(text):
+            key = tuple(value for column, value in row.items() if column != "count")
+            totals[key] = totals.get(key, 0) + int(row["count"])
+    return {key: count for key, count in totals.items() if count}
+
+
 def nonrepetitive_scan(paths, window_start=None, window_end=None,
                        coverage_band=COVERAGE_BAND, indel_sizes=INDEL_SIZES):
     """Run nonrepetitive_scan() into strings: (calls, opportunities, FASTQ)."""

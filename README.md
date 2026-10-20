@@ -493,8 +493,9 @@ and every unresolved-haplotype region. Intermediates go to
    and the excluded group, merged with [merge_regions.py](scripts/merge_regions.py).
 2. **Scan.** [nonrepetitive_scan.py](scripts/nonrepetitive_scan.py) runs
    `nonrepetitive_scan()` from [utilities.py](scripts/utilities.py). At each
-   position of the window that passes the coverage window and lies outside the
-   mask, every read with a base there:
+   position of the window, every read with a base there (each event's anchor
+   tested against the coverage window and its bases against the mask, see
+   [Coverage](#coverage) and [The anchor base](#the-anchor-base)):
    - adds its opportunities: a deletion of each size (1, 2 and 3 bp), under
      the canonical k-mer of that size starting at the read position, and an
      insertion of each size in the gap before the read position, under the

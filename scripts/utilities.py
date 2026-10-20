@@ -168,10 +168,10 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
     Only calls and opportunities whose anchor has a depth within
     coverage_band, (low, high) multiples of the sample's mean coverage, are
-    called and counted. key_parameters are the
-    `strata` block of config.yaml. Each call carries flank_width bases of the
-    assembly on each side of its anchor. classification_file is
-    read_classification.sh's table of the sample's reads, or "NA".
+    called and counted. key_parameters are the `strata` block of config.yaml.
+    Each call carries flank_width bases of the assembly on each side of its
+    anchor. classification_file is read_classification.sh's table of the
+    sample's reads, or "NA".
 
     Calls: InDels of those sizes at positions outside the mask (the filters
     BED), except those whose sequence plus one flanking base on each side is a
@@ -270,9 +270,10 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
             previous_position, previous_depth = position, depth
             if window_start is not None and position < window_start:
                 continue # the base before the window, read for its depth only
-            call_in_band = low_depth <= depth <= high_depth
-            opportunity_in_band = low_depth <= anchor_depth <= high_depth
-            if not (call_in_band or opportunity_in_band):
+            # Whether this column's calls, and its opportunities, are made.
+            calling = calls_out is not None and low_depth <= depth <= high_depth
+            counting = opportunities_out is not None and low_depth <= anchor_depth <= high_depth
+            if not (calling or counting):
                 continue
 
             # An event of k bases anchored at base a, call or opportunity, is
@@ -290,7 +291,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
             pileups = pileupcolumn.pileups
 
-            if calls_out is not None and call_in_band:
+            if calling:
                 indel_count = sum(1 for pileupread in pileups if (pileupread.indel != 0) or (pileupread.is_del == True))
 
                 seen = "unique"
@@ -309,7 +310,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                 # The gap before this read base, for an insertion, and the
                 # k-mers starting at it, for deletions, each tested on two read
                 # bases on each side, as the calls are.
-                if opportunities_out is not None and opportunity_in_band and read_pos >= 2 and anchor_clear > smallest:
+                if counting and read_pos >= 2 and anchor_clear > smallest:
                     entry = entry_of(alignment)
                     read_seq, base_qualities, support = entry.sequence, entry.qualities, entry.support
                     read_length = len(read_seq)
@@ -351,7 +352,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                         data[("deletion", indel_length, lexi) + keys(read_pos - 1, read_pos + indel_length)] += 1
 
                 # ---- calls ----
-                if calls_out is None or not call_in_band:
+                if not calling:
                     continue
 
                 indel = pileupread.indel
