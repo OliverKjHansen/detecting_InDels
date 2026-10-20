@@ -674,9 +674,11 @@ A position is used only if the number of reads covering it (pysam's
 `nsegments`, which includes reads with a deletion there) is between half and
 twice the sample's mean coverage. This removes positions with too many reads,
 such as collapsed duplications, and too few, such as poorly assembled or poorly
-mapped ones. The test is made once per position, so calls and opportunities
-share it. Workflow 4 makes it once per tract, at the tract's first base, for
-the tract's calls and opportunities alike.
+mapped ones. Workflow 3 makes the test at the anchor, for calls and
+opportunities alike: a call's anchor is the base before its gap, an
+opportunity's the base before its k-mer or gap (ticket 31; before, an
+opportunity was tested one base later). Workflow 4 makes it once per tract, at
+the tract's first base, for the tract's calls and opportunities alike.
 
 ### Mask and tracts
 

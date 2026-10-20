@@ -91,3 +91,52 @@ def test_a_call_without_two_read_bases_on_a_side_is_not_called(tmp_path):
     # The read starts at the deletion's anchor: one read base before the gap.
     assert kmerq_pass(tmp_path, mf.make_read("edge", REFERENCE, "del", 500, 1, start=499)) == []
     assert kmerq_pass(tmp_path / "inside", mf.make_read("inside", REFERENCE, "del", 500, 1, start=498)) == ["pass"]
+
+
+# -- coverage at the anchor (ticket 31) --------------------------------------
+#
+# Ten reads up to base 999, four of them on to the end of the contig: depth 10
+# up to base 999 and 4 after it, against a mean of 10, so the coverage band is
+# 5-20. Only bases 996-1003 are unmasked.
+
+STEP_MASK = [(0, 996), (1004, mf.CONTIG_LENGTH)]
+
+
+def step_reads(*extra, full=4):
+    """Ten reads: `full` over the whole contig, the extra ones, and the rest up to base 999."""
+    return ([mf.make_read(f"full/{i}/ccs", REFERENCE) for i in range(full)]
+            + [mf.make_read(f"short/{i}/ccs", REFERENCE, end=1000) for i in range(10 - full - len(extra))]
+            + list(extra))
+
+
+def test_an_opportunity_is_counted_where_its_anchors_depth_is_in_the_band(tmp_path):
+    # An event of k bases anchored on 996 to 1003-k touches only unmasked
+    # bases; of those, the ones anchored up to 999 have their anchor in the
+    # band: four per size, on each of the four full reads.
+    paths = mf.write_dataset(str(tmp_path), REFERENCE, step_reads(), mask=STEP_MASK)
+    assert opportunities(paths, smrt_cell="full") == {(kind, k): 16 for kind in ("deletion", "insertion")
+                                                      for k in (1, 2, 3)}
+
+
+def test_a_call_is_counted_where_its_anchors_depth_is_in_the_band(tmp_path):
+    # Two full reads and the two with calls go past base 999: depth 4 there.
+    reads = step_reads(mf.make_read("in_band/1/ccs", REFERENCE, "del", 1000, 1, end=1100),
+                       mf.make_read("out_of_band/1/ccs", REFERENCE, "del", 1001, 1, start=990), full=2)
+    calls, _, _ = nonrepetitive_scan(mf.write_dataset(str(tmp_path), REFERENCE, reads, mask=STEP_MASK))
+    assert [row["readID"] for row in rows_of(calls)] == ["in_band/1/ccs"]
+
+
+@pytest.mark.parametrize("split", [999, 1000, 1001])
+def test_windows_still_add_up_where_the_depth_steps(tmp_path, split):
+    paths = mf.write_dataset(str(tmp_path), REFERENCE, step_reads(), mask=STEP_MASK)
+
+    def totals(window_start=None, window_end=None):
+        _, table, _ = nonrepetitive_scan(paths, window_start, window_end)
+        return {tuple(v for c, v in row.items() if c != "count"): int(row["count"]) for row in rows_of(table)}
+
+    whole, parts = totals(), [totals(0, split), totals(split, mf.CONTIG_LENGTH)]
+    summed = {}
+    for part in parts:
+        for key, n in part.items():
+            summed[key] = summed.get(key, 0) + n
+    assert summed == whole
