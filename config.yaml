@@ -7,7 +7,7 @@ samples:
   gorilla: [mbewe, samson, kipenzi] 
   baboon: [sethi]     # bs5v: contaminated
   gibbon: [tarzan, pink_eric] 
-  orangutan: [sibu] #kevin
+  orangutan: [sibu, kevin]
   pig_tailed_macaque: [lenny]
   rhesus_macaque: [R21008, R22013, R15079]
   long_tailed_macaque: [J12013] #J17017
