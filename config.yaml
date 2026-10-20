@@ -314,7 +314,7 @@ strata:
   # in workflow 4, from the tract, and its flank on each side.
   read_end_distance_bins: [25, 100, 300, 1000]
   # The read's mapping quality to the diploid assembly.
-  mapq_bins: [1, 20, 60]
+  mapq_bins: [1,10, 20, 30, 40, 50, 60]
   # np: the read's passes.
   passes_bins: [5, 10, 15, 20, 30]
   # rq: the read's predicted accuracy.
