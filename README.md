@@ -221,8 +221,8 @@ Parameters:
 | Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
 | Minimum kmerQ, as the key `kmerQ_pass` | 93 | `strata.min_kmerq` |
-| Bins of read length and of distance to the read end, keys on calls and opportunities | 4, 8, 12, 16, 20 kb; 25, 100, 300, 1000 bp | `strata.read_length_bins`, `strata.read_end_distance_bins` |
-| Bins of mapping quality, passes, predicted accuracy, passes on the weaker strand, and distance to the nearest other event in the read | 1, 20, 60; 5, 10, 15, 20, 30; 0.99, 0.999, 0.9999; 2, 5, 10; 5, 25, 100 bp | `strata.mapq_bins`, `.passes_bins`, `.accuracy_bins`, `.strand_passes_bins`, `.nearby_event_bins` |
+| Bins of read length and of distance to the read end, keys on calls and opportunities | 4, 8, 12, 16, 20 kb; 25, 100, 300, 500, 1000 bp | `strata.read_length_bins`, `strata.read_end_distance_bins` |
+| Bins of mapping quality, passes, predicted accuracy, passes on the weaker strand, and distance to the nearest other event in the read | 1, 10, 20, 30, 40, 50, 60; 5, 7, 10, 12, 15, 18, 20, 25, 30; 0.99, 0.999, 0.9999; 2, 5, 10; 5, 10, 20, 25, 35, 50, 100, 300, 500, 1000 bp | `strata.mapq_bins`, `.passes_bins`, `.accuracy_bins`, `.strand_passes_bins`, `.nearby_event_bins` |
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
 | The definition of a final call: the values each key keeps, on calls and opportunities alike | `kmerQ_pass` = `pass`; workflow 4 also `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `final_filters.repeat_keep` |
 | SMRT Cells taken to be capped, and dropped, if none of their reads' base qualities is above; reads looked at per sample | Q40; 100,000 | `final_filters.capped_quality`, `precompute.smrt_cell_reads` |

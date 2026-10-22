@@ -313,17 +313,17 @@ strata:
   read_length_bins: [4000, 8000, 12000, 16000, 20000]
   # Distance from the anchor to the nearer end of the read's alignment, bp;
   # in workflow 4, from the tract, and its flank on each side.
-  read_end_distance_bins: [25, 100, 300, 1000]
+  read_end_distance_bins: [25, 100, 300, 500, 1000]
   # The read's mapping quality to the diploid assembly.
   mapq_bins: [1,10, 20, 30, 40, 50, 60]
   # np: the read's passes.
-  passes_bins: [5, 10, 15, 20, 30]
+  passes_bins: [5, 7, 10, 12, 15, 18, 20, 25, 30]
   # rq: the read's predicted accuracy.
   accuracy_bins: [0.99, 0.999, 0.9999]
   # The full passes on the weaker strand of the molecule: the smaller of fn and rn.
   strand_passes_bins: [2, 5, 10]
   # Distance from the anchor to the read's nearest other InDel or mismatch, bp.
-  nearby_event_bins: [5, 25, 100]
+  nearby_event_bins: [5, 10, 20, 25, 35, 50, 100, 300, 500, 1000]
   # Workflow 4: the tract's copies, and its purity (model_purity, %).
   tract_copies_bins: [5, 10, 20, 50]
   tract_purity_bins: [90, 95, 99, 100]
@@ -338,9 +338,10 @@ final_filters:
     kmerQ_pass: [pass]
   # Workflow 4 also: tracts at least 100 bp from the read's ends.
   repeat_keep:
-    read_end_distance_bin: ["100-300", "300-1000", ">=1000"]
-  # SMRT Cells whose calls never have a kmerQ above this are taken to be
-  # capped at it, and dropped from both tables (Q12, Q17).
+    read_end_distance_bin: ["100-300", "300-500", "500-1000", ">=1000"]
+  # SMRT Cells none of whose reads has a base quality above this (precompute's
+  # smrt_cells.tsv) are taken to be capped at it, and dropped from both
+  # tables (Q12, Q17).
   capped_quality: 40
 
 # Germline/somatic classification of reads with methylation scores, by
