@@ -4,7 +4,9 @@ the `layout` templates, and the contigs long enough to analyse. Run against
 the fixture config of workflow_config.py.
 """
 
+import gzip
 import os
+import subprocess
 
 import pytest
 
@@ -122,8 +124,6 @@ def test_final_filtering_gets_the_platform_and_the_filters_of_its_workflow():
 
 
 def test_gzipped_window_counts_are_summed_into_a_gzipped_table(tmp_path):
-    import gzip
-    import subprocess
     from pipeline import summed_counts
     header = "contig\tcontext\ttissue\tcount\n"
     windows = [tmp_path / "a.tsv.gz", tmp_path / "b.tsv.gz", tmp_path / "c.tsv.gz"]
@@ -135,3 +135,40 @@ def test_gzipped_window_counts_are_summed_into_a_gzipped_table(tmp_path):
     header_line, *rows = gzip.decompress(out.read_bytes()).decode().splitlines()
     assert header_line == header.strip()
     assert sorted(rows) == ["c1\tA\tliver\t10", "c1\tC\tbrain\t7", "c1\tC\tliver\t1"]
+
+
+def as_gwf_runs_it(command, tmp_path):
+    """Run a target's command as gwf's Slurm script does: bash, stopping at the first failing command."""
+    marker = tmp_path / "went_on"
+    return subprocess.run(["bash", "-c", f"set -e\n{command}\ntouch {marker}"], capture_output=True), marker.exists()
+
+
+def joins(tmp_path, windows):
+    """Every command that joins window or contig files, writing to tmp_path, by name."""
+    from pipeline import joined_reads, summed_counts, tables_with_sample
+    return {"summed_counts": summed_counts(windows, tmp_path / "sum.tsv.gz"),
+            "joined_reads": joined_reads(windows, tmp_path / "reads.fastq.gz"),
+            "tables_with_sample": tables_with_sample(windows, tmp_path / "merged.tsv.gz", "ape", "s1")}
+
+
+@pytest.mark.parametrize("join", ["summed_counts", "joined_reads", "tables_with_sample"])
+def test_a_join_stops_the_job_when_a_window_cant_be_read(tmp_path, join):
+    # A window cut short, as a job killed while writing it leaves it.
+    content = gzip.compress(("contig\tcount\n" + "".join(f"c1\t{i}\n" for i in range(20000))).encode())
+    good, cut = tmp_path / "good.tsv.gz", tmp_path / "cut.tsv.gz"
+    good.write_bytes(gzip.compress(b"contig\tcount\nc1\t1\n"))
+    cut.write_bytes(content[:len(content) // 2])
+    done, went_on = as_gwf_runs_it(joins(tmp_path, [good, cut])[join], tmp_path)
+    assert done.returncode != 0 and not went_on
+
+
+@pytest.mark.parametrize("join", ["summed_counts", "tables_with_sample"])
+def test_a_join_of_large_windows_runs_to_the_end(tmp_path, join):
+    # Bigger than a pipe holds, so a reader that stops after the header
+    # would kill the decompression of the rest.
+    rows = "".join(f"c1\tk{i % 1000}\t1\n" for i in range(300000))
+    windows = [tmp_path / "a.tsv.gz", tmp_path / "b.tsv.gz"]
+    for window in windows:
+        window.write_bytes(gzip.compress(("contig\tkey\tcount\n" + rows).encode()))
+    done, went_on = as_gwf_runs_it(joins(tmp_path, windows)[join], tmp_path)
+    assert done.returncode == 0 and went_on, done.stderr

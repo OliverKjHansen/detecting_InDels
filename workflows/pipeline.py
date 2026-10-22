@@ -140,20 +140,39 @@ def compressor(output):
     return "gzip -6" if str(output).endswith(".gz") else "cat"
 
 
+# The joins below run in a target's bash with `set -e`, where a pipeline's
+# status is its last command's. They set pipefail, so a window that can't be
+# read stops the job instead of leaving a partial table. And they read every
+# table to its end (no `head`), so no reader that stops early kills a gzip
+# with SIGPIPE and fails the job by mistake.
+
+
+def table_header(first):
+    """A shell command that writes a table's header line, plain or gzipped."""
+    return f"gzip -dcf {first} | awk 'NR == 1'"
+
+
 def table_bodies(inputs):
     """A shell command that writes the rows of tables, plain or gzipped, without their headers."""
-    return f"for table in {' '.join(str(path) for path in inputs)}; do gzip -dcf $table | tail -n +2; done"
-
-
-def joined_tables(inputs):
-    """A shell command that writes tables, plain or gzipped, as one: the first one's header, then every row."""
-    return f"{{ gzip -dcf {inputs[0]} | head -n 1; {table_bodies(inputs)}; }}"
+    return (f"for table in {' '.join(str(path) for path in inputs)}; "
+            "do gzip -dcf $table | tail -n +2 || exit 1; done")
 
 
 def joined_reads(inputs, output):
     """A shell command that joins FASTQs, plain or gzipped, keeping each read once, by its name."""
-    return (f"gzip -dcf {' '.join(str(path) for path in inputs)} "
+    return (f"set -o pipefail; gzip -dcf {' '.join(str(path) for path in inputs)} "
             f"| awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' | {compressor(output)} > {output}")
+
+
+def tables_with_sample(inputs, output, species, sample):
+    """
+    A shell command that joins tables, plain or gzipped, into one, with the
+    first one's header once, and `species` and `sample` columns added.
+    """
+    return (f"set -o pipefail; {{ {table_header(inputs[0])} || exit 1; {table_bodies(inputs)}; }} "
+            f"| awk 'NR==1 {{print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}}; "
+            f"NR>1 {{print $0 \"\\t\" \"{species}\" \"\\t\" \"{sample}\"}}' "
+            f"| {compressor(output)} > {output}")
 
 
 def summed_counts(inputs, output):
@@ -163,13 +182,14 @@ def summed_counts(inputs, output):
     of all the others, whatever keys the scan wrote. The tables may be
     gzipped, and the output is if its name ends in .gz. The rows are sorted
     first, so equal keys are adjacent, and summed run by run: memory doesn't
-    grow with the number of distinct rows, and sort spills to temporary files
-    next to the output.
+    grow with the number of distinct rows. sort holds 2 GB, well inside the
+    merge jobs' 16 GB, and spills to gzipped temporary files next to the
+    output.
     """
     folder = os.path.dirname(str(output)) or "."
-    return (f"{{ gzip -dcf {inputs[0]} | head -n 1; {table_bodies(inputs)} "
-            f"| LC_ALL=C sort -S 2G -T {folder} "
+    return (f"set -o pipefail; {{ {table_header(inputs[0])} || exit 1; {table_bodies(inputs)} "
+            f"| LC_ALL=C sort -S 2G --compress-program=gzip -T {folder} "
             "| awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; "
             "if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} "
-            "END {if (NR) print last, n}'; } "
+            "END {if (NR) print last, n}' || exit 1; } "
             f"| {compressor(output)} > {output}")

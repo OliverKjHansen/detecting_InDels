@@ -8,6 +8,8 @@ external binaries - it is the part of the pipeline that can genuinely be
 developed on a laptop.
 """
 
+import gzip
+import json
 import os
 import subprocess
 import sys
@@ -15,8 +17,10 @@ import sys
 import pysam
 import pytest
 
+import make_fixtures as mf
 import utilities
-from scans import nonrepetitive_scan, rows_of, summed
+from scans import (COVERAGE_BAND, FLANK_WIDTH, INDEL_SIZES, KEY_PARAMETERS, MIN_TRACT_FLANK, REACH,
+                   nonrepetitive_scan, rows_of, summed)
 from scans import tandem_repeat_scan as scan
 
 CONTIG = "testcontig1"
@@ -290,13 +294,9 @@ def test_only_indels_of_the_configured_sizes_are_called_and_counted(fixture_path
 
 @pytest.mark.parametrize("suffix", ["", ".gz"])
 def test_the_scans_write_gzipped_outputs_when_their_names_end_in_gz(tmp_path, fixture_paths, suffix):
-    import gzip
-    import json
-    from scans import COVERAGE_BAND, FLANK_WIDTH, INDEL_SIZES, KEY_PARAMETERS, MIN_TRACT_FLANK, REACH
-    from make_fixtures import CONTIG, CONTIG_LENGTH
     scripts = os.path.dirname(utilities.__file__)
     inputs = [CONTIG, fixture_paths["bam"], fixture_paths["assembly"], fixture_paths["coverage"],
-              fixture_paths["tissue"], "0", str(CONTIG_LENGTH)]
+              fixture_paths["tissue"], "0", str(mf.CONTIG_LENGTH)]
     common = ["--coverage-band", *map(str, COVERAGE_BAND), "--flank-width", str(FLANK_WIDTH),
               "--key-parameters", json.dumps(KEY_PARAMETERS)]
     out = {name: str(tmp_path / f"{name}{suffix}") for name in ("opportunities.tsv", "reads.fastq",

@@ -2,8 +2,8 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import (Pipeline, compressor, final_filtering_options, joined_reads, joined_tables, remapping, shell,
-                      summed_counts)
+from pipeline import (Pipeline, final_filtering_options, joined_reads, remapping, shell, summed_counts,
+                      tables_with_sample)
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -270,9 +270,7 @@ for species, samples in config["samples"].items():
             walltime="24:00:00",
         ) << f"""
         mkdir -p {merged_dir} {plotsdir}
-        {joined_tables(list(opportunities.values()))} \\
-            | awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' \\
-            | {compressor(merged_opportunities)} > {merged_opportunities}
+        {tables_with_sample(list(opportunities.values()), merged_opportunities, species, sample)}
         Rscript {scripts}/plot_indels.R {merged_indels} {plots_pdf}
         """
 

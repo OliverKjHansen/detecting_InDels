@@ -7,10 +7,12 @@ filter on a tag the sample lacks is skipped and recorded (Q15); every row
 carries its platform.
 """
 
+import gzip
 import os
 import subprocess
 import sys
 
+import make_fixtures as mf
 from scans import rows_of
 
 SCRIPT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "final_filtering.py")
@@ -92,7 +94,6 @@ def test_smrt_cells_capped_at_q40_are_dropped_from_both_tables_and_listed(tmp_pa
 
 
 def test_the_smrt_cells_highest_base_quality_comes_from_its_reads(tmp_path):
-    import make_fixtures as mf
     reference = mf.build_reference()
     capped = {p: 40 for p in range(1000)}
     reads = [mf.make_read("m_capped/1/ccs", reference, end=1000, qualities=capped),
@@ -163,7 +164,6 @@ def test_the_result_is_the_same_whatever_the_chunk_size(tmp_path):
 
 
 def test_gzipped_tables_are_read_and_written(tmp_path):
-    import gzip
     call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "high", ">=1", "True")]
     opportunity_rows = [("m1", "pass", "low", ">=1", 30), ("m1", "pass", "high", ">=1", 10)]
     plain = opportunities(tmp_path, opportunity_rows)
@@ -175,3 +175,18 @@ def test_gzipped_tables_are_read_and_written(tmp_path):
                     "--capped-quality", "40", "--keep", "depth_bin=low"], check=True, capture_output=True)
     final_opportunities = rows_of(gzip.decompress(out[1].read_bytes()).decode())
     assert [(row["depth_bin"], row["count"], row["platform"]) for row in final_opportunities] == [("low", "30", "Revio")]
+
+
+def test_a_filter_is_skipped_when_its_key_is_na_in_every_row_that_reaches_it(tmp_path):
+    # Only the capped cell's rows have subread support; once they are gone,
+    # the sample lacks the tag (Q15), and the filter mustn't remove everything.
+    call_rows = [("a", "m_capped", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "low", "NA", "True"),
+                 ("c", "m1", 93, "pass", "low", "NA", "True")]
+    opportunity_rows = [("m_capped", "pass", "low", ">=1", 50), ("m1", "pass", "low", "NA", 200)]
+    final_calls, final_opportunities, report = final(
+        tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows),
+        "--keep", "subread_support=>=1", cells={"m_capped": 40, "m1": 93})
+    assert [row["readID"] for row in final_calls] == ["b", "c"]
+    assert sum(int(row["count"]) for row in final_opportunities) == 200
+    step = next(row for row in report if row["filter"] == "subread_support=>=1")
+    assert step["note"] == "skipped: NA throughout the sample"

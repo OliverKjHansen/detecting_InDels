@@ -547,7 +547,7 @@ Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 |---|---|---|---|
 | 0. Tracts measured | `TRTracts_{species}_{sample}` | sample | `{model}/tracts/{contig}.bed`, `results/repetitive_indels/{species}/{sample}/tracts_summary.tsv` |
 | 1. Scan | `TRScan_{contig}_{start}_{species}_{sample}` | 10 Mb window | `{model}/calls/chunks/`, `{model}/opportunities/chunks/`, `fastq/chunks/` |
-| 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq` |
+| 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq.gz` |
 | 3. Remap to haploid | `TRHaploidMapping_{species}_{sample}` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 3b. Remap to each haplotype | `TRHaplotypeMapping_{haplotype}_{species}_{sample}` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 4. Haploid check | `TRHaploidFilter_{species}_{sample}_{model}` | sample × model | `{model}/merged/indels.tsv` |

@@ -182,9 +182,11 @@ def copy_cluster_tables(source, species, sample, workflow, compare, contig, star
     os.makedirs(compare, exist_ok=True)
     if is_scan_job:
         for table in ("calls", "opportunities"):
+            window_table = path(f"{workflow}_window_{table}", contig=contig, start=start, end=end)
+            if not os.path.exists(window_table) and window_table.endswith(".gz"):
+                window_table = window_table[:-len(".gz")]   # written plain, before ticket 32
             # Unpacked if the cluster wrote it gzipped, as the replay writes its own.
-            with open_text(path(f"{workflow}_window_{table}", contig=contig, start=start, end=end)) as cluster_table, \
-                    open(f"{compare}/{table}.tsv", "w") as out:
+            with open_text(window_table) as cluster_table, open(f"{compare}/{table}.tsv", "w") as out:
                 shutil.copyfileobj(cluster_table, out)
     else:
         copy_calls_in_window(path(f"{workflow}_calls", contig=contig), f"{compare}/calls.tsv", contig, start, end)
