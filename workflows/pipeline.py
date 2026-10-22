@@ -135,13 +135,41 @@ def remapping(reference, reads, bam, locations):
             f"samtools view {bam} | awk -v OFS='\\t' '{{print $1,$2,$3,$4,$5,$6}}' | sort -k1,1 > {locations}")
 
 
+def compressor(output):
+    """The command that writes a pipe to `output`: gzip if its name ends in .gz."""
+    return "gzip -6" if str(output).endswith(".gz") else "cat"
+
+
+def table_bodies(inputs):
+    """A shell command that writes the rows of tables, plain or gzipped, without their headers."""
+    return f"for table in {' '.join(str(path) for path in inputs)}; do gzip -dcf $table | tail -n +2; done"
+
+
+def joined_tables(inputs):
+    """A shell command that writes tables, plain or gzipped, as one: the first one's header, then every row."""
+    return f"{{ gzip -dcf {inputs[0]} | head -n 1; {table_bodies(inputs)}; }}"
+
+
+def joined_reads(inputs, output):
+    """A shell command that joins FASTQs, plain or gzipped, keeping each read once, by its name."""
+    return (f"gzip -dcf {' '.join(str(path) for path in inputs)} "
+            f"| awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' | {compressor(output)} > {output}")
+
+
 def summed_counts(inputs, output):
     """
     A shell command that joins count tables from the windows of a contig: the
     header once, then the last column (count) summed over every distinct value
-    of all the others, whatever keys the scan wrote.
+    of all the others, whatever keys the scan wrote. The tables may be
+    gzipped, and the output is if its name ends in .gz. The rows are sorted
+    first, so equal keys are adjacent, and summed run by run: memory doesn't
+    grow with the number of distinct rows, and sort spills to temporary files
+    next to the output.
     """
-    return ("awk -F'\\t' -v OFS='\\t' 'FNR==1 {if (NR==1) print; next} "
-            "{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; n[key] += $NF} "
-            "END {for (key in n) print key, n[key]}' "
-            f"{' '.join(str(path) for path in inputs)} > {output}")
+    folder = os.path.dirname(str(output)) or "."
+    return (f"{{ gzip -dcf {inputs[0]} | head -n 1; {table_bodies(inputs)} "
+            f"| LC_ALL=C sort -S 2G -T {folder} "
+            "| awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; "
+            "if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} "
+            "END {if (NR) print last, n}'; } "
+            f"| {compressor(output)} > {output}")

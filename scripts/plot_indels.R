@@ -1,7 +1,8 @@
 #!/usr/bin/env Rscript
 
 # Plot InDel quality distributions, filter impacts, and spectra
-# Usage: Rscript plot_indels.R <indels.tsv> <opportunities.tsv> <output.pdf>
+# Usage: Rscript plot_indels.R <indels.tsv> <output.pdf>
+# The plots are of the calls only: the opportunity tables are too big to load.
 
 suppressPackageStartupMessages({
   library(ggplot2)
@@ -10,17 +11,15 @@ suppressPackageStartupMessages({
 })
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 3) {
-  stop("Usage: Rscript plot_indels.R <indels.tsv> <opportunities.tsv> <output.pdf>")
+if (length(args) != 2) {
+  stop("Usage: Rscript plot_indels.R <indels.tsv> <output.pdf>")
 }
 
 indel_file <- args[1]
-opp_file <- args[2]
-out_pdf <- args[3]
+out_pdf <- args[2]
 
 # Load data
 indels <- read.delim(indel_file, sep = "\t", header = TRUE, comment.char = "#")
-opportunities <- read.delim(opp_file, sep = "\t", header = TRUE)
 
 pdf(out_pdf, width = 12, height = 8)
 

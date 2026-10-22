@@ -283,3 +283,37 @@ def test_only_indels_of_the_configured_sizes_are_called_and_counted(fixture_path
     assert {call["readID"] for call in rows_of(calls)} == {"read_del2"}
     assert {(row["indel_type"], row["size"]) for row in rows_of(opportunities)} == {
         ("deletion", "2"), ("deletion", "3"), ("insertion", "2"), ("insertion", "3")}
+
+
+# -- gzipped outputs (ticket 32) ----------------------------------------------
+
+
+@pytest.mark.parametrize("suffix", ["", ".gz"])
+def test_the_scans_write_gzipped_outputs_when_their_names_end_in_gz(tmp_path, fixture_paths, suffix):
+    import gzip
+    import json
+    from scans import COVERAGE_BAND, FLANK_WIDTH, INDEL_SIZES, KEY_PARAMETERS, MIN_TRACT_FLANK, REACH
+    from make_fixtures import CONTIG, CONTIG_LENGTH
+    scripts = os.path.dirname(utilities.__file__)
+    inputs = [CONTIG, fixture_paths["bam"], fixture_paths["assembly"], fixture_paths["coverage"],
+              fixture_paths["tissue"], "0", str(CONTIG_LENGTH)]
+    common = ["--coverage-band", *map(str, COVERAGE_BAND), "--flank-width", str(FLANK_WIDTH),
+              "--key-parameters", json.dumps(KEY_PARAMETERS)]
+    out = {name: str(tmp_path / f"{name}{suffix}") for name in ("opportunities.tsv", "reads.fastq",
+                                                                 "repeat_opportunities.tsv", "repeat_reads.fastq")}
+    subprocess.run([sys.executable, f"{scripts}/nonrepetitive_scan.py", fixture_paths["filters"], *inputs,
+                    str(tmp_path / "calls.tsv"), out["opportunities.tsv"], out["reads.fastq"], *common,
+                    "--indel-sizes", *map(str, INDEL_SIZES)], check=True, capture_output=True)
+    subprocess.run([sys.executable, f"{scripts}/tandem_repeat_scan.py", *inputs, out["repeat_reads.fastq"], *common,
+                    "--reach", str(REACH), "--min-tract-flank", str(MIN_TRACT_FLANK),
+                    "--model", "M1", fixture_paths["tr_bed"], str(tmp_path / "repeat_calls.tsv"),
+                    out["repeat_opportunities.tsv"]], check=True, capture_output=True)
+    _, opportunities, fastq = nonrepetitive_scan(fixture_paths)
+    _, repeat_opportunities, repeat_fastq = scan({"M1": fixture_paths["tr_bed"]}, fixture_paths)
+    expected = {"opportunities.tsv": opportunities, "reads.fastq": fastq,
+                "repeat_opportunities.tsv": repeat_opportunities["M1"], "repeat_reads.fastq": repeat_fastq}
+    for name, path in out.items():
+        with open(path, "rb") as handle:
+            content = handle.read()
+        assert content[:2] == b"\x1f\x8b" if suffix else content[:2] != b"\x1f\x8b", name
+        assert (gzip.decompress(content) if suffix else content).decode() == expected[name], name

@@ -72,6 +72,7 @@ import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workflows"))
 from pipeline import Pipeline  # noqa: E402
+from text_files import open_text  # noqa: E402
 
 KINETICS_TAGS = ("fi", "ri", "fp", "rp", "ip", "pw")
 MARGIN = 100_000              # real sequence kept on each side of the window
@@ -181,7 +182,10 @@ def copy_cluster_tables(source, species, sample, workflow, compare, contig, star
     os.makedirs(compare, exist_ok=True)
     if is_scan_job:
         for table in ("calls", "opportunities"):
-            shutil.copy(path(f"{workflow}_window_{table}", contig=contig, start=start, end=end), f"{compare}/{table}.tsv")
+            # Unpacked if the cluster wrote it gzipped, as the replay writes its own.
+            with open_text(path(f"{workflow}_window_{table}", contig=contig, start=start, end=end)) as cluster_table, \
+                    open(f"{compare}/{table}.tsv", "w") as out:
+                shutil.copyfileobj(cluster_table, out)
     else:
         copy_calls_in_window(path(f"{workflow}_calls", contig=contig), f"{compare}/calls.tsv", contig, start, end)
     copy_calls_in_window(path(f"{workflow}_merged_calls"), f"{compare}/merged_indels.tsv", contig, start, end)

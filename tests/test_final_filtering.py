@@ -141,3 +141,37 @@ def test_the_report_lists_every_step_with_rows_before_and_after(tmp_path):
         ("kmerQ_pass=pass", "4", "3", "100", "90", "1"),
         ("depth_bin=high", "3", "2", "90", "60", "1"),
     ]
+
+
+# -- big tables (ticket 32) ---------------------------------------------------
+
+
+def test_the_result_is_the_same_whatever_the_chunk_size(tmp_path):
+    # Every step falls across chunk edges: capped cells, a skipped filter and
+    # two kept filters, on tables read a row or a few rows at a time.
+    call_rows = [(f"r{i}", "m_capped" if i % 5 == 0 else "m1", 93 if i % 3 else 40, "pass" if i % 3 else "fail",
+                  "low" if i % 4 else "high", "NA", "NA" if i % 7 == 0 else "True") for i in range(23)]
+    opportunity_rows = [("m_capped" if i % 5 == 0 else "m1", "pass" if i % 3 else "fail", "low" if i % 4 else "high",
+                         "NA", 10 + i) for i in range(17)]
+    options = ["--keep", "subread_support=>=1", "--keep", "kmerQ_pass=pass", "--keep", "depth_bin=low"]
+    cells = {"m_capped": 40, "m1": 93}
+    whole = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows), *options, cells=cells)
+    for rows in (1, 2, 5):
+        chunked = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows), *options,
+                        "--chunk-rows", str(rows), cells=cells)
+        assert chunked == whole, rows
+
+
+def test_gzipped_tables_are_read_and_written(tmp_path):
+    import gzip
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "high", ">=1", "True")]
+    opportunity_rows = [("m1", "pass", "low", ">=1", 30), ("m1", "pass", "high", ">=1", 10)]
+    plain = opportunities(tmp_path, opportunity_rows)
+    zipped = tmp_path / "opportunities.tsv.gz"
+    zipped.write_bytes(gzip.compress(plain.read_bytes()))
+    out = [tmp_path / name for name in ("final_calls.tsv", "final_opportunities.tsv.gz", "report.tsv")]
+    subprocess.run([sys.executable, SCRIPT, str(calls(tmp_path, call_rows)), str(zipped), *map(str, out),
+                    "--platform", "Revio", "--smrt-cells", str(smrt_cells(tmp_path, {"m1": 93})),
+                    "--capped-quality", "40", "--keep", "depth_bin=low"], check=True, capture_output=True)
+    final_opportunities = rows_of(gzip.decompress(out[1].read_bytes()).decode())
+    assert [(row["depth_bin"], row["count"], row["platform"]) for row in final_opportunities] == [("low", "30", "Revio")]

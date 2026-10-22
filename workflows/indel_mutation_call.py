@@ -2,7 +2,8 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import Pipeline, final_filtering_options, remapping, shell, summed_counts
+from pipeline import (Pipeline, compressor, final_filtering_options, joined_reads, joined_tables, remapping, shell,
+                      summed_counts)
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -175,8 +176,7 @@ for species, samples in config["samples"].items():
             merge_commands.append(
                 f"awk 'FNR==1 && NR==1 || FNR>1' {' '.join(window_calls[contig])} > {calls[contig]}")
             merge_commands.append(summed_counts(window_opportunities[contig], opportunities[contig]))
-            merge_commands.append(
-                f"cat {' '.join(window_fastqs[contig])} | awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' > {fastqs[contig]}")
+            merge_commands.append(joined_reads(window_fastqs[contig], fastqs[contig]))
         merge_commands = "\n        ".join(merge_commands)
 
         gwf.target(
@@ -235,7 +235,6 @@ for species, samples in config["samples"].items():
                                      for haplotype, locations in haplotype_locations.items())
 
         calls_list           = " ".join(calls.values())
-        opportunities_list   = " ".join(opportunities.values())
         merged_indels        = path("nonrepetitive_merged_calls")
         merged_opportunities = path("nonrepetitive_merged_opportunities")
         plots_pdf            = path("nonrepetitive_plots")
@@ -271,10 +270,10 @@ for species, samples in config["samples"].items():
             walltime="24:00:00",
         ) << f"""
         mkdir -p {merged_dir} {plotsdir}
-        awk 'FNR==1 && NR==1 || FNR>1' {opportunities_list} \\
+        {joined_tables(list(opportunities.values()))} \\
             | awk 'NR==1 {{print $0 "\\t" "species" "\\t" "sample"}}; NR>1 {{print $0 "\\t" "{species}" "\\t" "{sample}"}}' \\
-            > {merged_opportunities}
-        Rscript {scripts}/plot_indels.R {merged_indels} {merged_opportunities} {plots_pdf}
+            | {compressor(merged_opportunities)} > {merged_opportunities}
+        Rscript {scripts}/plot_indels.R {merged_indels} {plots_pdf}
         """
 
         # Step 7 — final filtering, with a report of rows removed per step.

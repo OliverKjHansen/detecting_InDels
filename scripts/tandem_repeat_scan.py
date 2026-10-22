@@ -3,6 +3,7 @@ import json
 import os
 import signal
 
+from text_files import open_text
 from utilities import tandem_repeat_scan
 
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -49,7 +50,8 @@ def main():
 
     outputs = [args.fastq] + [path for _, _, calls, opportunities in args.model
                               for path in (calls, opportunities)]
-    handles = {path: open(f"{path}.tmp", "w") for path in outputs}
+    # An output whose name ends in .gz is written gzipped.
+    handles = {path: open_text(f"{path}.tmp", "w", gzipped=path.endswith(".gz")) for path in outputs}
 
     tandem_repeat_scan(
         {name: bed for name, bed, _, _ in args.model},

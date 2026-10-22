@@ -119,3 +119,19 @@ def test_final_filtering_gets_the_platform_and_the_filters_of_its_workflow():
     assert sequel[-2:] == ["--keep", "read_end_distance_bin=>=1000"]
     # The shell sees each argument as one word, so ">=" is no redirection.
     assert shlex.split(shell(sequel)) == sequel
+
+
+def test_gzipped_window_counts_are_summed_into_a_gzipped_table(tmp_path):
+    import gzip
+    import subprocess
+    from pipeline import summed_counts
+    header = "contig\tcontext\ttissue\tcount\n"
+    windows = [tmp_path / "a.tsv.gz", tmp_path / "b.tsv.gz", tmp_path / "c.tsv.gz"]
+    windows[0].write_bytes(gzip.compress((header + "c1\tA\tliver\t5\nc1\tC\tliver\t1\nc1\tA\tliver\t2\n").encode()))
+    windows[1].write_bytes(gzip.compress((header + "c1\tC\tbrain\t7\nc1\tA\tliver\t3\n").encode()))
+    windows[2].write_bytes(gzip.compress(header.encode()))   # a window without opportunities
+    out = tmp_path / "sum.tsv.gz"
+    subprocess.run(summed_counts(windows, out), shell=True, check=True)
+    header_line, *rows = gzip.decompress(out.read_bytes()).decode().splitlines()
+    assert header_line == header.strip()
+    assert sorted(rows) == ["c1\tA\tliver\t10", "c1\tC\tbrain\t7", "c1\tC\tliver\t1"]

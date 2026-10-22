@@ -21,6 +21,7 @@ import yaml
 import make_fixtures as mf
 import utilities
 from pipeline import Pipeline, final_filtering_options
+from text_files import open_text
 from workflow_config import REPO_ROOT
 
 SCRIPTS = os.path.join(REPO_ROOT, "scripts")
@@ -143,9 +144,10 @@ def cluster(tmp_path_factory, fixture_paths):
         mask = made(path("nonrepetitive_mask", contig=mf.CONTIG))
         place(fixture_paths["filters"], mask)
         window = dict(contig=mf.CONTIG, start=0, end=mf.CONTIG_LENGTH)
-        with open(made(path("nonrepetitive_window_calls", **window)), "w") as calls, \
-                open(made(path("nonrepetitive_window_opportunities", **window)), "w") as opportunities, \
-                open(made(path("nonrepetitive_window_reads", **window)), "w") as fastq:
+        # Gzipped where the layout says so, as the scans write them.
+        with open_text(made(path("nonrepetitive_window_calls", **window)), "w") as calls, \
+                open_text(made(path("nonrepetitive_window_opportunities", **window)), "w") as opportunities, \
+                open_text(made(path("nonrepetitive_window_reads", **window)), "w") as fastq:
             utilities.nonrepetitive_scan(mask, mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,
                                          calls_out=calls, opportunities_out=opportunities, fastq_out=fastq,
                                          coverage_band=coverage_band,
@@ -169,7 +171,7 @@ def cluster(tmp_path_factory, fixture_paths):
                            path("excluded", contig=mf.CONTIG), path("unresolved", contig=mf.CONTIG), stdout=measured)
         with contextlib.ExitStack() as files:
             def opened(name, **fields):
-                return files.enter_context(open(made(path(name, **window, **fields)), "w"))
+                return files.enter_context(open_text(made(path(name, **window, **fields)), "w"))
             utilities.tandem_repeat_scan(
                 {model: path("repetitive_tracts", contig=mf.CONTIG, model=model) for model in MODELS},
                 mf.CONTIG, bam, assembly, coverage, tissue, 0, mf.CONTIG_LENGTH,

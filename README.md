@@ -480,12 +480,12 @@ and every unresolved-haplotype region. Intermediates go to
 |---|---|---|---|
 | 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
 | 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid` | 10 Mb window | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
-| 3. Join the windows | `non_rep_MergeWindows_{species}_{sample}_diploid` | sample | `calls/{contig}.tsv`, `opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
-| 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
+| 3. Join the windows | `non_rep_MergeWindows_{species}_{sample}_diploid` | sample | `calls/{contig}.tsv`, `opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq.gz` |
+| 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 4b. Remap to each haplotype | `non_rep_HaplotypeMapping_{haplotype}_{species}_{sample}_diploid` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
-| 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{species}_{sample}_diploid` | sample | `merged/opportunities.tsv`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
-| 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
+| 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{species}_{sample}_diploid` | sample | `merged/opportunities.tsv.gz`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
+| 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv.gz`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
 | 8. Germline/somatic | `non_rep_Classify_{species}_{sample}_diploid` | sample in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
 1. **Mask.** Per contig, every tract of the three models before overlap
@@ -507,7 +507,9 @@ and every unresolved-haplotype region. Intermediates go to
      base](#the-anchor-base)), and then goes to the FASTQ.
 3. **Join.** Per contig, the windows' calls are concatenated, their opportunity
    counts summed per value of every other column, and their FASTQs
-   concatenated keeping each read once.
+   concatenated keeping each read once. The counts are sorted and then summed
+   run by run (`summed_counts()` in [pipeline.py](workflows/pipeline.py)), so
+   the memory it takes doesn't grow with the number of distinct rows.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
    flag, contig, position, mapping quality and CIGAR, sorted by read ID. The
@@ -515,11 +517,12 @@ and every unresolved-haplotype region. Intermediates go to
    for the [hap1/hap2 test](#the-hap1hap2-test).
 5. **Haploid check.** [filtering_haploid_mapping.py](scripts/filtering_haploid_mapping.py)
    checks every call against its read's haploid alignment and its sequence in
-   `haploid/all.fastq` (see [Haploid concordance](#haploid-concordance)) and
+   `haploid/all.fastq.gz` (see [Haploid concordance](#haploid-concordance)) and
    writes one table for the sample, with `species` and `sample` columns added.
 6. **Opportunities and plots.** The contigs' opportunities are concatenated, with
    `species` and `sample` added. [plot_indels.R](scripts/plot_indels.R) draws
-   diagnostics of the calls before final filtering: kmerQ, the 20 most common
+   diagnostics of the calls before final filtering (it doesn't read the
+   opportunities, which are too big to load): kmerQ, the 20 most common
    InDel sequences, distance to the read end, the unique flag, the haploid
    check, tissue, kmerQ against haploid distance, and subread coverage.
 7. **Final filtering.** [final_filtering.py](scripts/final_filtering.py)
@@ -544,12 +547,12 @@ Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 |---|---|---|---|
 | 0. Tracts measured | `TRTracts_{species}_{sample}` | sample | `{model}/tracts/{contig}.bed`, `results/repetitive_indels/{species}/{sample}/tracts_summary.tsv` |
 | 1. Scan | `TRScan_{contig}_{start}_{species}_{sample}` | 10 Mb window | `{model}/calls/chunks/`, `{model}/opportunities/chunks/`, `fastq/chunks/` |
-| 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv`, `fastq/{contig}.fastq` |
-| 3. Remap to haploid | `TRHaploidMapping_{species}_{sample}` | sample | `haploid/all.fastq`, `haploid/remapped.bam`, `haploid/locations.tsv` |
+| 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq` |
+| 3. Remap to haploid | `TRHaploidMapping_{species}_{sample}` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 3b. Remap to each haplotype | `TRHaplotypeMapping_{haplotype}_{species}_{sample}` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 4. Haploid check | `TRHaploidFilter_{species}_{sample}_{model}` | sample × model | `{model}/merged/indels.tsv` |
-| 5. Merge opportunities, plot | `TRMergeAndPlot_{species}_{sample}_{model}` | sample × model | `{model}/merged/opportunities.tsv`, `plots/repetitive_indels/{species}/{sample}/{model}/plots.pdf` |
-| 6. Final filtering | `TRFinalFiltering_{species}_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.tsv`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
+| 5. Merge opportunities, plot | `TRMergeAndPlot_{species}_{sample}_{model}` | sample × model | `{model}/merged/opportunities.tsv.gz`, `plots/repetitive_indels/{species}/{sample}/{model}/plots.pdf` |
+| 6. Final filtering | `TRFinalFiltering_{species}_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.tsv.gz`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
 | 7. Germline/somatic | `TRClassify_{species}_{sample}_{model}` | sample × model, in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
 **Tracts measured.** [drop_excluded_tracts.py](scripts/drop_excluded_tracts.py)
@@ -849,7 +852,8 @@ workflows keep both. The notebooks drop non-unique calls by default
 There is one definition of a final call (Q7), applied in the pipeline by
 [final_filtering.py](scripts/final_filtering.py) to a sample's calls and its
 opportunities alike, so a filter never lowers the rate by what it removes from
-the calls alone. Its steps, in order, each on both tables:
+the calls alone. It reads and writes the tables a million rows at a time, so its
+memory doesn't grow with them. Its steps, in order, each on both tables:
 
 1. **Capped SMRT Cells** (Q12, Q17). A SMRT Cell none of whose reads has a base
    quality above `final_filters.capped_quality` (40) had its qualities capped
@@ -964,15 +968,15 @@ output/
 ├── nonrepetitive_indels/{species}/{sample}/
 │   ├── mask/{contig}.bed
 │   ├── calls/  opportunities/  fastq/            per contig; per window in chunks/
-│   ├── haploid/                                  all.fastq, remapped.bam, locations.tsv,
+│   ├── haploid/                                  all.fastq.gz, remapped.bam, locations.tsv,
 │   │                                             {haplotype}.bam, {haplotype}_locations.tsv
-│   └── merged/                                   indels.tsv, opportunities.tsv, before final filtering
+│   └── merged/                                   indels.tsv, opportunities.tsv.gz, before final filtering
 └── repetitive_indels/{species}/{sample}/
     ├── fastq/  haploid/                          shared by the models
     └── {model}/
         ├── tracts/{contig}.bed                   the tracts measured
         ├── calls/  opportunities/
-        └── merged/                               indels.tsv, opportunities.tsv
+        └── merged/                               indels.tsv, opportunities.tsv.gz
 
 results/
 ├── precompute/{species}/{sample}/unresolved_summary.tsv
@@ -983,7 +987,7 @@ results/
 ├── nonrepetitive_indels/{species}/{sample}/
 │   ├── indels.tsv
 │   ├── indels_classified.tsv                     methylation_samples only
-│   ├── opportunities.tsv
+│   ├── opportunities.tsv.gz
 │   └── filter_report.tsv
 └── repetitive_indels/{species}/{sample}/
     ├── tracts_summary.tsv
@@ -993,6 +997,10 @@ plots/
 ├── nonrepetitive_indels/{species}/{sample}/plots.pdf
 └── repetitive_indels/{species}/{sample}/{model}/plots.pdf
 ```
+
+The opportunity tables and the FASTQs are gzipped at every stage: they are
+big (one 1 Mb window of opportunities is hundreds of MB as text, about 20
+times less gzipped). gzip, pandas, R and pbmm2 read them as they are.
 
 ### Calls
 
@@ -1037,7 +1045,7 @@ positions in the read; the position on the contig is `position`.
 
 ### Opportunities
 
-Workflow 3's `opportunities.tsv` has one row per contig, InDel type, size,
+Workflow 3's `opportunities.tsv.gz` has one row per contig, InDel type, size,
 context and value of the keys:
 
 | Column | Meaning |

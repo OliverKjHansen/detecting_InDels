@@ -3,6 +3,7 @@ import json
 import os
 import signal
 
+from text_files import open_text
 from utilities import nonrepetitive_scan
 
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -40,9 +41,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     calls, opportunities, fastq = args.calls, args.opportunities, args.fastq
 
-    with open(f"{calls}.tmp", "w") as calls_out, \
-         open(f"{opportunities}.tmp", "w") as opportunities_out, \
-         open(f"{fastq}.tmp", "w") as fastq_out:
+    # An output whose name ends in .gz is written gzipped.
+    with open_text(f"{calls}.tmp", "w", gzipped=calls.endswith(".gz")) as calls_out, \
+         open_text(f"{opportunities}.tmp", "w", gzipped=opportunities.endswith(".gz")) as opportunities_out, \
+         open_text(f"{fastq}.tmp", "w", gzipped=fastq.endswith(".gz")) as fastq_out:
         nonrepetitive_scan(args.mask_bed, args.contig, args.bam, args.fasta, args.avg_coverage, args.tissue,
                            args.start, args.end,
                            calls_out=calls_out, opportunities_out=opportunities_out, fastq_out=fastq_out,
