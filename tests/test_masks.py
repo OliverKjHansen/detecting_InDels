@@ -10,6 +10,7 @@ are stand-ins that print canned output.
 """
 
 import pytest
+import yaml
 
 import targets
 from targets import CONTIG, SAMPLE, SPECIES
@@ -39,15 +40,18 @@ def trf_row(start, end, motif):
             f" 25 25 25 25 2.00 {motif} {sequence} AAAAA CCCCC")
 
 
-def annotate_excluded(sample, trf_rows=()):
+def annotate_excluded(sample, trf_rows=(), timed_out=False):
     """
     Workflow 2's excluded group for the contig, from its homopolymer runs and
     what TRF reports for the window holding the contig, the `trf_rows`. The
     stand-in TRF prints them and records its arguments in trf_arguments.txt.
+    The stand-in timeout runs TRF, or, with timed_out, stops it as time runs
+    out (status 124).
     """
     with open(f"{sample.root}/trf.txt", "w") as handle:
         handle.writelines(f"{line}\n" for line in ["@window", *trf_rows])
     sample.stand_in("trf", f'#!/bin/sh\necho "$@" > {sample.root}/trf_arguments.txt\ncat {sample.root}/trf.txt\n')
+    sample.stand_in("timeout", '#!/bin/sh\nexit 124\n' if timed_out else '#!/bin/sh\nshift\nexec "$@"\n')
     sample.run("repetitive_dna", f"long_period_trf_{CONTIG}_0_{SPECIES}_{SAMPLE}_diploid")
     sample.run("repetitive_dna", f"excluded_{CONTIG}_{SPECIES}_{SAMPLE}_diploid")
 
@@ -142,8 +146,22 @@ def test_the_excluded_bases_are_summarised_per_sample(tmp_path, monkeypatch):
     assert [(row["class"], row["regions"], row["bp"], row["share"]) for row in s.table("excluded_summary")] == [
         ("homopolymer", "2", "14", "0.014"),   # [200, 206), [520, 528)
         ("long_period", "2", "85", "0.085"),   # [100, 160), [515, 540)
+        ("long_period_timed_out", "0", "0", "0"),
         ("excluded", "3", "91", "0.091"),      # their union
     ]
+
+
+def test_a_window_trf_cant_finish_in_time_is_excluded_whole(tmp_path, monkeypatch):
+    # In a satellite array TRF can run for days: the window's core, here the
+    # whole contig, is excluded whatever TRF had found, and recorded.
+    s = sample(tmp_path, monkeypatch, with_runs((200, "A", 6)))
+    annotate_excluded(s, [trf_row(100, 145, "ACGTTGCAT")], timed_out=True)
+    assert s.regions("long_periods", contig=CONTIG) == [(0, 1000)]
+    assert s.regions("long_periods_timed_out", contig=CONTIG) == [(0, 1000)]
+    assert s.regions("excluded", contig=CONTIG) == [(0, 1000)]
+    s.run("repetitive_dna", f"excluded_summary_{SPECIES}_{SAMPLE}_diploid")
+    rows = {row["class"]: (row["regions"], row["bp"], row["share"]) for row in s.table("excluded_summary")}
+    assert rows["long_period_timed_out"] == ("1", "1000", "1")
 
 
 def test_the_tracts_workflow_4_drops_are_summarised_per_sample_and_model(tmp_path, monkeypatch):
@@ -217,3 +235,26 @@ def test_workflow_3_still_masks_the_unresolved_regions(tmp_path, monkeypatch):
     annotate_excluded(s)
     annotate_repeats(s)
     assert build_mask(s, unresolved=[(600, 700)]) == [(600, 700)]
+
+
+def test_trf_runs_on_each_sub_window_in_turn_and_only_a_slow_one_is_excluded(tmp_path, monkeypatch):
+    s = sample(tmp_path, monkeypatch)
+    with open(f"{s.root}/config.yaml") as handle:
+        config = yaml.safe_load(handle)
+    config["repeats"].update({"long_period_window_size": 400, "long_period_overlap": 10})
+    with open(f"{s.root}/config.yaml", "w") as handle:
+        yaml.safe_dump(config, handle, sort_keys=False)
+    # samtools records the stretch it fetches; the second TRF run times out.
+    s.stand_in("samtools", f'#!/bin/sh\necho "$3" >> {s.root}/fetched.txt\necho ">window"\n')
+    second_times_out = f'#!/bin/sh\nn=$(cat {s.root}/runs 2>/dev/null || echo 0)\nn=$((n + 1))\n' \
+                       f'echo $n > {s.root}/runs\nif [ $n -eq 2 ]; then exit 124; fi\nshift\nexec "$@"\n'
+    with open(f"{s.root}/trf.txt", "w") as handle:
+        handle.write("@window\n")
+    s.stand_in("trf", f'#!/bin/sh\ncat {s.root}/trf.txt\n')
+    s.stand_in("timeout", second_times_out)
+    s.run("repetitive_dna", f"long_period_trf_{CONTIG}_0_{SPECIES}_{SAMPLE}_diploid")
+    s.run("repetitive_dna", f"excluded_{CONTIG}_{SPECIES}_{SAMPLE}_diploid")
+    with open(f"{s.root}/fetched.txt") as handle:
+        assert handle.read().split() == [f"{CONTIG}:1-410", f"{CONTIG}:391-810", f"{CONTIG}:791-1000"]
+    assert s.regions("long_periods_timed_out", contig=CONTIG) == [(400, 800)]
+    assert s.regions("excluded", contig=CONTIG) == [(400, 800)]

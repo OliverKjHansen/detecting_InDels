@@ -214,7 +214,8 @@ Parameters:
 | mreps minimum exponent (M0, M2) | 3 copies | `repeats.mreps_min_exponent` |
 | mreps resolution (M2) | 1 | `repeats.m2_resolution` |
 | TRF scoring (M1, and the long periods) | `2 7 7 80 10 50`, maximum period 6 | `repeats.trf_params` |
-| TRF window and overlap (M1, and the long periods) | 5 Mb, plus 1 Mb on each side | `repeats.trf_window_size`, `repeats.trf_overlap` |
+| TRF window and overlap (M1; a long-period job covers one such window) | 5 Mb, plus 1 Mb on each side | `repeats.trf_window_size`, `repeats.trf_overlap` |
+| Long-period sub-windows, their overlap, and TRF's time limit on each | 500 kb, plus 10 kb on each side; 30 min | `repeats.long_period_window_size`, `.long_period_overlap`, `.long_period_timeout` |
 | Excluded homopolymer runs | 6 bp or more | `repeats.homopolymer_min_length` |
 | Excluded periods | 7 (one above `repeats.periods`) to 2000 | `repeats.long_period_max` |
 | InDel scan window | 10 Mb | `scan.window_size` |
@@ -359,8 +360,8 @@ their own, without those that overlap the excluded group.
 | 1a. M1 tracts | `M1_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window | `per_k/{contig}_M1_k{k}_{start}.bed`, one per k |
 | 1b. Resolve overlaps | `{model}_merge_k_{contig}_{species}_{sample}_diploid` | contig × model | `{contig}_{model}.bed`, `bases/{contig}_{model}.bed` |
 | 2. Sample BED and summaries | `cat_{model}_{species}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` and `{model}_dropped.tsv` |
-| 3a. Long-period tracts | `long_period_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window | `excluded/chunks/{contig}_long_periods_{start}.bed` |
-| 3b. Excluded group | `excluded_{contig}_{species}_{sample}_diploid` | contig | `excluded/{contig}_homopolymers.bed`, `excluded/{contig}_long_periods.bed`, `excluded/{contig}.bed` |
+| 3a. Long-period tracts | `long_period_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window, TRF on its 500 kb sub-windows in turn | `excluded/chunks/{contig}_long_periods_{start}.bed` |
+| 3b. Excluded group | `excluded_{contig}_{species}_{sample}_diploid` | contig | `excluded/{contig}_homopolymers.bed`, `excluded/{contig}_long_periods.bed`, `excluded/{contig}_long_periods_timed_out.bed`, `excluded/{contig}.bed` |
 | 3c. Excluded summary | `excluded_summary_{species}_{sample}_diploid` | sample | `results/repetitive_dna/{species}/{sample}/excluded_summary.tsv` |
 
 **mreps (M0, M2).** mreps runs once per contig and period.
@@ -437,14 +438,21 @@ overlap resolution leaves out of the model (see [Other tables](#other-tables)).
   reads the contig's FASTA, ignoring case; runs of `N` are not homopolymers.
   Shorter runs are left to workflow 3's [homopolymer rule](#homopolymer-rule).
 - **Tracts with periods from 7 to `long_period_max` (2000)**, from a TRF run of
-  their own with M1's scoring (minimum score 50) and windows, and maximum period
-  2000. M1 keeps its own run with maximum period 6, so M1 does not change.
+  their own with M1's scoring (minimum score 50) and maximum period 2000. M1
+  keeps its own run with maximum period 6, so M1 does not change.
   [parse_trf.py](scripts/parse_trf.py) keeps the periods 7–2000, but skips a
   tract whose consensus motif is whole copies of a motif shorter than 7: TRF can
   report a short repeat again at a multiple of its period, `(AC)n` as
   `ACACACAC`, and that is M1's tract. These tracts are only masked, so a window
   keeps every tract it reports rather than only those starting in its core: an
   array longer than the overlap is then covered by the windows' pieces.
+- **Satellite arrays TRF can't finish.** Up to period 2000, TRF slows down with
+  the length of a satellite array in its window: on the cluster some 5 Mb
+  windows ran for more than 8 hours. So each job, one per M1 window, runs TRF
+  on 500 kb sub-windows (10 kb more on each side) in turn, each within 30
+  minutes (`repeats.long_period_timeout`; away from satellites TRF takes
+  seconds). A sub-window it doesn't finish is excluded whole, which errs on the
+  side of masking, and is listed in `excluded/{contig}_long_periods_timed_out.bed`.
 
 Per contig, `excluded/{contig}_homopolymers.bed` lists the runs (contig, start,
 end, base), `excluded/{contig}_long_periods.bed` the long-period tracts as
@@ -1112,7 +1120,9 @@ need no approximation.
   kept tract covers, which are in neither InDel workflow; and `share_dropped`,
   `bp_dropped` over `bp_before`; then `species` and `sample`.
 - `excluded_summary.tsv`: one row per `class` of the excluded group,
-  `homopolymer`, `long_period` and `excluded` (their union), with `regions`
+  `homopolymer`, `long_period`, `long_period_timed_out` (the sub-windows TRF
+  didn't finish, excluded whole, part of `long_period`) and `excluded` (the
+  union), with `regions`
   (homopolymer runs, or merged intervals), `bp`, and `share`, the bases over
   those of the contigs analysed; then `species` and `sample`.
 - `tracts_summary.tsv` (workflow 4): one row per `model`, with `tracts` and `bp`,
