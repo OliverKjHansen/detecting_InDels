@@ -230,11 +230,13 @@ for species, samples in config["samples"].items():
                 window_bed  = path("long_periods_window", contig=contig, start=core_start)
                 long_period_window_beds.append(window_bed)
 
+                # In satellite arrays TRF takes far longer up to period 2000 than
+                # up to 6: some windows ran out of 8 h on the cluster (2026-10-23).
                 gwf.target(
                     f"long_period_trf_{contig}_{core_start}_{species}_{sample}_{assembly_type}",
                     inputs=[assembly, path("assembly_fai")],
                     outputs=[window_bed],
-                    walltime="8:00:00",
+                    walltime="48:00:00",
                 ) << f"""
                 set -e
                 mkdir -p {long_period_dir}

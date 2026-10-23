@@ -1274,7 +1274,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "8:00:00"
+   "walltime": "48:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_0.bed"
@@ -1290,7 +1290,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "8:00:00"
+   "walltime": "48:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_10000000.bed"
@@ -1306,7 +1306,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "8:00:00"
+   "walltime": "48:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c1_long_periods_5000000.bed"
@@ -1322,7 +1322,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "8:00:00"
+   "walltime": "48:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s1/excluded/chunks/c2_long_periods_0.bed"
@@ -1338,7 +1338,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "8:00:00"
+   "walltime": "48:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/ape/s2/excluded/chunks/c2_long_periods_0.bed"
@@ -1354,7 +1354,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "8:00:00"
+   "walltime": "48:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_dna/monkey/s3/excluded/chunks/c2_long_periods_0.bed"
