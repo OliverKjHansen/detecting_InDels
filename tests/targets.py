@@ -70,6 +70,14 @@ class Sample:
                    + [f"{CONTIG}\t{start}\t{end}\t{motif}\t{k}\t{(end - start) / k:g}\t100.00\t100.00\t{model}"
                       f"\t{SPECIES}\t{SAMPLE}" for start, end, motif, k in tracts], model=model, **fields)
 
+    def configure(self, block, **values):
+        """Change values of one block of the sample's config.yaml, as a test needs them; the targets read it when run."""
+        with open(f"{self.root}/config.yaml") as handle:
+            config = yaml.safe_load(handle)
+        config[block].update(values)
+        with open(f"{self.root}/config.yaml", "w") as handle:
+            yaml.safe_dump(config, handle, sort_keys=False)
+
     def stand_in(self, tool, script):
         path = f"{self.root}/bin/{tool}"
         with open(path, "w") as handle:

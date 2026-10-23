@@ -215,7 +215,7 @@ Parameters:
 | mreps resolution (M2) | 1 | `repeats.m2_resolution` |
 | TRF scoring (M1, and the long periods) | `2 7 7 80 10 50`, maximum period 6 | `repeats.trf_params` |
 | TRF window and overlap (M1; a long-period job covers one such window) | 5 Mb, plus 1 Mb on each side | `repeats.trf_window_size`, `repeats.trf_overlap` |
-| Long-period sub-windows, their overlap, and TRF's time limit on each | 500 kb, plus 10 kb on each side; 30 min | `repeats.long_period_window_size`, `.long_period_overlap`, `.long_period_timeout` |
+| Long-period sub-windows, their overlap, and TRF's time limit on each | 500 kb, plus 10 kb on each side; 30 min | `repeats.long_period_sub_window_size`, `repeats.long_period_overlap`, `repeats.long_period_timeout` |
 | Excluded homopolymer runs | 6 bp or more | `repeats.homopolymer_min_length` |
 | Excluded periods | 7 (one above `repeats.periods`) to 2000 | `repeats.long_period_max` |
 | InDel scan window | 10 Mb | `scan.window_size` |
@@ -361,7 +361,7 @@ their own, without those that overlap the excluded group.
 | 1b. Resolve overlaps | `{model}_merge_k_{contig}_{species}_{sample}_diploid` | contig × model | `{contig}_{model}.bed`, `bases/{contig}_{model}.bed` |
 | 2. Sample BED and summaries | `cat_{model}_{species}_{sample}_diploid` | sample × model | `{model}.bed`, `results/repetitive_dna/{species}/{sample}/{model}_summary.tsv` and `{model}_dropped.tsv` |
 | 3a. Long-period tracts | `long_period_trf_{contig}_{start}_{species}_{sample}_diploid` | 5 Mb window, TRF on its 500 kb sub-windows in turn | `excluded/chunks/{contig}_long_periods_{start}.bed` |
-| 3b. Excluded group | `excluded_{contig}_{species}_{sample}_diploid` | contig | `excluded/{contig}_homopolymers.bed`, `excluded/{contig}_long_periods.bed`, `excluded/{contig}_long_periods_timed_out.bed`, `excluded/{contig}.bed` |
+| 3b. Excluded group | `excluded_{contig}_{species}_{sample}_diploid` | contig | `excluded/{contig}_homopolymers.bed`, `excluded/{contig}_long_periods.bed`, `excluded/{contig}.bed` |
 | 3c. Excluded summary | `excluded_summary_{species}_{sample}_diploid` | sample | `results/repetitive_dna/{species}/{sample}/excluded_summary.tsv` |
 
 **mreps (M0, M2).** mreps runs once per contig and period.
@@ -452,7 +452,8 @@ overlap resolution leaves out of the model (see [Other tables](#other-tables)).
   on 500 kb sub-windows (10 kb more on each side) in turn, each within 30
   minutes (`repeats.long_period_timeout`; away from satellites TRF takes
   seconds). A sub-window it doesn't finish is excluded whole, which errs on the
-  side of masking, and is listed in `excluded/{contig}_long_periods_timed_out.bed`.
+  side of masking. Its window's BED in `excluded/chunks/` gives it with
+  `timed_out` in the motif column, and `excluded_summary.tsv` sums them.
 
 Per contig, `excluded/{contig}_homopolymers.bed` lists the runs (contig, start,
 end, base), `excluded/{contig}_long_periods.bed` the long-period tracts as

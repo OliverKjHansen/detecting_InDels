@@ -182,7 +182,6 @@ layout:
   homopolymers:          "{output}/repetitive_dna/{species}/{sample}/excluded/{contig}_homopolymers.bed"
   long_periods_window:   "{output}/repetitive_dna/{species}/{sample}/excluded/chunks/{contig}_long_periods_{start}.bed"
   long_periods:          "{output}/repetitive_dna/{species}/{sample}/excluded/{contig}_long_periods.bed"
-  long_periods_timed_out: "{output}/repetitive_dna/{species}/{sample}/excluded/{contig}_long_periods_timed_out.bed"
   excluded:              "{output}/repetitive_dna/{species}/{sample}/excluded/{contig}.bed"
   excluded_summary:      "{results}/repetitive_dna/{species}/{sample}/excluded_summary.tsv"
 
@@ -286,13 +285,13 @@ repeats:
   long_period_max: 2000
   # Up to period 2000, TRF slows down with the length of a satellite array in
   # its window, so each long-period job (one per M1 window) runs TRF on
-  # smaller sub-windows in turn (ticket 36). The overlap holds two copies of
-  # the longest period on each side.
-  long_period_window_size: 500_000
+  # smaller sub-windows in turn (ticket 36). Each sub-window is fetched with
+  # the overlap on each side: room for five copies of the longest period.
+  long_period_sub_window_size: 500_000
   long_period_overlap: 10_000
   # A sub-window TRF doesn't finish within this many seconds is excluded
   # whole: it is most likely a satellite array. Away from satellites TRF takes
-  # seconds. excluded_summary.tsv records them.
+  # seconds. Its window BED marks it timed_out; excluded_summary.tsv sums them.
   long_period_timeout: 1800
 
 # Workflows 3 and 4.

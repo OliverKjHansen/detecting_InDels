@@ -54,12 +54,31 @@ trf_params = config["repeats"]["trf_params"]
 trf_window  = config["repeats"]["trf_window_size"]
 trf_overlap = config["repeats"]["trf_overlap"]
 
-# M1 — TRF aligns a repeat over at most -l million bp (default 2). In a uniform
-# array longer than that, e.g. a 4 Mb centromere, it keeps restarting the
-# alignment and a window runs for days instead of minutes. So the limit covers
-# everything a window job fetches, and no array can exceed it. TRF allocates
-# ~0.6 GB per million up front: -l 12 for 10 Mb windows is ~7.5 GB.
-trf_max_length = math.ceil((trf_window + 2 * trf_overlap) / 1_000_000)
+
+
+def windows(start, end, size, overlap, length):
+    """
+    (core start, core end, fetch start, fetch end) of the windows of `size`
+    that tile [start, end) with no gap, each fetched with `overlap` more bases
+    on each side, within a contig of `length`.
+    """
+    return [(core, min(core + size, end), max(0, core - overlap), min(length, min(core + size, end) + overlap))
+            for core in range(start, end, size)]
+
+
+def trf_length_limit(size, overlap):
+    """
+    TRF's -l, in millions of bp: TRF aligns a repeat over at most that many
+    (default 2). In a uniform array longer than that, e.g. a 4 Mb centromere,
+    it keeps restarting the alignment and a window runs for days instead of
+    minutes. So the limit covers everything a window fetches, and no array can
+    exceed it. TRF allocates ~0.6 GB per million up front: -l 12 for 10 Mb
+    windows is ~7.5 GB.
+    """
+    return math.ceil((size + 2 * overlap) / 1_000_000)
+
+
+trf_max_length = trf_length_limit(trf_window, trf_overlap)
 
 models = config["repeats"]["models"]
 
@@ -68,11 +87,15 @@ models = config["repeats"]["models"]
 homopolymer_min_length = config["repeats"]["homopolymer_min_length"]
 long_period_max        = config["repeats"]["long_period_max"]
 long_periods           = f"{max_period + 1}-{long_period_max}"
-# Its own windows, smaller than M1's, and a time limit per window (ticket 36).
-long_period_window     = config["repeats"]["long_period_window_size"]
+# A job per M1 window runs TRF on its sub-windows in turn, each within a time
+# limit (ticket 36).
+long_period_sub_window = config["repeats"]["long_period_sub_window_size"]
 long_period_overlap    = config["repeats"]["long_period_overlap"]
 long_period_timeout    = config["repeats"]["long_period_timeout"]
-long_period_max_length = math.ceil((long_period_window + 2 * long_period_overlap) / 1_000_000)
+long_period_max_length = trf_length_limit(long_period_sub_window, long_period_overlap)
+# A sub-window TRF doesn't finish: its window BED gives its core with this in
+# the motif column.
+TIMED_OUT = "timed_out"
 
 # Resource requests. mreps and TRF are single-threaded, so one core per job.
 gwf = Workflow(
@@ -94,6 +117,9 @@ for species, samples in config["samples"].items():
         long_period_dir = pipeline.folder("long_periods_window", species, sample)
         resultsdir  = pipeline.folder("repeats_summary", species, sample)
         long_contigs = pipeline.long_contigs(species, sample)
+
+        # Every long-period window BED of the sample, for the summary of step 3c.
+        sample_long_period_window_beds = []
 
         for contig, length in long_contigs.items():
             contig_fa = path("contig_fasta", contig=contig)
@@ -148,10 +174,7 @@ for species, samples in config["samples"].items():
             # found whole by the window that owns it.
             m1_window_beds = []
 
-            for core_start in range(0, length, trf_window):
-                core_end    = min(core_start + trf_window, length)
-                fetch_start = max(0, core_start - trf_overlap)
-                fetch_end   = min(length, core_end + trf_overlap)
+            for core_start, core_end, fetch_start, fetch_end in windows(0, length, trf_window, trf_overlap, length):
                 window_beds = [path("repeats_per_k_window", contig=contig, model="M1", k=k, start=core_start)
                                for k in periods]
                 m1_window_beds += window_beds
@@ -232,15 +255,11 @@ for species, samples in config["samples"].items():
             # than the overlap is covered by the pieces, with no hole between.
             long_period_window_beds = []
 
-            for core_start in range(0, length, trf_window):
-                core_end    = min(core_start + trf_window, length)
+            for core_start, core_end, _, _ in windows(0, length, trf_window, trf_overlap, length):
                 window_bed  = path("long_periods_window", contig=contig, start=core_start)
                 long_period_window_beds.append(window_bed)
-                sub_windows = [(start, min(start + long_period_window, core_end),
-                                max(0, start - long_period_overlap),
-                                min(length, start + long_period_window + long_period_overlap))
-                               for start in range(core_start, core_end, long_period_window)]
-                sub_window_lines = "\n".join(" ".join(map(str, window)) for window in sub_windows)
+                sub_windows = windows(core_start, core_end, long_period_sub_window, long_period_overlap, length)
+                sub_window_lines = "\n".join(" ".join(map(str, sub_window)) for sub_window in sub_windows)
                 # Each sub-window at most the time limit, and room for the rest.
                 hours = math.ceil(len(sub_windows) * long_period_timeout / 3600) + 1
 
@@ -254,27 +273,27 @@ for species, samples in config["samples"].items():
                 mkdir -p {long_period_dir}
                 WORK=$(mktemp -d)
                 trap 'rm -rf "$WORK"' EXIT
-                : > $WORK/window.bed
+                : > $WORK/tracts.bed
                 while read start end fetch_start fetch_end; do
                     # stdin from /dev/null: the loop reads the sub-windows from it.
-                    samtools faidx {assembly} {contig}:$((fetch_start + 1))-$fetch_end < /dev/null > $WORK/window.fa
+                    samtools faidx {assembly} {contig}:$((fetch_start + 1))-$fetch_end < /dev/null > $WORK/sub_window.fa
                     status=0
-                    timeout {long_period_timeout} {trf} $WORK/window.fa {trf_params} {long_period_max} -ngs -h \\
+                    timeout {long_period_timeout} {trf} $WORK/sub_window.fa {trf_params} {long_period_max} -ngs -h \\
                         -l {long_period_max_length} < /dev/null > $WORK/trf.txt || status=$?
                     if [ $status -eq 124 ]; then
-                        printf '%s\\t%s\\t%s\\ttimed_out\\n' {contig} $start $end >> $WORK/window.bed
+                        printf '%s\\t%s\\t%s\\t{TIMED_OUT}\\n' {contig} $start $end >> $WORK/tracts.bed
                     elif [ $status -ne 0 ]; then
                         exit $status
                     else
                         python {scripts}/parse_trf.py $WORK/trf.txt {long_periods} {species} {sample} long_period \\
-                            {contig} $fetch_start < /dev/null >> $WORK/window.bed
+                            {contig} $fetch_start < /dev/null >> $WORK/tracts.bed
                     fi
                 done <<'SUB_WINDOWS'
 {sub_window_lines}
 SUB_WINDOWS
                 # The tract header once, first.
-                {{ awk -F'\\t' '$1 == "contig" && $2 == "start" {{print; exit}}' $WORK/window.bed; \\
-                   awk -F'\\t' '!($1 == "contig" && $2 == "start")' $WORK/window.bed; }} > {window_bed}.tmp
+                {{ awk -F'\\t' '$1 == "contig" && $2 == "start" {{print; exit}}' $WORK/tracts.bed; \\
+                   awk -F'\\t' '!($1 == "contig" && $2 == "start")' $WORK/tracts.bed; }} > {window_bed}.tmp
                 mv {window_bed}.tmp {window_bed}
                 """
 
@@ -285,13 +304,12 @@ SUB_WINDOWS
             # and workflow 4 drops the tracts it overlaps.
             homopolymer_bed = path("homopolymers", contig=contig)
             long_period_bed = path("long_periods", contig=contig)
-            timed_out_bed   = path("long_periods_timed_out", contig=contig)
             excluded_bed    = path("excluded", contig=contig)
 
             gwf.target(
                 f"excluded_{contig}_{species}_{sample}_{assembly_type}",
                 inputs=[contig_fa] + long_period_window_beds,
-                outputs=[homopolymer_bed, long_period_bed, timed_out_bed, excluded_bed],
+                outputs=[homopolymer_bed, long_period_bed, excluded_bed],
                 memory="8g",
                 walltime="02:00:00",
             ) << f"""
@@ -299,14 +317,12 @@ SUB_WINDOWS
             mkdir -p {excluded_dir}
             python {scripts}/find_homopolymers.py {contig_fa} {homopolymer_min_length} > {homopolymer_bed}.tmp
             python {scripts}/merge_regions.py {" ".join(long_period_window_beds)} > {long_period_bed}.tmp
-            awk -F'\\t' -v OFS='\\t' '$4 == "timed_out" {{print $1, $2, $3}}' {" ".join(long_period_window_beds)} \\
-                > {timed_out_bed}.tmp
             python {scripts}/merge_regions.py {homopolymer_bed}.tmp {long_period_bed}.tmp > {excluded_bed}.tmp
             mv {homopolymer_bed}.tmp {homopolymer_bed}
             mv {long_period_bed}.tmp {long_period_bed}
-            mv {timed_out_bed}.tmp {timed_out_bed}
             mv {excluded_bed}.tmp {excluded_bed}
             """
+            sample_long_period_window_beds += long_period_window_beds
 
         # Step 2 — per model: concatenate the per-contig BEDs into one BED for the
         # sample, and summarise it into a small table to plot locally. The summary
@@ -348,15 +364,18 @@ SUB_WINDOWS
             """
 
         # Step 3c — the excluded group per sample: for the homopolymer runs,
-        # the long-period tracts and their union, the regions (runs, or merged
-        # intervals), their bases, and the share of the contigs' bases.
+        # the long-period tracts, the sub-windows TRF didn't finish (part of
+        # the long-period tracts, ticket 36) and the union, the regions (runs,
+        # or merged intervals), their bases, and the share of the contigs'
+        # bases. The timed-out sub-windows are read from the window BEDs, so
+        # the excluded steps' outputs stay as they were.
         contigs_bp = sum(long_contigs.values())
         excluded_summary = path("excluded_summary")
+        timed_out_bed = f"{excluded_summary}.timed_out.bed"
         class_beds = {
             "homopolymer": [path("homopolymers", contig=contig) for contig in long_contigs],
             "long_period": [path("long_periods", contig=contig) for contig in long_contigs],
-            # The windows TRF didn't finish in time, excluded whole (ticket 36).
-            "long_period_timed_out": [path("long_periods_timed_out", contig=contig) for contig in long_contigs],
+            "long_period_timed_out": [timed_out_bed],
             "excluded":    [path("excluded", contig=contig) for contig in long_contigs],
         }
         class_commands = "\n        ".join(
@@ -367,7 +386,8 @@ SUB_WINDOWS
 
         gwf.target(
             f"excluded_summary_{species}_{sample}_{assembly_type}",
-            inputs=[bed for beds in class_beds.values() for bed in beds],
+            inputs=[bed for name, beds in class_beds.items() if name != "long_period_timed_out" for bed in beds]
+                   + sample_long_period_window_beds,
             outputs=[excluded_summary],
             memory="2g",
             walltime="00:30:00",
@@ -375,6 +395,11 @@ SUB_WINDOWS
         set -e
         mkdir -p {resultsdir}
         printf "class\\tregions\\tbp\\tshare\\tspecies\\tsample\\n" > {excluded_summary}.tmp
+        awk -F'\\t' -v OFS='\\t' '$4 == "{TIMED_OUT}" {{print $1, $2, $3}}' {" ".join(sample_long_period_window_beds)} \\
+            > {timed_out_bed}.tmp
+        python {scripts}/merge_regions.py {timed_out_bed}.tmp > {timed_out_bed}
+        rm -f {timed_out_bed}.tmp
         {class_commands}
+        rm -f {timed_out_bed}
         mv {excluded_summary}.tmp {excluded_summary}
         """
