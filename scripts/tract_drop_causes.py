@@ -1,24 +1,25 @@
 """
-Why workflow 4's step 0 drops tracts, and what the rules of ticket 34 would
-measure instead, for one sample. Run from the repository root, where
+Why workflow 4's step 0 drops tracts under each rule ticket 34 weighed, for
+one sample; option 2 was chosen (decisions Q16). Run from the repository root, where
 config.yaml is, after workflows 1 and 2:
 
     python scripts/tract_drop_causes.py <species> <sample> [--edges 1,2,5,10] > tract_drop_causes.tsv
 
-Step 0 drops a tract whole when it shares a base with an unresolved-haplotype
-region or the excluded group: homopolymer runs, long-period tracts, and the
-sub-windows the long-period TRF couldn't finish in time (most likely satellite
-arrays). Per model, the table counts the tracts and their bases:
+Before ticket 34, step 0 dropped a tract whole when it shared a base with an
+unresolved-haplotype region or the excluded group: homopolymer runs,
+long-period tracts, and the sub-windows the long-period TRF couldn't finish in
+time (most likely satellite arrays). Per model, the table counts the tracts
+and their bases:
 
   all                   every tract of the model
   dropped_unresolved    sharing a base with an unresolved region
   dropped_homopolymer   else, sharing a base with a homopolymer run
   dropped_timed_out     else, sharing a base with a sub-window TRF couldn't finish
   dropped_long_period   else, sharing a base with a long-period tract
-  option_1              the rest: what step 0 measures today
+  option_1              the rest: what step 0 measured before ticket 34
   option_2              long-period tracts no longer drop a tract; the other
-                        three causes still do
-  option_3_edge_N       as today, but kept when each excluded region it meets
+                        three causes still do: what step 0 measures now
+  option_3_edge_N       as option 1, but kept when each excluded region it meets
                         reaches in from one of its ends, holding N of its
                         bases or fewer at both ends together
   option_2_3_edge_N     as option 2, but kept when the homopolymer runs and
@@ -28,7 +29,6 @@ Under every rule a tract sharing a base with an unresolved region is dropped,
 and so is a tract an excluded region covers from end to end.
 """
 import argparse
-import glob
 import os
 import sys
 from bisect import bisect_right
@@ -37,7 +37,7 @@ from collections import Counter
 from merge_regions import merge, overlaps, read_regions
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workflows"))
-from pipeline import Pipeline  # noqa: E402
+from pipeline import TIMED_OUT, Pipeline  # noqa: E402
 
 
 def tracts(path):
@@ -50,13 +50,13 @@ def tracts(path):
 
 
 def timed_out(paths):
-    """(start, end) of the sub-windows marked timed_out in the long-period window BEDs."""
+    """(start, end) of the sub-windows marked TIMED_OUT in the long-period window BEDs."""
     regions = []
     for path in paths:
         with open(path) as handle:
             for line in handle:
                 fields = line.rstrip("\n").split("\t")
-                if len(fields) > 3 and fields[3] == "timed_out":
+                if len(fields) > 3 and fields[3] == TIMED_OUT:
                     regions.append((int(fields[1]), int(fields[2])))
     return regions
 
@@ -112,11 +112,12 @@ def main():
     pipeline = Pipeline()
     models = pipeline.config["repeats"]["models"]
     tract_counts, bp_counts = Counter(), Counter()
-    for contig in pipeline.long_contigs(args.species, args.sample):
+    for contig, length in pipeline.long_contigs(args.species, args.sample).items():
         path = lambda name, **fields: pipeline.path(name, args.species, args.sample, contig=contig, **fields)  # noqa: E731
         regions = {name: merge(read_regions([path(name)])[contig])
                    for name in ("unresolved", "homopolymers", "excluded")}
-        regions["timed_out"] = merge(timed_out(glob.glob(path("long_periods_window", start="*"))))
+        regions["timed_out"] = merge(timed_out(pipeline.long_period_window_beds(args.species, args.sample,
+                                                                                contig, length)))
         regions["option_2_excluded"] = merge(regions["homopolymers"] + regions["timed_out"])
         for model in models:
             for start, end in tracts(path("tandem_repeats", model=model)):

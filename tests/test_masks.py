@@ -129,15 +129,34 @@ def test_a_short_period_reported_at_a_multiple_of_its_period_is_not_a_long_perio
     assert s.regions("long_periods", contig=CONTIG) == []
 
 
-def test_workflow_4_drops_every_tract_that_overlaps_an_excluded_region_whole(tmp_path, monkeypatch):
+def test_workflow_4_drops_every_tract_that_overlaps_a_homopolymer_run_whole(tmp_path, monkeypatch):
     s = sample(tmp_path, monkeypatch, with_runs((200, "A", 6), (401, "C", 5)))
-    annotate_excluded(s, [trf_row(600, 650, "ACGTTGCAT")])
+    annotate_excluded(s)
     tracts = [(150, 201, "AC", 2),    # its last base is the 6 bp run's first
               (206, 240, "AG", 2),    # starts where the run ends
-              (380, 420, "AC", 2),    # holds the 5 bp run
-              (640, 700, "AAG", 3)]   # overlaps the period-9 tract
+              (380, 420, "AC", 2)]    # holds the 5 bp run
     annotate_repeats(s, tracts)
     assert measure_tracts(s) == {model: [(206, 240), (380, 420)] for model in MODELS}
+
+
+def test_workflow_4_measures_a_tract_that_overlaps_a_long_period_tract_and_workflow_3_masks_it(tmp_path,
+                                                                                                 monkeypatch):
+    # The shorter period wins, as in overlap resolution (ticket 34); no base
+    # is counted by both workflows.
+    s = sample(tmp_path, monkeypatch)
+    annotate_excluded(s, [trf_row(600, 650, "ACGTTGCAT")])
+    annotate_repeats(s, [(640, 700, "AAG", 3)])
+    assert measure_tracts(s) == {model: [(640, 700)] for model in MODELS}
+    assert build_mask(s) == [(600, 700)]
+
+
+def test_workflow_4_drops_every_tract_in_a_sub_window_trf_couldnt_finish(tmp_path, monkeypatch):
+    # Most likely a satellite array: not a long-period tract TRF found.
+    s = sample(tmp_path, monkeypatch)
+    annotate_excluded(s, timed_out=[1])
+    annotate_repeats(s, [(640, 700, "AAG", 3)])
+    assert measure_tracts(s) == {model: [] for model in MODELS}
+
 
 
 def test_the_excluded_bases_are_summarised_per_sample(tmp_path, monkeypatch):

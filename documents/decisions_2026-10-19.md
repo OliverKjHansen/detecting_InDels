@@ -110,7 +110,7 @@ These come from a literature search on 19 October 2026. Values marked *derived* 
   | Group | What's in it | Measured by |
   |---|---|---|
   | Repeat | Tracts with periods 2–6 | Workflow 4 |
-  | Excluded | Homopolymers and tracts with periods ≥ 7 | Neither; masked from both workflows |
+  | Excluded | Homopolymers and tracts with periods ≥ 7 | Neither; masked from both workflows (since ticket 34, workflow 4 measures a period 2–6 tract that overlaps a long-period tract, see Q16) |
   | Non-repetitive | Everything else | Workflow 3 |
 
   Reason: homopolymers are where HiFi makes the most errors, and repeats with periods ≥ 7 still slip faster than background. Leaving them in the non-repetitive group inflates the background rate (M1). They are an explicit scope limit of the paper.
@@ -118,6 +118,7 @@ These come from a literature search on 19 October 2026. Values marked *derived* 
   - homopolymer runs ≥ 6 bp, matching the shortest period-2 tract M0 masks;
   - tracts with periods ≥ 7 from TRF with minimum score 50, as for M1.
   - Shorter homopolymer runs are still handled by the existing homopolymer rule in workflow 3.
+  - **A period 2–6 tract that overlaps a long-period tract is measured (ticket 34, 27 October 2026).** Workflow 4 drops a tract whole only for a homopolymer run, a sub-window the long-period TRF couldn't finish (most likely a satellite array) or an unresolved region: the shorter period wins, as in overlap resolution. Workflow 3 still masks the long-period bases, so none is counted by both workflows. Reason: dropping every tract that touched the excluded group cost chk 22% of its M0 tracts, 44% of M1's and 18% of M2's (da1 more, with more unresolved regions). Long-period tracts were the largest cause the rule could avoid (9–17% of tracts). Ignoring overlaps of up to 5 bases at a tract's edge would have kept 1–3% more of the M0 and M2 tracts and 6–8% more of M1's, but almost none of M1's bases, and it would bring homopolymer bases at a tract's ends into workflow 4, so such overlaps still drop a tract. Measured with `scripts/tract_drop_causes.py` on chk and da1. M1 still keeps only about 30% of its bases: homopolymer runs inside its tracts drop half of them.
 - **M1 (TRF) is the main repeat model (Q28).** M0 and M2 are computed for sensitivity checks only. Reasons: TRF is the standard tool reviewers will expect, and M1 records purity. The non-repetitive mask stays the union of all three models.
 - **Unresolved haplotype regions are masked in both workflows (Q19).** Before, only workflow 3 masked them. In those regions a read can align to the wrong haplotype, and in a tandem repeat that turns a real germline length difference into a false call.
 - **The definition of unresolved regions stays (Q32).** Any mismatch shared by ≥ 2 reads at base quality ≥ 40 masks the reads' full span. U1 is fixed, and the masked share of the genome is recorded per sample. The definition is aggressive but on the safe side for false positives.

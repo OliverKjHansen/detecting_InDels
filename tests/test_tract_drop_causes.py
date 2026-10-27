@@ -118,10 +118,12 @@ def test_an_empty_repeat_bed_has_no_tracts(tmp_path, monkeypatch):
     assert causes()["M0", "all"] == (0, 0)
 
 
-def test_option_1_is_what_workflow_4_measures_today(tmp_path, monkeypatch):
-    s = sample(tmp_path, monkeypatch)
+def test_option_2_is_what_workflow_4_measures(tmp_path, monkeypatch):
+    s = sample(tmp_path, monkeypatch, timed_out=[(900, 1000)],
+               tracts=[*TRACTS, (920, 960, "AC", 2)])   # in a sub-window TRF couldn't finish
     s.run("repetitive_indel_call", f"TRTracts_{SPECIES}_{SAMPLE}")
     measured = {row["model"]: (int(row["tracts_measured"]), int(row["bp_measured"]))
                 for row in s.table("repetitive_tracts_summary")}
     table = causes()
-    assert {model: table[model, "option_1"] for model in MODELS} == measured
+    assert {model: table[model, "option_2"] for model in MODELS} == measured
+    assert measured["M1"] == (3, 120)

@@ -86,3 +86,14 @@ def test_workflow_targets_match_the_snapshot(name, tmp_path, monkeypatch):
     with open(snapshot) as handle:
         recorded = json.load(handle)
     assert current == recorded, f"{name} differs from its snapshot:\n" + describe_changes(recorded, current)
+
+
+def test_workflow_4_reads_the_long_period_window_beds_workflow_2_writes(tmp_path, monkeypatch):
+    # Step 0 lists them itself, to read the sub-windows TRF couldn't finish.
+    root = os.path.realpath(tmp_path)
+    write_config(root)
+    written = {path for target in load_targets("repetitive_dna", root, monkeypatch).values()
+               for path in target["outputs"] if "/excluded/chunks/" in path}
+    read = {path for name, target in load_targets("repetitive_indel_call", root, monkeypatch).items()
+            if name.startswith("TRTracts_") for path in target["inputs"] if "/excluded/chunks/" in path}
+    assert written and read == written

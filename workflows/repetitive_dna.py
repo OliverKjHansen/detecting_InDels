@@ -4,7 +4,7 @@ from os.path import expanduser
 
 from gwf import Workflow
 
-from pipeline import Pipeline
+from pipeline import TIMED_OUT, Pipeline
 
 # ---------------------------------------------------------------------------
 # Repetitive DNA annotation. Annotates tandem repeats per contig for every
@@ -93,9 +93,6 @@ long_period_sub_window = config["repeats"]["long_period_sub_window_size"]
 long_period_overlap    = config["repeats"]["long_period_overlap"]
 long_period_timeout    = config["repeats"]["long_period_timeout"]
 long_period_max_length = trf_length_limit(long_period_sub_window, long_period_overlap)
-# A sub-window TRF doesn't finish: its window BED gives its core with this in
-# the motif column.
-TIMED_OUT = "timed_out"
 
 # Resource requests. mreps and TRF are single-threaded, so one core per job.
 gwf = Workflow(
@@ -300,8 +297,9 @@ SUB_WINDOWS
             # Step 3b — the excluded group of the contig: its homopolymer runs,
             # its long-period tracts joined from the windows of step 3a as
             # merged intervals (neighbouring windows report the tracts in their
-            # overlap twice), and the union of the two, which workflow 3 masks
-            # and workflow 4 drops the tracts it overlaps.
+            # overlap twice), and the union of the two, which workflow 3 masks.
+            # Workflow 4 drops the tracts that overlap a homopolymer run or a
+            # sub-window TRF didn't finish, not a long-period tract (ticket 34).
             homopolymer_bed = path("homopolymers", contig=contig)
             long_period_bed = path("long_periods", contig=contig)
             excluded_bed    = path("excluded", contig=contig)

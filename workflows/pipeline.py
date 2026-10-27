@@ -22,6 +22,10 @@ import string
 
 import yaml
 
+# A sub-window the long-period TRF doesn't finish (ticket 36): its window's BED
+# gives its core with this in the motif column.
+TIMED_OUT = "timed_out"
+
 
 class Pipeline:
     def __init__(self, config_path="config.yaml", base=None):
@@ -90,6 +94,14 @@ class Pipeline:
     def haplotypes(self):
         """{name: prefix}: the diploid assembly's haplotypes, hap1 and hap2, and how their contigs' names start."""
         return self.config["precompute"]["haplotype_prefixes"]
+
+    def long_period_window_beds(self, species, sample, contig, length):
+        """
+        The long-period BEDs repetitive_dna.py writes for a contig of `length`,
+        one per M1 window, which also give the sub-windows marked TIMED_OUT.
+        """
+        return [self.path("long_periods_window", species, sample, contig=contig, start=start)
+                for start in range(0, length, self.config["repeats"]["trf_window_size"])]
 
     def long_contigs(self, species, sample):
         """

@@ -276,9 +276,10 @@ repeats:
   # tract crossing a boundary is seen whole; a longer tract can be cut in two.
   trf_window_size: 5_000_000
   trf_overlap: 1_000_000
-  # The excluded group (decisions Q8, Q16): masked from workflow 3, and
-  # workflow 4 drops the tracts that overlap it. Homopolymers: runs of one base
-  # at least this long.
+  # The excluded group (decisions Q8, Q16): masked from workflow 3; workflow 4
+  # drops the tracts that overlap a homopolymer run or a sub-window TRF didn't
+  # finish, but not those that only overlap a long-period tract (ticket 34).
+  # Homopolymers: runs of one base at least this long.
   homopolymer_min_length: 6
   # Tandem repeats with periods from max(periods) + 1 up to this (TRF's
   # largest), found by TRF with M1's trf_params.
