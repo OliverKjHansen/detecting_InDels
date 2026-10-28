@@ -118,9 +118,9 @@ Workflows 3 and 4 have the same shape:
   base-quality threshold is applied to both at the end.
 - **Long contigs only.** Every workflow processes only the contigs longer than
   `min_contig_length` (1 Mb) in the assembly's `.fai`.
-- **Crash-safe outputs.** Scan and repeat-annotation jobs write to a `.tmp` file
-  and rename it when done, so a job that dies never leaves a finished-looking
-  file for GWF to skip.
+- **Crash-safe outputs.** Scan and repeat-annotation jobs, and the joins of
+  windows and contigs, write to a `.tmp` file and rename it when done, so a job
+  that dies never leaves a finished-looking file for GWF to skip.
 
 ---
 
@@ -494,7 +494,7 @@ and every unresolved-haplotype region. Intermediates go to
 |---|---|---|---|
 | 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
 | 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid` | 10 Mb window | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
-| 3. Join the windows | `non_rep_MergeWindows_{species}_{sample}_diploid` | sample | `calls/{contig}.tsv`, `opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq.gz` |
+| 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid` | contig | `calls/{contig}.tsv`, `opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq.gz` |
 | 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 4b. Remap to each haplotype | `non_rep_HaplotypeMapping_{haplotype}_{species}_{sample}_diploid` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
@@ -523,7 +523,9 @@ and every unresolved-haplotype region. Intermediates go to
    counts summed per value of every other column, and their FASTQs
    concatenated keeping each read once. The counts are sorted and then summed
    run by run (`summed_counts()` in [pipeline.py](workflows/pipeline.py)), so
-   the memory it takes doesn't grow with the number of distinct rows.
+   the memory it takes doesn't grow with the number of distinct rows; sort
+   spills to the job's `$TMPDIR`, on the node's local disk. Each contig is its
+   own job, so the contigs merge side by side and a failure costs one contig.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
    flag, contig, position, mapping quality and CIGAR, sorted by read ID. The
@@ -1233,8 +1235,8 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
 | [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve, and every key is read by a workflow or a notebook |
-| [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/`; workflow 4's step 0 reading the long-period window BEDs workflow 2 writes |
-| [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs |
+| [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/`; workflow 4's step 0 reading the long-period window BEDs workflow 2 writes; workflow 3 merging each contig in its own job |
+| [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs; the joins of windows and contigs, which sum the counts, stop the job at a window they can't read and leave no file behind |
 | [tests/test_unresolved_haplotypes.py](tests/test_unresolved_haplotypes.py) | the unresolved-haplotype regions: the evidence rule, and regions that overlap or touch merging to their union |
 | [tests/test_masks.py](tests/test_masks.py) | what the InDel workflows leave out, from the workflows' own targets run with bash on a one-contig sample (TRF and samtools are stand-ins, from [tests/targets.py](tests/targets.py)): the excluded group, workflow 3's mask, the tracts workflow 4 measures (dropped for a homopolymer run, measured over a long-period tract), and their summaries |
 | [tests/test_tract_drop_causes.py](tests/test_tract_drop_causes.py) | why workflow 4 drops tracts: each tract counted once under its first cause, and the tracts each rule ticket 34 weighed would measure, option 2 matching the workflow's own step 0 |

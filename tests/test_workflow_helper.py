@@ -144,11 +144,12 @@ def as_gwf_runs_it(command, tmp_path):
 
 
 def joins(tmp_path, windows):
-    """Every command that joins window or contig files, writing to tmp_path, by name."""
+    """Every command that joins window or contig files, by name: (command, the gzipped file it writes in tmp_path)."""
     from pipeline import joined_reads, summed_counts, tables_with_sample
-    return {"summed_counts": summed_counts(windows, tmp_path / "sum.tsv.gz"),
-            "joined_reads": joined_reads(windows, tmp_path / "reads.fastq.gz"),
-            "tables_with_sample": tables_with_sample(windows, tmp_path / "merged.tsv.gz", "ape", "s1")}
+    join = {"summed_counts": lambda output: summed_counts(windows, output),
+            "joined_reads": lambda output: joined_reads(windows, output),
+            "tables_with_sample": lambda output: tables_with_sample(windows, output, "ape", "s1")}
+    return {name: (command(tmp_path / f"{name}.gz"), tmp_path / f"{name}.gz") for name, command in join.items()}
 
 
 @pytest.mark.parametrize("join", ["summed_counts", "joined_reads", "tables_with_sample"])
@@ -158,8 +159,11 @@ def test_a_join_stops_the_job_when_a_window_cant_be_read(tmp_path, join):
     good, cut = tmp_path / "good.tsv.gz", tmp_path / "cut.tsv.gz"
     good.write_bytes(gzip.compress(b"contig\tcount\nc1\t1\n"))
     cut.write_bytes(content[:len(content) // 2])
-    done, went_on = as_gwf_runs_it(joins(tmp_path, [good, cut])[join], tmp_path)
+    command, output = joins(tmp_path, [good, cut])[join]
+    done, went_on = as_gwf_runs_it(command, tmp_path)
     assert done.returncode != 0 and not went_on
+    # Nor does it leave a file gwf would take as done.
+    assert not output.exists()
 
 
 @pytest.mark.parametrize("join", ["summed_counts", "tables_with_sample"])
@@ -170,5 +174,28 @@ def test_a_join_of_large_windows_runs_to_the_end(tmp_path, join):
     windows = [tmp_path / "a.tsv.gz", tmp_path / "b.tsv.gz"]
     for window in windows:
         window.write_bytes(gzip.compress(("contig\tkey\tcount\n" + rows).encode()))
-    done, went_on = as_gwf_runs_it(joins(tmp_path, windows)[join], tmp_path)
+    command, output = joins(tmp_path, windows)[join]
+    done, went_on = as_gwf_runs_it(command, tmp_path)
     assert done.returncode == 0 and went_on, done.stderr
+    assert output.exists()
+
+
+def test_joining_calls_keeps_the_first_header_once(tmp_path):
+    from pipeline import joined_calls
+    windows = [tmp_path / "a.tsv", tmp_path / "b.tsv"]
+    windows[0].write_text("contig\tpos\nc1\t5\n")
+    windows[1].write_text("contig\tpos\nc1\t15\n")
+    out = tmp_path / "calls.tsv"
+    done, went_on = as_gwf_runs_it(joined_calls(windows, out), tmp_path)
+    assert done.returncode == 0 and went_on, done.stderr
+    assert out.read_text() == "contig\tpos\nc1\t5\nc1\t15\n"
+
+
+def test_joining_calls_stops_the_job_and_leaves_no_file_when_a_window_is_missing(tmp_path):
+    from pipeline import joined_calls
+    window = tmp_path / "a.tsv"
+    window.write_text("contig\tpos\nc1\t5\n")
+    out = tmp_path / "calls.tsv"
+    done, went_on = as_gwf_runs_it(joined_calls([window, tmp_path / "missing.tsv"], out), tmp_path)
+    assert done.returncode != 0 and not went_on
+    assert not out.exists()

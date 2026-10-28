@@ -97,3 +97,15 @@ def test_workflow_4_reads_the_long_period_window_beds_workflow_2_writes(tmp_path
     read = {path for name, target in load_targets("repetitive_indel_call", root, monkeypatch).items()
             if name.startswith("TRTracts_") for path in target["inputs"] if "/excluded/chunks/" in path}
     assert written and read == written
+
+
+def test_workflow_3_merges_each_contig_in_its_own_job(tmp_path, monkeypatch):
+    # So contigs merge side by side, and a failure costs one contig.
+    root = os.path.realpath(tmp_path)
+    write_config(root)
+    targets = load_targets("indel_mutation_call", root, monkeypatch)
+    for contig in ("c1", "c2"):
+        merge = targets[f"non_rep_MergeWindows_{contig}_ape_s1_diploid"]
+        assert merge["inputs"] and all(os.path.basename(path).startswith(f"{contig}_") for path in merge["inputs"])
+        assert sorted(os.path.basename(path) for path in merge["outputs"]) == \
+            [f"{contig}.fastq.gz", f"{contig}.tsv", f"{contig}.tsv.gz"]

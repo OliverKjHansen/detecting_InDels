@@ -3,7 +3,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import (TIMED_OUT, Pipeline, final_filtering_options, joined_reads, remapping, shell, summed_counts,
+from pipeline import (TIMED_OUT, Pipeline, final_filtering_options, joined_calls, joined_reads, remapping, shell, summed_counts,
                       tables_with_sample)
 
 # ---------------------------------------------------------------------------
@@ -212,8 +212,7 @@ for species, samples in config["samples"].items():
             #                  windows is kept once
             merge_commands = []
             for model in models:
-                merge_commands.append(
-                    f"awk 'FNR==1 && NR==1 || FNR>1' {' '.join(window_calls[model])} > {calls[model]}")
+                merge_commands.append(joined_calls(window_calls[model], calls[model]))
                 merge_commands.append(summed_counts(window_opportunities[model], opportunities[model]))
             merge_commands = "\n                ".join(merge_commands)
             contig_dirs = " ".join([fastq_dir] + list(calls_dir.values()) + list(opportunities_dir.values()))
@@ -223,7 +222,7 @@ for species, samples in config["samples"].items():
                 inputs=[window_file for model in models for window_file in window_calls[model] + window_opportunities[model]]
                        + window_fastqs,
                 outputs=list(calls.values()) + list(opportunities.values()) + [fastq],
-                cores=1,
+                cores=4,   # summed_counts' sort uses them
                 memory="16g",
                 walltime="02:00:00",
             ) << f"""

@@ -2,7 +2,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import (Pipeline, final_filtering_options, joined_reads, remapping, shell, summed_counts,
+from pipeline import (Pipeline, final_filtering_options, joined_calls, joined_reads, remapping, shell, summed_counts,
                       tables_with_sample)
 
 # ---------------------------------------------------------------------------
@@ -164,34 +164,29 @@ for species, samples in config["samples"].items():
                 python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq} {sample_scan_options}
                 """
 
-        # Step 3 — join the windows back into one file per contig, for every
-        # contig in one job.
+        # Step 3 — join the windows back into one file per contig, one job per
+        # contig (ticket 37), so the contigs merge side by side and a failure
+        # costs one contig.
         #   calls:         concatenated, header kept from the first window
         #   opportunities: counts per contig, context, mapQ and the keys of
         #                  strata.py, so they are summed over the windows
         #   FASTQ:         concatenated, a read carrying calls in two windows is
         #                  kept once
-        merge_commands = []
         for contig in long_contigs:
-            merge_commands.append(
-                f"awk 'FNR==1 && NR==1 || FNR>1' {' '.join(window_calls[contig])} > {calls[contig]}")
-            merge_commands.append(summed_counts(window_opportunities[contig], opportunities[contig]))
-            merge_commands.append(joined_reads(window_fastqs[contig], fastqs[contig]))
-        merge_commands = "\n        ".join(merge_commands)
-
-        gwf.target(
-            f"non_rep_MergeWindows_{species}_{sample}_{assembly_type}",
-            inputs=[window_file for contig in long_contigs
-                    for window_file in window_calls[contig] + window_opportunities[contig] + window_fastqs[contig]],
-            outputs=list(calls.values()) + list(opportunities.values()) + list(fastqs.values()),
-            cores=1,
-            memory="100g",
-            walltime="12:00:00",
-        ) << f"""
-        set -e
-        mkdir -p {calls_dir} {opportunities_dir} {fastq_dir}
-        {merge_commands}
-        """
+            gwf.target(
+                f"non_rep_MergeWindows_{contig}_{species}_{sample}_{assembly_type}",
+                inputs=window_calls[contig] + window_opportunities[contig] + window_fastqs[contig],
+                outputs=[calls[contig], opportunities[contig], fastqs[contig]],
+                cores=4,   # summed_counts' sort uses them
+                memory="16g",
+                walltime="02:00:00",
+            ) << f"""
+            set -e
+            mkdir -p {calls_dir} {opportunities_dir} {fastq_dir}
+            {joined_calls(window_calls[contig], calls[contig])}
+            {summed_counts(window_opportunities[contig], opportunities[contig])}
+            {joined_reads(window_fastqs[contig], fastqs[contig])}
+            """
 
         fastq_list        = " ".join(fastqs.values())
         combined_fastq    = path("nonrepetitive_haploid_reads")
