@@ -185,7 +185,7 @@ for species, samples in config["samples"].items():
                     for window_file in window_calls[contig] + window_opportunities[contig] + window_fastqs[contig]],
             outputs=list(calls.values()) + list(opportunities.values()) + list(fastqs.values()),
             cores=1,
-            memory="16g",
+            memory="100g",
             walltime="12:00:00",
         ) << f"""
         set -e
