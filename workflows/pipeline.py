@@ -160,20 +160,8 @@ def into_file(output):
 # status is its last command's. They set pipefail, so a window that can't be
 # read stops the job instead of leaving a partial table, and they write
 # through a temporary file, so a job stopped part-way leaves no file gwf would
-# take as done (ticket 37). And they read every table to its end (no `head`),
-# so no reader that stops early kills a gzip with SIGPIPE and fails the job by
-# mistake.
-
-
-def table_header(first):
-    """A shell command that writes a table's header line, plain or gzipped."""
-    return f"gzip -dcf {first} | awk 'NR == 1'"
-
-
-def table_bodies(inputs):
-    """A shell command that writes the rows of tables, plain or gzipped, without their headers."""
-    return (f"for table in {' '.join(str(path) for path in inputs)}; "
-            "do gzip -dcf $table | tail -n +2 || exit 1; done")
+# take as done (ticket 37). The opportunity tables are joined by
+# scripts/opportunity_tables.py (ticket 40).
 
 
 def joined_calls(inputs, output):
@@ -186,34 +174,3 @@ def joined_reads(inputs, output):
     """A shell command that joins FASTQs, plain or gzipped, keeping each read once, by its name."""
     return (f"set -o pipefail; gzip -dcf {' '.join(str(path) for path in inputs)} "
             f"| awk 'NR % 4 == 1 {{keep = !seen[$1]++}} keep' | {into_file(output)}")
-
-
-def tables_with_sample(inputs, output, species, sample):
-    """
-    A shell command that joins tables, plain or gzipped, into one, with the
-    first one's header once, and `species` and `sample` columns added.
-    """
-    return (f"set -o pipefail; {{ {table_header(inputs[0])} || exit 1; {table_bodies(inputs)}; }} "
-            f"| awk 'NR==1 {{print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}}; "
-            f"NR>1 {{print $0 \"\\t\" \"{species}\" \"\\t\" \"{sample}\"}}' "
-            f"| {into_file(output)}")
-
-
-def summed_counts(inputs, output):
-    """
-    A shell command that joins count tables from the windows of a contig: the
-    header once, then the last column (count) summed over every distinct value
-    of all the others, whatever keys the scan wrote. The tables may be
-    gzipped, and the output is if its name ends in .gz. The rows are sorted
-    first, so equal keys are adjacent, and summed run by run: memory doesn't
-    grow with the number of distinct rows. sort uses the merge jobs' 4 cores
-    and 10 of their 16 GB, and spills to the job's own temporary folder, on
-    the node's local disk (ticket 37), or next to the output without one.
-    """
-    folder = os.path.dirname(str(output)) or "."
-    return (f"set -o pipefail; {{ {table_header(inputs[0])} || exit 1; {table_bodies(inputs)} "
-            f"| LC_ALL=C sort -S 10G --parallel=4 -T ${{TMPDIR:-{folder}}} "
-            "| awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; "
-            "if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} "
-            "END {if (NR) print last, n}' || exit 1; } "
-            f"| {into_file(output)}")

@@ -211,6 +211,10 @@ There is one batch of fixes and one cluster rerun (Q6, Q31). Everything that cha
   - The copied R helpers, the canonicalisation variants among them, move to one shared R file.
 - **Documents (Q39).** Delete `overview.md`, `InDel_call_plan.md` and `tandem_repeat_plan.md`. Rewrite the README after the rerun.
 - **Excluded samples (Q41).** Each excluded sample gets a one-line reason in `config.yaml` (see *Open*).
+- **The opportunity cube (ticket 40, 29 October 2026).**
+  - The opportunities are stored so the count can be looked up for any set of variables, since the filters aren't chosen yet (Q13). From the per-contig merge on, both workflows keep them in Parquet and sum, join and filter them with DuckDB. The notebooks are to query them the same way (ticket 27). The scans' window tables stay gzipped TSV.
+  - Why: as text, the cube was about 1.5 billion lines per sample in the pilot. The merge took 13–18 min per contig, final filtering more than 3 h, and no notebook could load the table. On 24 M of chk's rows, Parquet was a third the size of gzipped text, and DuckDB summed them in 8 s, filtered them in 2–5 s, and summed them by size or contig in 0.1 s.
+  - Position stays at contig level. A bigWig per sample would keep position but lose the read and site keys the filters need; it could come later, for rates by region.
 
 ## Order of work (Q40)
 

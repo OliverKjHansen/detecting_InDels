@@ -3,13 +3,14 @@ The final filtering stage (Q7): the one definition of a final call, applied to
 a sample's calls and its opportunities alike, so a filter never lowers the rate
 by what it removes from the calls alone. Writes the tables the notebooks read.
 
-    python final_filtering.py <calls.tsv> <opportunities.tsv> <final_calls.tsv> <final_opportunities.tsv> \\
+    python final_filtering.py <calls.tsv> <opportunities.parquet> <final_calls.tsv> <final_opportunities.parquet> \\
         <filter_report.tsv> --platform <Revio | "Sequel II"> --smrt-cells <smrt_cells.tsv> --capped-quality <Q> \\
-        [--keep COLUMN=VALUE[,VALUE...] ...] [--chunk-rows N]
+        [--keep COLUMN=VALUE[,VALUE...] ...]
 
-A table whose name ends in .gz is read or written gzipped. The tables are read
---chunk-rows rows at a time, so memory doesn't grow with them; the result is
-the same whatever the chunk size.
+A table is read and written as its name says: Parquet (the opportunity cube,
+ticket 40), or TSV, gzipped if the name ends in .gz, its values as written.
+DuckDB filters the tables with the job's cores, spilling to disk past its
+memory (scripts/duckdb_tables.py).
 
 The steps, in order, each on both tables:
 
@@ -31,10 +32,7 @@ import argparse
 
 import pandas
 
-from text_files import open_text
-
-# Rows read at a time: a few GB of memory at most.
-CHUNK_ROWS = 1_000_000
+from duckdb_tables import columns, connect, identifier, literal, source, write
 
 
 class Table:
@@ -43,49 +41,40 @@ class Table:
     to, and how it is counted, by rows, or by the sum of a count column.
     """
 
-    def __init__(self, name, source, target, count_column=None):
-        self.name, self.source, self.target, self.count_column = name, source, target, count_column
-        with open_text(source) as handle:
-            self.header = handle.readline().rstrip("\n").split("\t")   # as written: "#contig" stays
-        self.columns = [name.lstrip("#") for name in self.header]
+    def __init__(self, con, table_name, path, target, count_column=None):
+        self.name, self.target, self.count_column = table_name, target, count_column
+        self.header = columns(con, source(path))   # as written: "#contig" stays
+        self.columns = [column.lstrip("#") for column in self.header]
+        # The rows as an SQL table, its columns named without the "#".
+        renamed = ", ".join(f"{identifier(as_written)} AS {identifier(column)}"
+                            for as_written, column in zip(self.header, self.columns))
+        self.relation = f"(SELECT {renamed} FROM {source(path)})"
 
-    def chunks(self, rows, columns=None):
-        """The table `rows` rows at a time, as text, so NA and the numbers are written back as read."""
-        for chunk in pandas.read_csv(self.source, sep="\t", dtype=str, keep_default_na=False, chunksize=rows,
-                                     usecols=None if columns is None else sorted(columns)):
-            chunk.columns = [name.lstrip("#") for name in chunk.columns]
-            yield chunk
+    def size(self):
+        """The SQL that counts the rows: their number, or the sum of the count column."""
+        return "count(*)" if self.count_column is None else f"sum(CAST({identifier(self.count_column)} AS BIGINT))"
 
-    def size(self, rows):
-        return len(rows) if self.count_column is None else int(rows[self.count_column].astype(int).sum())
-
-    def output_header(self):
-        """The header written: the platform goes before the count, or last."""
+    def output_columns(self, platform):
+        """The SQL of the columns written, named as read: the platform goes before the count, or last."""
+        written = [f"{identifier(column)} AS {identifier(as_written)}"
+                   for as_written, column in zip(self.header, self.columns)]
+        platform_column = f"{literal(platform)} AS platform"
         if self.count_column is None:
-            return self.header + ["platform"]
+            return written + [platform_column]
         at = self.header.index(self.count_column)
-        return self.header[:at] + ["platform"] + self.header[at:]
+        return written[:at] + [platform_column] + written[at:]
 
 
 class Step:
     """
-    One step: the rows it keeps (`column`, the key it filters on, or None),
-    and the rows of each table before and after it, summed over the chunks.
+    One step: the rows it keeps, as an SQL condition, and the rows of each
+    table before and after it.
     """
 
-    def __init__(self, name, keeps, column=None, note=""):
-        self.name, self.keeps, self.column, self.note = name, keeps, column, note
+    def __init__(self, step_name, keeps="true", note=""):
+        self.name, self.keeps, self.note = step_name, keeps, note
         self.before, self.after = {}, {}
         self.haploid_check_missing = 0
-
-    def apply(self, chunk, table):
-        """The rows of a chunk of `table` the step keeps, counted before and after."""
-        kept = chunk[self.keeps(chunk)]
-        self.before[table.name] = self.before.get(table.name, 0) + table.size(chunk)
-        self.after[table.name] = self.after.get(table.name, 0) + table.size(kept)
-        if "haploid_check" in kept:
-            self.haploid_check_missing += int((kept["haploid_check"] == "NA").sum())
-        return kept
 
     def row(self, has_haploid_check):
         return {"filter": self.name, "calls_before": self.before.get("calls", 0),
@@ -96,24 +85,34 @@ class Step:
                 "note": self.note}
 
 
-def everything(table):
-    return pandas.Series(True, index=table.index)
+def kept(steps):
+    """The SQL condition of the rows every one of the steps keeps."""
+    return " AND ".join(f"({step.keeps})" for step in steps) or "true"
 
 
-def has_values(tables, steps, column, rows):
+def has_values(con, tables, steps, column):
     """
     Whether a row that the steps leave, in either table, has a value other
-    than NA in `column`: whether the sample has that tag (Q15). Reads only
-    the columns the steps and this one need.
+    than NA in `column`: whether the sample has that tag (Q15).
     """
-    needed = {"smrt_cell", column} | {step.column for step in steps if step.column}
-    for table in tables:
-        for chunk in table.chunks(rows, needed):
-            for step in steps:
-                chunk = chunk[step.keeps(chunk)]
-            if (chunk[column] != "NA").any():
-                return True
-    return False
+    return any(con.execute(f"SELECT bool_or(coalesce({identifier(column)}, '') <> 'NA') FROM {table.relation} "
+                           f"WHERE {kept(steps)}").fetchone()[0] for table in tables)
+
+
+def record_rows(con, table, steps):
+    """Records each step's rows of `table` before and after it, in one pass over the table."""
+    after = [f"{table.size()} FILTER (WHERE {kept(steps[:i + 1])})" for i in range(len(steps))]
+    missing = []
+    if "haploid_check" in table.columns:
+        missing = [f"count(*) FILTER (WHERE {kept(steps[:i + 1])} AND {identifier('haploid_check')} = 'NA')"
+                   for i in range(len(steps))]
+    total, *counts = con.execute(f"SELECT {', '.join([table.size()] + after + missing)} FROM {table.relation}").fetchone()
+    before = total or 0
+    for i, step in enumerate(steps):
+        step.before[table.name], step.after[table.name] = before, counts[i] or 0
+        before = step.after[table.name]
+        if missing:
+            step.haploid_check_missing += counts[len(steps) + i]
 
 
 def main():
@@ -127,37 +126,33 @@ def main():
     parser.add_argument("--smrt-cells", required=True, metavar="TSV")
     parser.add_argument("--capped-quality", type=int, required=True, metavar="Q")
     parser.add_argument("--keep", action="append", default=[], metavar="COLUMN=VALUE[,VALUE...]")
-    parser.add_argument("--chunk-rows", type=int, default=CHUNK_ROWS, metavar="N")
     args = parser.parse_args()
 
-    tables = [Table("calls", args.calls, args.final_calls),
-              Table("opportunities", args.opportunities, args.final_opportunities, count_column="count")]
+    con = connect()
+    tables = [Table(con, "calls", args.calls, args.final_calls),
+              Table(con, "opportunities", args.opportunities, args.final_opportunities, count_column="count")]
 
     cells = pandas.read_csv(args.smrt_cells, sep="\t", dtype={"smrt_cell": str})
     capped = sorted(cells.smrt_cell[cells.max_quality <= args.capped_quality])
-    steps = [Step("input", everything),
-             Step("capped_smrt_cells", lambda chunk: ~chunk["smrt_cell"].isin(capped), note=",".join(capped))]
+    steps = [Step("input"),
+             Step("capped_smrt_cells",
+                  f"coalesce({identifier('smrt_cell')}, '') NOT IN ({', '.join(map(literal, capped))})" if capped else "true",
+                  note=",".join(capped))]
     for keep in args.keep:
         column, values = keep.split("=", 1)
         for table in tables:
             if column not in table.columns:
                 parser.error(f"--keep {keep}: the {table.name} have no column {column}")
         # A tag the sample lacks is NA in every row that reaches the step: skip it, rather than remove everything.
-        if has_values(tables, steps, column, args.chunk_rows):
-            steps.append(Step(keep, lambda chunk, column=column, values=values.split(","): chunk[column].isin(values),
-                              column=column))
+        if has_values(con, tables, steps, column):
+            steps.append(Step(keep, f"{identifier(column)} IN ({', '.join(map(literal, values.split(',')))})"))
         else:
-            steps.append(Step(keep, everything, note="skipped: NA throughout the sample"))
+            steps.append(Step(keep, note="skipped: NA throughout the sample"))
 
     for table in tables:
-        out_header = table.output_header()
-        out_columns = [name.lstrip("#") for name in out_header]
-        with open_text(table.target, "w") as out:
-            out.write("\t".join(out_header) + "\n")
-            for chunk in table.chunks(args.chunk_rows):
-                for step in steps:
-                    chunk = step.apply(chunk, table)
-                chunk.assign(platform=args.platform)[out_columns].to_csv(out, sep="\t", index=False, header=False)
+        record_rows(con, table, steps)
+        write(con, f"SELECT {', '.join(table.output_columns(args.platform))} FROM {table.relation} WHERE {kept(steps)}",
+              table.target)
 
     has_haploid_check = "haploid_check" in tables[0].columns
     pandas.DataFrame([step.row(has_haploid_check) for step in steps]).to_csv(args.report, sep="\t", index=False)

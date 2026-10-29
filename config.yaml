@@ -188,14 +188,15 @@ layout:
   # Per-read cell-type likelihoods from the methylation model.
   likelihoods: "{classification}/{species}/{sample}/{sample}/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv"
 
-  # Written by indel_mutation_call.py (workflow 3). The opportunity tables and
-  # the FASTQs are big, so gzipped (ticket 32).
+  # Written by indel_mutation_call.py (workflow 3). The scans' opportunity
+  # tables and the FASTQs are big, so gzipped (ticket 32); from the merge on,
+  # the opportunities are a cube in Parquet, queried with DuckDB (ticket 40).
   nonrepetitive_mask:                 "{output}/nonrepetitive_indels/{species}/{sample}/mask/{contig}.bed"
   nonrepetitive_window_calls:         "{output}/nonrepetitive_indels/{species}/{sample}/calls/chunks/{contig}_{start}_{end}.tsv"
   nonrepetitive_window_opportunities: "{output}/nonrepetitive_indels/{species}/{sample}/opportunities/chunks/{contig}_{start}_{end}.tsv.gz"
   nonrepetitive_window_reads:         "{output}/nonrepetitive_indels/{species}/{sample}/fastq/chunks/{contig}_{start}_{end}.fastq.gz"
   nonrepetitive_calls:                "{output}/nonrepetitive_indels/{species}/{sample}/calls/{contig}.tsv"
-  nonrepetitive_opportunities:        "{output}/nonrepetitive_indels/{species}/{sample}/opportunities/{contig}.tsv.gz"
+  nonrepetitive_opportunities:        "{output}/nonrepetitive_indels/{species}/{sample}/opportunities/{contig}.parquet"
   nonrepetitive_reads:                "{output}/nonrepetitive_indels/{species}/{sample}/fastq/{contig}.fastq.gz"
   nonrepetitive_haploid_reads:        "{output}/nonrepetitive_indels/{species}/{sample}/haploid/all.fastq.gz"
   nonrepetitive_haploid_bam:          "{output}/nonrepetitive_indels/{species}/{sample}/haploid/remapped.bam"
@@ -203,10 +204,10 @@ layout:
   nonrepetitive_haplotype_bam:        "{output}/nonrepetitive_indels/{species}/{sample}/haploid/{haplotype}.bam"
   nonrepetitive_haplotype_locations:  "{output}/nonrepetitive_indels/{species}/{sample}/haploid/{haplotype}_locations.tsv"
   nonrepetitive_merged_calls:         "{output}/nonrepetitive_indels/{species}/{sample}/merged/indels.tsv"
-  nonrepetitive_merged_opportunities: "{output}/nonrepetitive_indels/{species}/{sample}/merged/opportunities.tsv.gz"
+  nonrepetitive_merged_opportunities: "{output}/nonrepetitive_indels/{species}/{sample}/merged/opportunities.parquet"
   nonrepetitive_plots:                "{plots}/nonrepetitive_indels/{species}/{sample}/plots.pdf"
   nonrepetitive_results_calls:        "{results}/nonrepetitive_indels/{species}/{sample}/indels.tsv"
-  nonrepetitive_results_opportunities: "{results}/nonrepetitive_indels/{species}/{sample}/opportunities.tsv.gz"
+  nonrepetitive_results_opportunities: "{results}/nonrepetitive_indels/{species}/{sample}/opportunities.parquet"
   nonrepetitive_results_report:       "{results}/nonrepetitive_indels/{species}/{sample}/filter_report.tsv"
   nonrepetitive_results_classified:   "{results}/nonrepetitive_indels/{species}/{sample}/indels_classified.tsv"
   nonrepetitive_classification_reads: "{results}/nonrepetitive_indels/{species}/{sample}/classification_reads.tsv"
@@ -219,7 +220,7 @@ layout:
   repetitive_window_opportunities: "{output}/repetitive_indels/{species}/{sample}/{model}/opportunities/chunks/{contig}_{start}_{end}.tsv.gz"
   repetitive_window_reads:         "{output}/repetitive_indels/{species}/{sample}/fastq/chunks/{contig}_{start}_{end}.fastq.gz"
   repetitive_calls:                "{output}/repetitive_indels/{species}/{sample}/{model}/calls/{contig}.tsv"
-  repetitive_opportunities:        "{output}/repetitive_indels/{species}/{sample}/{model}/opportunities/{contig}.tsv.gz"
+  repetitive_opportunities:        "{output}/repetitive_indels/{species}/{sample}/{model}/opportunities/{contig}.parquet"
   repetitive_reads:                "{output}/repetitive_indels/{species}/{sample}/fastq/{contig}.fastq.gz"
   repetitive_haploid_reads:        "{output}/repetitive_indels/{species}/{sample}/haploid/all.fastq.gz"
   repetitive_haploid_bam:          "{output}/repetitive_indels/{species}/{sample}/haploid/remapped.bam"
@@ -227,10 +228,10 @@ layout:
   repetitive_haplotype_bam:        "{output}/repetitive_indels/{species}/{sample}/haploid/{haplotype}.bam"
   repetitive_haplotype_locations:  "{output}/repetitive_indels/{species}/{sample}/haploid/{haplotype}_locations.tsv"
   repetitive_merged_calls:         "{output}/repetitive_indels/{species}/{sample}/{model}/merged/indels.tsv"
-  repetitive_merged_opportunities: "{output}/repetitive_indels/{species}/{sample}/{model}/merged/opportunities.tsv.gz"
+  repetitive_merged_opportunities: "{output}/repetitive_indels/{species}/{sample}/{model}/merged/opportunities.parquet"
   repetitive_plots:                "{plots}/repetitive_indels/{species}/{sample}/{model}/plots.pdf"
   repetitive_results_calls:        "{results}/repetitive_indels/{species}/{sample}/{model}/indels.tsv"
-  repetitive_results_opportunities: "{results}/repetitive_indels/{species}/{sample}/{model}/opportunities.tsv.gz"
+  repetitive_results_opportunities: "{results}/repetitive_indels/{species}/{sample}/{model}/opportunities.parquet"
   repetitive_results_report:       "{results}/repetitive_indels/{species}/{sample}/{model}/filter_report.tsv"
   repetitive_results_classified:   "{results}/repetitive_indels/{species}/{sample}/{model}/indels_classified.tsv"
   repetitive_classification_reads: "{results}/repetitive_indels/{species}/{sample}/classification_reads.tsv"

@@ -100,12 +100,30 @@ def test_workflow_4_reads_the_long_period_window_beds_workflow_2_writes(tmp_path
 
 
 def test_workflow_3_merges_each_contig_in_its_own_job(tmp_path, monkeypatch):
-    # So contigs merge side by side, and a failure costs one contig.
+    # So contigs merge side by side, and a failure costs one contig. The
+    # opportunities are summed in a job of their own (ticket 40), so changing
+    # how leaves the calls and reads, and the remapping after them, as they are.
     root = os.path.realpath(tmp_path)
     write_config(root)
     targets = load_targets("indel_mutation_call", root, monkeypatch)
     for contig in ("c1", "c2"):
         merge = targets[f"non_rep_MergeWindows_{contig}_ape_s1_diploid"]
         assert merge["inputs"] and all(os.path.basename(path).startswith(f"{contig}_") for path in merge["inputs"])
-        assert sorted(os.path.basename(path) for path in merge["outputs"]) == \
-            [f"{contig}.fastq.gz", f"{contig}.tsv", f"{contig}.tsv.gz"]
+        assert sorted(os.path.basename(path) for path in merge["outputs"]) == [f"{contig}.fastq.gz", f"{contig}.tsv"]
+        opportunities = targets[f"non_rep_MergeOpportunities_{contig}_ape_s1_diploid"]
+        assert opportunities["inputs"] and all("/opportunities/chunks/" in path and
+                                               os.path.basename(path).startswith(f"{contig}_")
+                                               for path in opportunities["inputs"])
+        assert [os.path.basename(path) for path in opportunities["outputs"]] == [f"{contig}.parquet"]
+
+
+def test_workflow_4_sums_the_opportunities_in_their_own_job(tmp_path, monkeypatch):
+    root = os.path.realpath(tmp_path)
+    write_config(root)
+    targets = load_targets("repetitive_indel_call", root, monkeypatch)
+    merge = targets["TRMergeWindows_c1_ape_s1"]
+    assert not any(path.endswith(".parquet") for path in merge["outputs"])
+    opportunities = targets["TRMergeOpportunities_c1_ape_s1"]
+    assert sorted(path.split("/")[-3:] for path in opportunities["outputs"]) == [
+        [model, "opportunities", "c1.parquet"] for model in ("M0", "M1", "M2")]
+    assert opportunities["inputs"] and all("/opportunities/chunks/c1_" in path for path in opportunities["inputs"])

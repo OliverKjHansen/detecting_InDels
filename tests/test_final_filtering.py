@@ -12,6 +12,8 @@ import os
 import subprocess
 import sys
 
+import duckdb
+
 import make_fixtures as mf
 from scans import rows_of
 
@@ -144,23 +146,7 @@ def test_the_report_lists_every_step_with_rows_before_and_after(tmp_path):
     ]
 
 
-# -- big tables (ticket 32) ---------------------------------------------------
-
-
-def test_the_result_is_the_same_whatever_the_chunk_size(tmp_path):
-    # Every step falls across chunk edges: capped cells, a skipped filter and
-    # two kept filters, on tables read a row or a few rows at a time.
-    call_rows = [(f"r{i}", "m_capped" if i % 5 == 0 else "m1", 93 if i % 3 else 40, "pass" if i % 3 else "fail",
-                  "low" if i % 4 else "high", "NA", "NA" if i % 7 == 0 else "True") for i in range(23)]
-    opportunity_rows = [("m_capped" if i % 5 == 0 else "m1", "pass" if i % 3 else "fail", "low" if i % 4 else "high",
-                         "NA", 10 + i) for i in range(17)]
-    options = ["--keep", "subread_support=>=1", "--keep", "kmerQ_pass=pass", "--keep", "depth_bin=low"]
-    cells = {"m_capped": 40, "m1": 93}
-    whole = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows), *options, cells=cells)
-    for rows in (1, 2, 5):
-        chunked = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows), *options,
-                        "--chunk-rows", str(rows), cells=cells)
-        assert chunked == whole, rows
+# -- big tables (tickets 32, 40) -----------------------------------------------
 
 
 def test_gzipped_tables_are_read_and_written(tmp_path):
@@ -190,3 +176,36 @@ def test_a_filter_is_skipped_when_its_key_is_na_in_every_row_that_reaches_it(tmp
     assert sum(int(row["count"]) for row in final_opportunities) == 200
     step = next(row for row in report if row["filter"] == "subread_support=>=1")
     assert step["note"] == "skipped: NA throughout the sample"
+
+
+def test_parquet_opportunities_are_read_and_written(tmp_path):
+    # The opportunity cube (ticket 40): Parquet in, Parquet out, the count a number.
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "high", ">=1", "True")]
+    plain = opportunities(tmp_path, [("m1", "pass", "low", ">=1", 30), ("m1", "pass", "high", ">=1", 10)])
+    cube = tmp_path / "opportunities.parquet"
+    duckdb.sql(f"COPY (SELECT * REPLACE (CAST(count AS BIGINT) AS count) FROM read_csv('{plain}', delim='\t', "
+               f"header=true, all_varchar=true)) TO '{cube}' (FORMAT parquet)")
+    out = [tmp_path / name for name in ("final_calls.tsv", "final_opportunities.parquet", "report.tsv")]
+    subprocess.run([sys.executable, SCRIPT, str(calls(tmp_path, call_rows)), str(cube), *map(str, out),
+                    "--platform", "Revio", "--smrt-cells", str(smrt_cells(tmp_path, {"m1": 93})),
+                    "--capped-quality", "40", "--keep", "depth_bin=low"], check=True, capture_output=True)
+    assert duckdb.sql(f"SELECT depth_bin, platform, count FROM '{out[1]}'").fetchall() == [("low", "Revio", 30)]
+    step = next(row for row in rows_of(out[2].read_text()) if row["filter"] == "depth_bin=low")
+    assert (step["opportunities_before"], step["opportunities_after"]) == ("40", "30")
+
+
+def test_a_filter_finds_its_column_under_a_header_marked_with_a_hash(tmp_path):
+    # The calls' header starts "#contig", the opportunities' "contig".
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True")]
+    final_calls, final_opportunities, _ = final(tmp_path, calls(tmp_path, call_rows),
+                                                opportunities(tmp_path, [("m1", "pass", "low", ">=1", 5)]),
+                                                "--keep", "contig=c1")
+    assert len(final_calls) == 1 and len(final_opportunities) == 1
+    assert (tmp_path / "final_calls.tsv").read_text().startswith("#contig\t")
+
+
+def test_an_empty_value_is_kept_as_written(tmp_path):
+    call_rows = [("a", "m1", 93, "pass", "", ">=1", "True")]
+    final_calls, final_opportunities, _ = final(tmp_path, calls(tmp_path, call_rows),
+                                                opportunities(tmp_path, [("", "pass", "low", ">=1", 5)]))
+    assert final_calls[0]["depth_bin"] == "" and final_opportunities[0]["smrt_cell"] == ""

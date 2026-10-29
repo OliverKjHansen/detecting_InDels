@@ -131,9 +131,9 @@ Workflows 3 and 4 have the same shape:
 | Kind | What |
 |---|---|
 | Workflow engine | [GWF](https://gwf.app/) ≥ 1.7, submitting to Slurm |
-| Python | pysam, pandas, intervaltree, pyyaml; pytest for the tests |
+| Python | pysam, pandas, intervaltree, pyyaml, duckdb; pytest for the tests |
 | Binaries | samtools, bedtools, pbmm2, faSplit, TRF 4.10, mreps |
-| R | ggplot2, dplyr, tidyr for the diagnostic plots; also readr and the IRkernel Jupyter kernel for the notebooks |
+| R | ggplot2, dplyr, tidyr for the diagnostic plots; also readr and the IRkernel Jupyter kernel for the notebooks, and duckdb to query the opportunity cube |
 
 On the cluster, [environment.yml](environment.yml) provides everything except
 mreps:
@@ -494,12 +494,13 @@ and every unresolved-haplotype region. Intermediates go to
 |---|---|---|---|
 | 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
 | 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid` | 10 Mb window | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
-| 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid` | contig | `calls/{contig}.tsv`, `opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq.gz` |
+| 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid` | contig | `calls/{contig}.tsv`, `fastq/{contig}.fastq.gz` |
+| 3b. Sum the opportunities | `non_rep_MergeOpportunities_{contig}_{species}_{sample}_diploid` | contig | `opportunities/{contig}.parquet` |
 | 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 4b. Remap to each haplotype | `non_rep_HaplotypeMapping_{haplotype}_{species}_{sample}_diploid` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
-| 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{species}_{sample}_diploid` | sample | `merged/opportunities.tsv.gz`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
-| 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.tsv.gz`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
+| 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{species}_{sample}_diploid` | sample | `merged/opportunities.parquet`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
+| 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.parquet`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
 | 8. Germline/somatic | `non_rep_Classify_{species}_{sample}_diploid` | sample in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
 1. **Mask.** Per contig, every tract of the three models before overlap
@@ -520,12 +521,14 @@ and every unresolved-haplotype region. Intermediates go to
      homopolymer rule and touches no masked base (see [The anchor
      base](#the-anchor-base)), and then goes to the FASTQ.
 3. **Join.** Per contig, the windows' calls are concatenated, their opportunity
-   counts summed per value of every other column, and their FASTQs
-   concatenated keeping each read once. The counts are sorted and then summed
-   run by run (`summed_counts()` in [pipeline.py](workflows/pipeline.py)), so
-   the memory it takes doesn't grow with the number of distinct rows; sort
-   spills to the job's `$TMPDIR`, on the node's local disk. Each contig is its
-   own job, so the contigs merge side by side and a failure costs one contig.
+   counts summed per value of every other column into the contig's part of the
+   [opportunity cube](#opportunities), and their FASTQs concatenated keeping
+   each read once. DuckDB sums the counts
+   ([opportunity_tables.py](scripts/opportunity_tables.py)) with the job's 4
+   cores, spilling to its `$TMPDIR` on the node's local disk, in a job of
+   their own (3b): the calls and reads, and the remapping after them, don't
+   depend on how the opportunities are kept. Each contig is its own job, so
+   the contigs merge side by side and a failure costs one contig.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
    flag, contig, position, mapping quality and CIGAR, sorted by read ID. The
@@ -535,11 +538,11 @@ and every unresolved-haplotype region. Intermediates go to
    checks every call against its read's haploid alignment and its sequence in
    `haploid/all.fastq.gz` (see [Haploid concordance](#haploid-concordance)) and
    writes one table for the sample, with `species` and `sample` columns added.
-6. **Opportunities and plots.** The contigs' opportunities are concatenated, with
-   `species` and `sample` added. [plot_indels.R](scripts/plot_indels.R) draws
-   diagnostics of the calls before final filtering (it doesn't read the
-   opportunities, which are too big to load): kmerQ, the 20 most common
-   InDel sequences, distance to the read end, the unique flag, the haploid
+6. **Opportunities and plots.** The contigs' opportunity cubes are joined into
+   the sample's, with `species` and `sample` added.
+   [plot_indels.R](scripts/plot_indels.R) draws diagnostics of the calls
+   before final filtering (it doesn't read the opportunities): kmerQ, the 20
+   most common InDel sequences, distance to the read end, the unique flag, the haploid
    check, tissue, kmerQ against haploid distance, and subread coverage.
 7. **Final filtering.** [final_filtering.py](scripts/final_filtering.py)
    applies the definition of a final call to the calls and the opportunities
@@ -563,12 +566,13 @@ Intermediates go to `output/repetitive_indels/{species}/{sample}/`.
 |---|---|---|---|
 | 0. Tracts measured | `TRTracts_{species}_{sample}` | sample | `{model}/tracts/{contig}.bed`, `results/repetitive_indels/{species}/{sample}/tracts_summary.tsv` |
 | 1. Scan | `TRScan_{contig}_{start}_{species}_{sample}` | 10 Mb window | `{model}/calls/chunks/`, `{model}/opportunities/chunks/`, `fastq/chunks/` |
-| 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `{model}/opportunities/{contig}.tsv.gz`, `fastq/{contig}.fastq.gz` |
+| 2. Join the windows | `TRMergeWindows_{contig}_{species}_{sample}` | contig | `{model}/calls/{contig}.tsv`, `fastq/{contig}.fastq.gz` |
+| 2b. Sum the opportunities | `TRMergeOpportunities_{contig}_{species}_{sample}` | contig | `{model}/opportunities/{contig}.parquet` |
 | 3. Remap to haploid | `TRHaploidMapping_{species}_{sample}` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 3b. Remap to each haplotype | `TRHaplotypeMapping_{haplotype}_{species}_{sample}` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 4. Haploid check | `TRHaploidFilter_{species}_{sample}_{model}` | sample × model | `{model}/merged/indels.tsv` |
-| 5. Merge opportunities, plot | `TRMergeAndPlot_{species}_{sample}_{model}` | sample × model | `{model}/merged/opportunities.tsv.gz`, `plots/repetitive_indels/{species}/{sample}/{model}/plots.pdf` |
-| 6. Final filtering | `TRFinalFiltering_{species}_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.tsv.gz`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
+| 5. Merge opportunities, plot | `TRMergeAndPlot_{species}_{sample}_{model}` | sample × model | `{model}/merged/opportunities.parquet`, `plots/repetitive_indels/{species}/{sample}/{model}/plots.pdf` |
+| 6. Final filtering | `TRFinalFiltering_{species}_{sample}_{model}` | sample × model | `indels.tsv`, `opportunities.parquet`, `filter_report.tsv` in `results/repetitive_indels/{species}/{sample}/{model}/` |
 | 7. Germline/somatic | `TRClassify_{species}_{sample}_{model}` | sample × model, in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
 **Tracts measured.** [drop_excluded_tracts.py](scripts/drop_excluded_tracts.py)
@@ -875,8 +879,9 @@ workflows keep both. The notebooks drop non-unique calls by default
 There is one definition of a final call (Q7), applied in the pipeline by
 [final_filtering.py](scripts/final_filtering.py) to a sample's calls and its
 opportunities alike, so a filter never lowers the rate by what it removes from
-the calls alone. It reads and writes the tables a million rows at a time, so its
-memory doesn't grow with them. Its steps, in order, each on both tables:
+the calls alone. DuckDB filters the tables, the opportunity cube as Parquet and
+the calls as TSV, spilling to disk past the job's memory. Its steps, in order,
+each on both tables:
 
 1. **Capped SMRT Cells** (Q12, Q17). A SMRT Cell none of whose reads has a base
    quality above `final_filters.capped_quality` (40) had its qualities capped
@@ -993,13 +998,13 @@ output/
 │   ├── calls/  opportunities/  fastq/            per contig; per window in chunks/
 │   ├── haploid/                                  all.fastq.gz, remapped.bam, locations.tsv,
 │   │                                             {haplotype}.bam, {haplotype}_locations.tsv
-│   └── merged/                                   indels.tsv, opportunities.tsv.gz, before final filtering
+│   └── merged/                                   indels.tsv, opportunities.parquet, before final filtering
 └── repetitive_indels/{species}/{sample}/
     ├── fastq/  haploid/                          shared by the models
     └── {model}/
         ├── tracts/{contig}.bed                   the tracts measured
         ├── calls/  opportunities/
-        └── merged/                               indels.tsv, opportunities.tsv.gz
+        └── merged/                               indels.tsv, opportunities.parquet
 
 results/
 ├── precompute/{species}/{sample}/unresolved_summary.tsv
@@ -1010,7 +1015,7 @@ results/
 ├── nonrepetitive_indels/{species}/{sample}/
 │   ├── indels.tsv
 │   ├── indels_classified.tsv                     methylation_samples only
-│   ├── opportunities.tsv.gz
+│   ├── opportunities.parquet
 │   └── filter_report.tsv
 └── repetitive_indels/{species}/{sample}/
     ├── tracts_summary.tsv
@@ -1021,9 +1026,10 @@ plots/
 └── repetitive_indels/{species}/{sample}/{model}/plots.pdf
 ```
 
-The opportunity tables and the FASTQs are gzipped at every stage: they are
-big (one 1 Mb window of opportunities is hundreds of MB as text, about 20
-times less gzipped). gzip, pandas, R and pbmm2 read them as they are.
+The scans' opportunity tables and the FASTQs are gzipped: they are big (one
+1 Mb window of opportunities is hundreds of MB as text, about 20 times less
+gzipped). From the merge on, the opportunities are a cube in Parquet (see
+[Opportunities](#opportunities)), about a third the size of gzipped text.
 
 ### Calls
 
@@ -1068,8 +1074,12 @@ positions in the read; the position on the contig is `position`.
 
 ### Opportunities
 
-Workflow 3's `opportunities.tsv.gz` has one row per contig, InDel type, size,
-context and value of the keys:
+The opportunities are a cube (ticket 40): the read positions that could carry
+an InDel, counted for every combination of contig, InDel type, size, context
+and the keys, so the count for any set of them is a filter and a sum.
+Workflow 3's `opportunities.parquet` has one row per combination seen
+(about 1.5 billion for a Revio sample), `size` and `count` as numbers and the
+rest as text:
 
 | Column | Meaning |
 |---|---|
@@ -1080,6 +1090,34 @@ context and value of the keys:
 | the keys | the same columns, with the same values, as at the end of each call: see [Keys](#keys) |
 | `count` | read positions |
 | `species`, `sample` | |
+
+Workflow 4's have `canonical_motif`, `k` (a number) and the tract keys in place
+of `indel_type`, `size` and `context`. DuckDB reads only the columns a query
+needs, so a lookup over a whole sample takes seconds. In R, with dplyr:
+
+```r
+library(duckdb); library(dplyr)
+con <- dbConnect(duckdb())
+opportunities <- tbl(con, sql("SELECT * FROM read_parquet('results/nonrepetitive_indels/*/*/opportunities.parquet')"))
+opportunities |>
+  filter(mapQ_bin == ">=60", read_end_distance_bin != "<25") |>
+  group_by(species, sample, size) |>
+  summarise(opportunities = sum(count, na.rm = TRUE)) |>
+  collect()
+```
+
+and in Python:
+
+```python
+import duckdb
+duckdb.sql("""
+    SELECT species, sample, size, sum(count) AS opportunities
+    FROM 'results/nonrepetitive_indels/*/*/opportunities.parquet'
+    WHERE mapQ_bin = '>=60' AND read_end_distance_bin <> '<25'
+    GROUP BY ALL""").df()
+```
+
+The calls carry the same keys, so the same filter on them gives the rate.
 
 ### Keys
 
@@ -1226,7 +1264,8 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
-| [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells (from their reads' base qualities) dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report |
+| [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells (from their reads' base qualities) dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report; Parquet, plain and gzipped tables |
+| [tests/test_opportunity_tables.py](tests/test_opportunity_tables.py) | the opportunity cube: a contig's windows summed per key into Parquet, `size`, `k` and `count` as numbers, a sample's contigs joined with its species and sample, nothing left behind when a sum or a join fails |
 | [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
@@ -1235,8 +1274,8 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
 | [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve, and every key is read by a workflow or a notebook |
-| [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/`; workflow 4's step 0 reading the long-period window BEDs workflow 2 writes; workflow 3 merging each contig in its own job |
-| [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs; the joins of windows and contigs, which sum the counts, stop the job at a window they can't read and leave no file behind |
+| [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/`; workflow 4's step 0 reading the long-period window BEDs workflow 2 writes; workflow 3 merging each contig in its own job; both workflows summing the opportunities in jobs of their own |
+| [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs; the joins of calls and reads, which stop the job at a window they can't read and leave no file behind |
 | [tests/test_unresolved_haplotypes.py](tests/test_unresolved_haplotypes.py) | the unresolved-haplotype regions: the evidence rule, and regions that overlap or touch merging to their union |
 | [tests/test_masks.py](tests/test_masks.py) | what the InDel workflows leave out, from the workflows' own targets run with bash on a one-contig sample (TRF and samtools are stand-ins, from [tests/targets.py](tests/targets.py)): the excluded group, workflow 3's mask, the tracts workflow 4 measures (dropped for a homopolymer run, measured over a long-period tract), and their summaries |
 | [tests/test_tract_drop_causes.py](tests/test_tract_drop_causes.py) | why workflow 4 drops tracts: each tract counted once under its first cause, and the tracts each rule ticket 34 weighed would measure, option 2 matching the workflow's own step 0 |
@@ -1317,6 +1356,7 @@ scripts/
   tract_drop_causes.py             why workflow 4 drops tracts, under each rule ticket 34 weighed
   filtering_haploid_mapping.py    haploid concordance check
   final_filtering.py               the definition of a final call, on calls and opportunities, with the report
+  opportunity_tables.py            the opportunity cube: a contig's windows summed, a sample's contigs joined
   smrt_cell_qualities.py           each SMRT Cell's highest base quality (the Q40 rule)
   join_read_classification.sh      germline/somatic columns
   plot_indels.R                    diagnostic PDF

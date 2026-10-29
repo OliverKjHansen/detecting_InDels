@@ -2,8 +2,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import (Pipeline, final_filtering_options, joined_calls, joined_reads, remapping, shell, summed_counts,
-                      tables_with_sample)
+from pipeline import Pipeline, final_filtering_options, joined_calls, joined_reads, remapping, shell
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -168,24 +167,37 @@ for species, samples in config["samples"].items():
         # contig (ticket 37), so the contigs merge side by side and a failure
         # costs one contig.
         #   calls:         concatenated, header kept from the first window
-        #   opportunities: counts per contig, context, mapQ and the keys of
-        #                  strata.py, so they are summed over the windows
         #   FASTQ:         concatenated, a read carrying calls in two windows is
         #                  kept once
+        # 3b — the opportunities, counts per contig, context, mapQ and the keys
+        # of strata.py, summed over the windows into the cube's Parquet (ticket
+        # 40), in a job of their own: the calls and reads, and the remapping
+        # after them, don't depend on how the opportunities are kept.
         for contig in long_contigs:
             gwf.target(
                 f"non_rep_MergeWindows_{contig}_{species}_{sample}_{assembly_type}",
-                inputs=window_calls[contig] + window_opportunities[contig] + window_fastqs[contig],
-                outputs=[calls[contig], opportunities[contig], fastqs[contig]],
-                cores=4,   # summed_counts' sort uses them
+                inputs=window_calls[contig] + window_fastqs[contig],
+                outputs=[calls[contig], fastqs[contig]],
+                cores=1,
                 memory="16g",
                 walltime="02:00:00",
             ) << f"""
             set -e
-            mkdir -p {calls_dir} {opportunities_dir} {fastq_dir}
+            mkdir -p {calls_dir} {fastq_dir}
             {joined_calls(window_calls[contig], calls[contig])}
-            {summed_counts(window_opportunities[contig], opportunities[contig])}
             {joined_reads(window_fastqs[contig], fastqs[contig])}
+            """
+
+            gwf.target(
+                f"non_rep_MergeOpportunities_{contig}_{species}_{sample}_{assembly_type}",
+                inputs=window_opportunities[contig],
+                outputs=[opportunities[contig]],
+                cores=4,   # DuckDB uses them
+                memory="16g",
+                walltime="02:00:00",
+            ) << f"""
+            mkdir -p {opportunities_dir}
+            python {scripts}/opportunity_tables.py sum {opportunities[contig]} {' '.join(window_opportunities[contig])}
             """
 
         fastq_list        = " ".join(fastqs.values())
@@ -253,9 +265,8 @@ for species, samples in config["samples"].items():
         rm -f {merged_indels}.tmp
         """
 
-        # Step 6 — merge the contigs' opportunities (header kept from the first
-        # file only, species/sample added) and draw diagnostics of the
-        # unfiltered calls.
+        # Step 6 — join the contigs' opportunity cubes into the sample's, with
+        # species/sample added, and draw diagnostics of the unfiltered calls.
         gwf.target(
             f"non_rep_MergeAndPlot_{species}_{sample}_{assembly_type}",
             inputs=[merged_indels] + list(opportunities.values()),
@@ -265,7 +276,8 @@ for species, samples in config["samples"].items():
             walltime="24:00:00",
         ) << f"""
         mkdir -p {merged_dir} {plotsdir}
-        {tables_with_sample(list(opportunities.values()), merged_opportunities, species, sample)}
+        python {scripts}/opportunity_tables.py join {merged_opportunities} --species {species} --sample {sample} \\
+            {' '.join(opportunities.values())}
         Rscript {scripts}/plot_indels.R {merged_indels} {plots_pdf}
         """
 
@@ -283,8 +295,8 @@ for species, samples in config["samples"].items():
                      results_opportunities,
                      results_report],
             cores=4,
-            memory="50g",
-            walltime="01:00:00",
+            memory="16g",
+            walltime="04:00:00",
         ) << f"""
         mkdir -p {resultsdir}
         python {scripts}/final_filtering.py {merged_indels} {merged_opportunities} \\

@@ -88,18 +88,6 @@ def test_the_classification_scripts_get_their_cell_types_and_bins_from_the_confi
     ]
 
 
-def test_window_counts_are_summed_on_every_other_column(tmp_path):
-    import subprocess
-    from pipeline import summed_counts
-    first, second, out = tmp_path / "a.tsv", tmp_path / "b.tsv", tmp_path / "sum.tsv"
-    first.write_text("contig\tcontext\tmapQ\ttissue\tkmerQ\tcount\nc1\tA\t60\tliver\t93\t5\nc1\tA\t60\tbrain\t93\t1\n")
-    second.write_text("contig\tcontext\tmapQ\ttissue\tkmerQ\tcount\nc1\tA\t60\tliver\t93\t2\nc1\tC\t5\tliver\t40\t7\n")
-    subprocess.run(summed_counts([first, second], out), shell=True, check=True)
-    header, *rows = out.read_text().splitlines()
-    assert header == "contig\tcontext\tmapQ\ttissue\tkmerQ\tcount"
-    assert sorted(rows) == ["c1\tA\t60\tbrain\t93\t1", "c1\tA\t60\tliver\t93\t7", "c1\tC\t5\tliver\t40\t7"]
-
-
 def test_the_key_parameters_are_the_strata_block_as_one_shell_word(pipeline):
     import json
     import shlex
@@ -123,61 +111,23 @@ def test_final_filtering_gets_the_platform_and_the_filters_of_its_workflow():
     assert shlex.split(shell(sequel)) == sequel
 
 
-def test_gzipped_window_counts_are_summed_into_a_gzipped_table(tmp_path):
-    from pipeline import summed_counts
-    header = "contig\tcontext\ttissue\tcount\n"
-    windows = [tmp_path / "a.tsv.gz", tmp_path / "b.tsv.gz", tmp_path / "c.tsv.gz"]
-    windows[0].write_bytes(gzip.compress((header + "c1\tA\tliver\t5\nc1\tC\tliver\t1\nc1\tA\tliver\t2\n").encode()))
-    windows[1].write_bytes(gzip.compress((header + "c1\tC\tbrain\t7\nc1\tA\tliver\t3\n").encode()))
-    windows[2].write_bytes(gzip.compress(header.encode()))   # a window without opportunities
-    out = tmp_path / "sum.tsv.gz"
-    subprocess.run(summed_counts(windows, out), shell=True, check=True)
-    header_line, *rows = gzip.decompress(out.read_bytes()).decode().splitlines()
-    assert header_line == header.strip()
-    assert sorted(rows) == ["c1\tA\tliver\t10", "c1\tC\tbrain\t7", "c1\tC\tliver\t1"]
-
-
 def as_gwf_runs_it(command, tmp_path):
     """Run a target's command as gwf's Slurm script does: bash, stopping at the first failing command."""
     marker = tmp_path / "went_on"
     return subprocess.run(["bash", "-c", f"set -e\n{command}\ntouch {marker}"], capture_output=True), marker.exists()
 
 
-def joins(tmp_path, windows):
-    """Every command that joins window or contig files, by name: (command, the gzipped file it writes in tmp_path)."""
-    from pipeline import joined_reads, summed_counts, tables_with_sample
-    join = {"summed_counts": lambda output: summed_counts(windows, output),
-            "joined_reads": lambda output: joined_reads(windows, output),
-            "tables_with_sample": lambda output: tables_with_sample(windows, output, "ape", "s1")}
-    return {name: (command(tmp_path / f"{name}.gz"), tmp_path / f"{name}.gz") for name, command in join.items()}
-
-
-@pytest.mark.parametrize("join", ["summed_counts", "joined_reads", "tables_with_sample"])
-def test_a_join_stops_the_job_when_a_window_cant_be_read(tmp_path, join):
+def test_joining_reads_stops_the_job_and_leaves_no_file_when_a_window_cant_be_read(tmp_path):
+    from pipeline import joined_reads
     # A window cut short, as a job killed while writing it leaves it.
-    content = gzip.compress(("contig\tcount\n" + "".join(f"c1\t{i}\n" for i in range(20000))).encode())
-    good, cut = tmp_path / "good.tsv.gz", tmp_path / "cut.tsv.gz"
-    good.write_bytes(gzip.compress(b"contig\tcount\nc1\t1\n"))
+    content = gzip.compress("".join(f"@r{i}\nA\n+\nI\n" for i in range(20000)).encode())
+    good, cut = tmp_path / "good.fastq.gz", tmp_path / "cut.fastq.gz"
+    good.write_bytes(gzip.compress(b"@r0\nA\n+\nI\n"))
     cut.write_bytes(content[:len(content) // 2])
-    command, output = joins(tmp_path, [good, cut])[join]
-    done, went_on = as_gwf_runs_it(command, tmp_path)
+    out = tmp_path / "reads.fastq.gz"
+    done, went_on = as_gwf_runs_it(joined_reads([good, cut], out), tmp_path)
     assert done.returncode != 0 and not went_on
-    # Nor does it leave a file gwf would take as done.
-    assert not output.exists()
-
-
-@pytest.mark.parametrize("join", ["summed_counts", "tables_with_sample"])
-def test_a_join_of_large_windows_runs_to_the_end(tmp_path, join):
-    # Bigger than a pipe holds, so a reader that stops after the header
-    # would kill the decompression of the rest.
-    rows = "".join(f"c1\tk{i % 1000}\t1\n" for i in range(300000))
-    windows = [tmp_path / "a.tsv.gz", tmp_path / "b.tsv.gz"]
-    for window in windows:
-        window.write_bytes(gzip.compress(("contig\tkey\tcount\n" + rows).encode()))
-    command, output = joins(tmp_path, windows)[join]
-    done, went_on = as_gwf_runs_it(command, tmp_path)
-    assert done.returncode == 0 and went_on, done.stderr
-    assert output.exists()
+    assert not out.exists()
 
 
 def test_joining_calls_keeps_the_first_header_once(tmp_path):

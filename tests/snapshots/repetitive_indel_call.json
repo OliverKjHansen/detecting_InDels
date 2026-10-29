@@ -50,173 +50,173 @@
  "TRFinalFiltering_ape_s1_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.parquet",
    "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv",
-   "{ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/ape/s1/M0/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.tsv.gz {ROOT}/results/repetitive_indels/ape/s1/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/ape/s1/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M0/opportunities.parquet {ROOT}/results/repetitive_indels/ape/s1/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s1_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.parquet",
    "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv",
-   "{ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/ape/s1/M1/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.tsv.gz {ROOT}/results/repetitive_indels/ape/s1/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/ape/s1/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M1/opportunities.parquet {ROOT}/results/repetitive_indels/ape/s1/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s1_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.parquet",
    "{ROOT}/output/precompute/ape/s1/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv",
-   "{ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/ape/s1/M2/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.tsv.gz {ROOT}/results/repetitive_indels/ape/s1/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s1/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/ape/s1/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s1/M2/opportunities.parquet {ROOT}/results/repetitive_indels/ape/s1/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s2_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.parquet",
    "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/ape/s2/M0/indels.tsv",
-   "{ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/ape/s2/M0/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/ape/s2/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.tsv.gz {ROOT}/results/repetitive_indels/ape/s2/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/ape/s2/M0/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M0/opportunities.parquet {ROOT}/results/repetitive_indels/ape/s2/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s2_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.parquet",
    "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/ape/s2/M1/indels.tsv",
-   "{ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/ape/s2/M1/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/ape/s2/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.tsv.gz {ROOT}/results/repetitive_indels/ape/s2/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/ape/s2/M1/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M1/opportunities.parquet {ROOT}/results/repetitive_indels/ape/s2/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_ape_s2_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.parquet",
    "{ROOT}/output/precompute/ape/s2/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/ape/s2/M2/indels.tsv",
-   "{ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/ape/s2/M2/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/ape/s2/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.tsv.gz {ROOT}/results/repetitive_indels/ape/s2/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/ape/s2/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/ape/s2/M2/indels.tsv {ROOT}/results/repetitive_indels/ape/s2/M2/opportunities.parquet {ROOT}/results/repetitive_indels/ape/s2/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_monkey_s3_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.parquet",
    "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/monkey/s3/M0/indels.tsv",
-   "{ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/monkey/s3/M0/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M0/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.tsv.gz {ROOT}/results/repetitive_indels/monkey/s3/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M0\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M0/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M0/opportunities.parquet {ROOT}/results/repetitive_indels/monkey/s3/M0/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_monkey_s3_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.parquet",
    "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/monkey/s3/M1/indels.tsv",
-   "{ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/monkey/s3/M1/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M1/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.tsv.gz {ROOT}/results/repetitive_indels/monkey/s3/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M1\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M1/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M1/opportunities.parquet {ROOT}/results/repetitive_indels/monkey/s3/M1/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRFinalFiltering_monkey_s3_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.parquet",
    "{ROOT}/output/precompute/monkey/s3/smrt_cells.tsv"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
-   "memory": "200g",
-   "walltime": "01:00:00"
+   "memory": "16g",
+   "walltime": "02:00:00"
   },
   "outputs": [
    "{ROOT}/results/repetitive_indels/monkey/s3/M2/indels.tsv",
-   "{ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.tsv.gz",
+   "{ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.parquet",
    "{ROOT}/results/repetitive_indels/monkey/s3/M2/filter_report.tsv"
   ],
-  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv.gz \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M2/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.tsv.gz {ROOT}/results/repetitive_indels/monkey/s3/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
+  "spec": "\n            mkdir -p {ROOT}/results/repetitive_indels/monkey/s3/M2\n            python {ROOT}/scripts/final_filtering.py {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.parquet \\\n                {ROOT}/results/repetitive_indels/monkey/s3/M2/indels.tsv {ROOT}/results/repetitive_indels/monkey/s3/M2/opportunities.parquet {ROOT}/results/repetitive_indels/monkey/s3/M2/filter_report.tsv \\\n                --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass --keep 'read_end_distance_bin=100-300,300-500,500-1000,>=1000'\n            "
  },
  "TRHaploidFilter_ape_s1_M0": {
   "inputs": [
@@ -552,8 +552,8 @@
  "TRMergeAndPlot_ape_s1_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -562,16 +562,16 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/ape/s1/M0/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/merged {ROOT}/plots/repetitive_indels/ape/s1/M0\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s1/M0/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/merged {ROOT}/plots/repetitive_indels/ape/s1/M0\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.parquet --species ape --sample s1 \\\n                {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.parquet {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s1/M0/plots.pdf\n            "
  },
  "TRMergeAndPlot_ape_s1_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -580,16 +580,16 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/ape/s1/M1/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M1/merged {ROOT}/plots/repetitive_indels/ape/s1/M1\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s1/M1/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M1/merged {ROOT}/plots/repetitive_indels/ape/s1/M1\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.parquet --species ape --sample s1 \\\n                {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.parquet {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s1/M1/plots.pdf\n            "
  },
  "TRMergeAndPlot_ape_s1_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -598,15 +598,15 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/ape/s1/M2/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M2/merged {ROOT}/plots/repetitive_indels/ape/s1/M2\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s1\"}' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s1/M2/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M2/merged {ROOT}/plots/repetitive_indels/ape/s1/M2\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.parquet --species ape --sample s1 \\\n                {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.parquet {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s1/M2/plots.pdf\n            "
  },
  "TRMergeAndPlot_ape_s2_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -615,15 +615,15 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/ape/s2/M0/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/merged {ROOT}/plots/repetitive_indels/ape/s2/M0\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s2/M0/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/merged {ROOT}/plots/repetitive_indels/ape/s2/M0\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.parquet --species ape --sample s2 \\\n                {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s2/M0/plots.pdf\n            "
  },
  "TRMergeAndPlot_ape_s2_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -632,15 +632,15 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/ape/s2/M1/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M1/merged {ROOT}/plots/repetitive_indels/ape/s2/M1\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s2/M1/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M1/merged {ROOT}/plots/repetitive_indels/ape/s2/M1\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.parquet --species ape --sample s2 \\\n                {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s2/M1/plots.pdf\n            "
  },
  "TRMergeAndPlot_ape_s2_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -649,15 +649,15 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/ape/s2/M2/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M2/merged {ROOT}/plots/repetitive_indels/ape/s2/M2\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"ape\" \"\\t\" \"s2\"}' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s2/M2/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M2/merged {ROOT}/plots/repetitive_indels/ape/s2/M2\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.parquet --species ape --sample s2 \\\n                {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv {ROOT}/plots/repetitive_indels/ape/s2/M2/plots.pdf\n            "
  },
  "TRMergeAndPlot_monkey_s3_M0": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -666,15 +666,15 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/monkey/s3/M0/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M0/merged {ROOT}/plots/repetitive_indels/monkey/s3/M0\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M0/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M0/merged {ROOT}/plots/repetitive_indels/monkey/s3/M0\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.parquet --species monkey --sample s3 \\\n                {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M0/plots.pdf\n            "
  },
  "TRMergeAndPlot_monkey_s3_M1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -683,15 +683,15 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/monkey/s3/M1/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M1/merged {ROOT}/plots/repetitive_indels/monkey/s3/M1\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M1/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M1/merged {ROOT}/plots/repetitive_indels/monkey/s3/M1\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.parquet --species monkey --sample s3 \\\n                {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M1/plots.pdf\n            "
  },
  "TRMergeAndPlot_monkey_s3_M2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv.gz"
+   "{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.parquet"
   ],
   "options": {
    "account": "mutationalscanning",
@@ -700,31 +700,104 @@
    "walltime": "24:00:00"
   },
   "outputs": [
-   "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.parquet",
    "{ROOT}/plots/repetitive_indels/monkey/s3/M2/plots.pdf"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M2/merged {ROOT}/plots/repetitive_indels/monkey/s3/M2\n            set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done; } | awk 'NR==1 {print $0 \"\\t\" \"species\" \"\\t\" \"sample\"}; NR>1 {print $0 \"\\t\" \"monkey\" \"\\t\" \"s3\"}' | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.tsv.gz\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M2/plots.pdf\n            "
+  "spec": "\n            mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M2/merged {ROOT}/plots/repetitive_indels/monkey/s3/M2\n            python {ROOT}/scripts/opportunity_tables.py join {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.parquet --species monkey --sample s3 \\\n                {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.parquet\n            Rscript {ROOT}/scripts/plot_indels.R {ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv {ROOT}/plots/repetitive_indels/monkey/s3/M2/plots.pdf\n            "
+ },
+ "TRMergeOpportunities_c1_ape_s1": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_0_10000000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_10000000_12000000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_0_10000000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_10000000_12000000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_0_10000000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_10000000_12000000.tsv.gz"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 4,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.parquet"
+  ],
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.parquet {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_10000000_12000000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.parquet {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_10000000_12000000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.parquet {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_10000000_12000000.tsv.gz\n                "
+ },
+ "TRMergeOpportunities_c2_ape_s1": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c2_0_1500000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c2_0_1500000.tsv.gz"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 4,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.parquet"
+  ],
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.parquet {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.parquet {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c2_0_1500000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.parquet {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c2_0_1500000.tsv.gz\n                "
+ },
+ "TRMergeOpportunities_c2_ape_s2": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks/c2_0_1500000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks/c2_0_1500000.tsv.gz"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 4,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.parquet",
+   "{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.parquet"
+  ],
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.parquet {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.parquet {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks/c2_0_1500000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.parquet {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks/c2_0_1500000.tsv.gz\n                "
+ },
+ "TRMergeOpportunities_c2_monkey_s3": {
+  "inputs": [
+   "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/chunks/c2_0_1500000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/chunks/c2_0_1500000.tsv.gz",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/chunks/c2_0_1500000.tsv.gz"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 4,
+   "memory": "16g",
+   "walltime": "02:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.parquet",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.parquet",
+   "{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.parquet"
+  ],
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.parquet {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/chunks/c2_0_1500000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.parquet {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/chunks/c2_0_1500000.tsv.gz\n                python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.parquet {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/chunks/c2_0_1500000.tsv.gz\n                "
  },
  "TRMergeWindows_c1_ape_s1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_0_10000000.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_10000000_12000000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_0_10000000.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_10000000_12000000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_0_10000000.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_10000000_12000000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_0_10000000.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_10000000_12000000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_0_10000000.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_10000000_12000000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_0_10000000.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_10000000_12000000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz"
   ],
   "options": {
    "account": "mutationalscanning",
-   "cores": 4,
+   "cores": 1,
    "memory": "16g",
    "walltime": "02:00:00"
   },
@@ -732,26 +805,20 @@
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq.gz"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/fastq {ROOT}/output/repetitive_indels/ape/s1/M0/calls {ROOT}/output/repetitive_indels/ape/s1/M1/calls {ROOT}/output/repetitive_indels/ape/s1/M2/calls {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_0_10000000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c1_10000000_12000000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c1.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_0_10000000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c1_10000000_12000000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c1.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_0_10000000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c1_10000000_12000000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c1.tsv.gz\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq.gz\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/fastq {ROOT}/output/repetitive_indels/ape/s1/M0/calls {ROOT}/output/repetitive_indels/ape/s1/M1/calls {ROOT}/output/repetitive_indels/ape/s1/M2/calls\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c1.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c1.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_0_10000000.tsv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c1.tsv\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/fastq/c1.fastq.gz\n                "
  },
  "TRMergeWindows_c2_ape_s1": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz"
   ],
   "options": {
    "account": "mutationalscanning",
-   "cores": 4,
+   "cores": 1,
    "memory": "16g",
    "walltime": "02:00:00"
   },
@@ -759,26 +826,20 @@
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq.gz"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/fastq {ROOT}/output/repetitive_indels/ape/s1/M0/calls {ROOT}/output/repetitive_indels/ape/s1/M1/calls {ROOT}/output/repetitive_indels/ape/s1/M2/calls {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s1/M0/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M0/opportunities/c2.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s1/M1/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M1/opportunities/c2.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s1/M2/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/M2/opportunities/c2.tsv.gz\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq.gz\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s1/fastq {ROOT}/output/repetitive_indels/ape/s1/M0/calls {ROOT}/output/repetitive_indels/ape/s1/M1/calls {ROOT}/output/repetitive_indels/ape/s1/M2/calls\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M0/calls/c2.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M1/calls/c2.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s1/M2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s1/M2/calls/c2.tsv\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp {ROOT}/output/repetitive_indels/ape/s1/fastq/c2.fastq.gz\n                "
  },
  "TRMergeWindows_c2_ape_s2": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s2/M1/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s2/M2/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz"
   ],
   "options": {
    "account": "mutationalscanning",
-   "cores": 4,
+   "cores": 1,
    "memory": "16g",
    "walltime": "02:00:00"
   },
@@ -786,26 +847,20 @@
    "{ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv",
-   "{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv.gz",
-   "{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv.gz",
    "{ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq.gz"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s2/fastq {ROOT}/output/repetitive_indels/ape/s2/M0/calls {ROOT}/output/repetitive_indels/ape/s2/M1/calls {ROOT}/output/repetitive_indels/ape/s2/M2/calls {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s2/M0/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/M0/opportunities/c2.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s2/M1/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/M1/opportunities/c2.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/ape/s2/M2/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/M2/opportunities/c2.tsv.gz\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq.gz\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/ape/s2/fastq {ROOT}/output/repetitive_indels/ape/s2/M0/calls {ROOT}/output/repetitive_indels/ape/s2/M1/calls {ROOT}/output/repetitive_indels/ape/s2/M2/calls\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s2/M0/calls/c2.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s2/M1/calls/c2.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/ape/s2/M2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/ape/s2/M2/calls/c2.tsv\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp {ROOT}/output/repetitive_indels/ape/s2/fastq/c2.fastq.gz\n                "
  },
  "TRMergeWindows_c2_monkey_s3": {
   "inputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/calls/chunks/c2_0_1500000.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/repetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz"
   ],
   "options": {
    "account": "mutationalscanning",
-   "cores": 4,
+   "cores": 1,
    "memory": "16g",
    "walltime": "02:00:00"
   },
@@ -813,12 +868,9 @@
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv",
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv.gz",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv.gz",
-   "{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv.gz",
    "{ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq.gz"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/fastq {ROOT}/output/repetitive_indels/monkey/s3/M0/calls {ROOT}/output/repetitive_indels/monkey/s3/M1/calls {ROOT}/output/repetitive_indels/monkey/s3/M2/calls {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/M0/opportunities/c2.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/M1/opportunities/c2.tsv.gz\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv\n                set -o pipefail; { gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/chunks/c2_0_1500000.tsv.gz | awk 'NR == 1' || exit 1; for table in {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/chunks/c2_0_1500000.tsv.gz; do gzip -dcf $table | tail -n +2 || exit 1; done | LC_ALL=C sort -S 10G --parallel=4 -T ${TMPDIR:-{ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities} | awk -F'\\t' -v OFS='\\t' '{key = $1; for (i = 2; i < NF; i++) key = key OFS $i; if (NR > 1 && key != last) print last, n; if (NR == 1 || key != last) n = 0; n += $NF; last = key} END {if (NR) print last, n}' || exit 1; } | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/M2/opportunities/c2.tsv.gz\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq.gz\n                "
+  "spec": "\n                mkdir -p {ROOT}/output/repetitive_indels/monkey/s3/fastq {ROOT}/output/repetitive_indels/monkey/s3/M0/calls {ROOT}/output/repetitive_indels/monkey/s3/M1/calls {ROOT}/output/repetitive_indels/monkey/s3/M2/calls\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/monkey/s3/M0/calls/c2.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/monkey/s3/M1/calls/c2.tsv\n                set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv.tmp {ROOT}/output/repetitive_indels/monkey/s3/M2/calls/c2.tsv\n                set -o pipefail; gzip -dcf {ROOT}/output/repetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp {ROOT}/output/repetitive_indels/monkey/s3/fastq/c2.fastq.gz\n                "
  },
  "TRScan_c1_0_ape_s1": {
   "inputs": [
