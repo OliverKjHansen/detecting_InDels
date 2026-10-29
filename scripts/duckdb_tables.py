@@ -8,17 +8,22 @@ import os
 import duckdb
 
 
+def cores():
+    """The job's cores: gwf asks Slurm for them with -c. Outside a job, the machine's."""
+    return int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count())
+
+
 def connect():
     """
-    A DuckDB connection with the job's cores and three quarters of its memory,
-    spilling to its $TMPDIR. gwf asks Slurm for the cores with -c and the
-    memory with --mem; outside a job, the machine's.
+    A DuckDB connection with the job's cores and half its memory (gwf asks
+    Slurm for it with --mem), spilling to its $TMPDIR. DuckDB goes past its
+    own limit by a GB or two, hence the half.
     """
     con = duckdb.connect()
     con.execute("SET enable_progress_bar = false")   # it would fill the job's log
-    con.execute(f"SET threads = {os.environ.get('SLURM_CPUS_PER_TASK') or os.cpu_count()}")
+    con.execute(f"SET threads = {cores()}")
     if os.environ.get("SLURM_MEM_PER_NODE"):   # MB
-        con.execute(f"SET memory_limit = '{int(os.environ['SLURM_MEM_PER_NODE']) * 3 // 4}MB'")
+        con.execute(f"SET memory_limit = '{int(os.environ['SLURM_MEM_PER_NODE']) // 2}MB'")
     if os.environ.get("TMPDIR"):
         con.execute(f"SET temp_directory = {literal(os.environ['TMPDIR'])}")
     return con

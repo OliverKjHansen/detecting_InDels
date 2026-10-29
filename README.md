@@ -525,8 +525,9 @@ and every unresolved-haplotype region. Intermediates go to
    [opportunity cube](#opportunities), and their FASTQs concatenated keeping
    each read once. DuckDB sums the counts
    ([opportunity_tables.py](scripts/opportunity_tables.py)) with the job's 4
-   cores, spilling to its `$TMPDIR` on the node's local disk, in a job of
-   their own (3b): the calls and reads, and the remapping after them, don't
+   cores, from copies of the windows unpacked into its `$TMPDIR` on the
+   node's local disk (DuckDB 2.0 can fail rereading a gzipped table), and
+   spilling there, in a job of their own (3b): the calls and reads, and the remapping after them, don't
    depend on how the opportunities are kept. Each contig is its own job, so
    the contigs merge side by side and a failure costs one contig.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
