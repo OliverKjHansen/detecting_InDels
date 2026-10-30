@@ -158,6 +158,7 @@ for species, samples in config["samples"].items():
                     inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs + classification_inputs,
                     outputs=[w_calls, w_opportunities, w_fastq],
                     cores=1,
+                    walltime="04:00:00",
                 ) << f"""
                 mkdir -p {folder("nonrepetitive_window_calls")} {folder("nonrepetitive_window_opportunities")} {folder("nonrepetitive_window_reads")}
                 python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq} {sample_scan_options}
@@ -179,7 +180,7 @@ for species, samples in config["samples"].items():
                 inputs=window_calls[contig] + window_fastqs[contig],
                 outputs=[calls[contig], fastqs[contig]],
                 cores=1,
-                memory="16g",
+                memory="4g",
                 walltime="02:00:00",
             ) << f"""
             set -e
@@ -257,7 +258,7 @@ for species, samples in config["samples"].items():
             outputs=[merged_indels],
             cores=1,
             memory="20g",
-            walltime="12:00:00",
+            walltime="04:00:00",
         ) << f"""
         mkdir -p {merged_dir}
         python {scripts}/filtering_haploid_mapping.py {calls_list} {haploid_locations} {combined_fastq} {haplotype_options} > {merged_indels}.tmp
@@ -272,8 +273,8 @@ for species, samples in config["samples"].items():
             inputs=[merged_indels] + list(opportunities.values()),
             outputs=[merged_opportunities, plots_pdf],
             cores=8,
-            memory="100g",
-            walltime="24:00:00",
+            memory="64g",   # most of it R reading the calls
+            walltime="04:00:00",
         ) << f"""
         mkdir -p {merged_dir} {plotsdir}
         python {scripts}/opportunity_tables.py join {merged_opportunities} --species {species} --sample {sample} \\

@@ -198,6 +198,7 @@ for species, samples in config["samples"].items():
                     inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs + classification_inputs,
                     outputs=list(w_calls.values()) + list(w_opportunities.values()) + [w_fastq],
                     cores=1,
+                    walltime="04:00:00",
                 ) << f"""
                 mkdir -p {chunk_dirs}
                 python {scripts}/tandem_repeat_scan.py {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_fastq} {sample_scan_options} {model_args}
@@ -218,7 +219,7 @@ for species, samples in config["samples"].items():
                 inputs=[window_file for model in models for window_file in window_calls[model]] + window_fastqs,
                 outputs=list(calls.values()) + [fastq],
                 cores=1,
-                memory="16g",
+                memory="4g",
                 walltime="02:00:00",
             ) << f"""
                 mkdir -p {" ".join([fastq_dir] + list(calls_dir.values()))}
@@ -306,7 +307,7 @@ for species, samples in config["samples"].items():
                 outputs=[merged_indels],
                 cores=1,
                 memory="20g",
-                walltime="12:00:00",
+                walltime="04:00:00",
             ) << f"""
             mkdir -p {merged_dir[model]}
             python {scripts}/filtering_haploid_mapping.py {calls_list} {haploid_locations} {combined_fastq} {haplotype_options} > {merged_indels}.tmp
@@ -322,8 +323,8 @@ for species, samples in config["samples"].items():
                 inputs=[merged_indels] + opportunities_files,
                 outputs=[merged_opportunities, plots_pdf],
                 cores=8,
-                memory="200g",
-                walltime="24:00:00",
+                memory="64g",   # most of it R reading the calls
+                walltime="04:00:00",
             ) << f"""
             mkdir -p {merged_dir[model]} {plotsdir}
             python {scripts}/opportunity_tables.py join {merged_opportunities} --species {species} --sample {sample} \\

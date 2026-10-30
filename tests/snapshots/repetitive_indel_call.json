@@ -231,7 +231,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/indels.tsv"
@@ -251,7 +251,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/indels.tsv"
@@ -271,7 +271,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/indels.tsv"
@@ -290,7 +290,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/indels.tsv"
@@ -309,7 +309,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/indels.tsv"
@@ -328,7 +328,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/indels.tsv"
@@ -347,7 +347,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/indels.tsv"
@@ -366,7 +366,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/indels.tsv"
@@ -385,7 +385,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "20g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/indels.tsv"
@@ -558,8 +558,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/merged/opportunities.parquet",
@@ -576,8 +576,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M1/merged/opportunities.parquet",
@@ -594,8 +594,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M2/merged/opportunities.parquet",
@@ -611,8 +611,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/merged/opportunities.parquet",
@@ -628,8 +628,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M1/merged/opportunities.parquet",
@@ -645,8 +645,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M2/merged/opportunities.parquet",
@@ -662,8 +662,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/merged/opportunities.parquet",
@@ -679,8 +679,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M1/merged/opportunities.parquet",
@@ -696,8 +696,8 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "200g",
-   "walltime": "24:00:00"
+   "memory": "64g",
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M2/merged/opportunities.parquet",
@@ -798,7 +798,7 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 1,
-   "memory": "16g",
+   "memory": "4g",
    "walltime": "02:00:00"
   },
   "outputs": [
@@ -819,7 +819,7 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 1,
-   "memory": "16g",
+   "memory": "4g",
    "walltime": "02:00:00"
   },
   "outputs": [
@@ -840,7 +840,7 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 1,
-   "memory": "16g",
+   "memory": "4g",
    "walltime": "02:00:00"
   },
   "outputs": [
@@ -861,7 +861,7 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 1,
-   "memory": "16g",
+   "memory": "4g",
    "walltime": "02:00:00"
   },
   "outputs": [
@@ -887,7 +887,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_0_10000000.tsv",
@@ -915,7 +915,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c1_10000000_12000000.tsv",
@@ -943,7 +943,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s1/M0/calls/chunks/c2_0_1500000.tsv",
@@ -969,7 +969,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/ape/s2/M0/calls/chunks/c2_0_1500000.tsv",
@@ -995,7 +995,7 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "10g",
-   "walltime": "12:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/repetitive_indels/monkey/s3/M0/calls/chunks/c2_0_1500000.tsv",
