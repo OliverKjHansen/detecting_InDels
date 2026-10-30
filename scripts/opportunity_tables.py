@@ -14,14 +14,17 @@ join  a sample's contigs, one after another, with its species and sample.
 The output is written whole or not at all. The windows are unpacked into the
 job's $TMPDIR first: DuckDB 2.0 can fail to read a gzipped table when short of
 memory, as it rereads parts of the file ("Trying to seek a compressed CSV
-File").
+File"). In the pilot it once misread one instead, into a row without a count
+(ticket 41), so a contig's cube is kept only if it holds the windows' total,
+counted apart from DuckDB.
 """
 import argparse
 import gzip
+import multiprocessing
 import os
 import shutil
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 from duckdb_tables import columns, connect, cores, identifier, literal, source, write
 
@@ -30,17 +33,53 @@ INTEGER_KEYS = ("size", "k")
 
 
 def unpacked(windows, folder):
-    """The window tables as plain text: the gzipped ones unpacked into `folder`, the job's cores at a time."""
-    def unpack(numbered):
-        number, window = numbered
-        if not str(window).endswith(".gz"):
-            return str(window)
-        plain = os.path.join(folder, f"{number}.tsv")
-        with gzip.open(window, "rb") as packed, open(plain, "wb") as out:
-            shutil.copyfileobj(packed, out, 1 << 24)
-        return plain
-    with ThreadPoolExecutor(cores()) as pool:
-        return list(pool.map(unpack, enumerate(windows)))
+    """
+    The window tables as plain text, the gzipped ones unpacked into `folder`,
+    and the sum of their counts. One process per core: counting is Python's
+    work, which threads would take turns at. The processes are started fresh
+    (spawn), not forked from one that may hold DuckDB's threads.
+    """
+    plains = [os.path.join(folder, f"{number}.tsv") for number in range(len(windows))]
+    with ProcessPoolExecutor(cores(), mp_context=multiprocessing.get_context("spawn")) as pool:
+        done = list(pool.map(unpacked_window, map(str, windows), plains))
+    return [plain for plain, _ in done], sum(total for _, total in done)
+
+
+def unpacked_window(window, plain):
+    """A window table as plain text, at `plain` if it was gzipped, and the sum of its counts."""
+    if not window.endswith(".gz"):
+        return window, counted(window, window)
+    with gzip.open(window, "rb") as packed, open(plain, "wb") as out:
+        shutil.copyfileobj(packed, out, 1 << 24)
+    return plain, counted(plain, window)
+
+
+def counted(table, name):
+    """The sum of a window table's counts, its last column, each a whole number."""
+    with open(table, "rb") as lines:
+        if not next(lines, b"").rstrip(b"\r\n").endswith(b"\tcount"):
+            raise ValueError(f"{name}: the last column isn't count")
+        total = 0
+        for line in lines:
+            count = line[line.rfind(b"\t") + 1:].rstrip(b"\r\n")
+            if not count.isdigit():
+                raise ValueError(f"{name}: a count that isn't a whole number: {line!r}")
+            total += int(count)
+    return total
+
+
+def holding(con, total):
+    """A check that a contig's cube holds its windows' total, with no row without a count and no key with a NUL byte."""
+    def check(cube):
+        table = f"read_parquet({literal(cube)})"
+        count = identifier("count")
+        keys = ", ".join(f"CAST({identifier(column)} AS VARCHAR)" for column in columns(con, table) if column != "count")
+        found = con.execute(f"SELECT coalesce(sum({count}), 0), count(*) FILTER (WHERE {count} IS NULL), "
+                            f"count(*) FILTER (WHERE contains(concat_ws('', {keys}), chr(0))) FROM {table}").fetchone()
+        if tuple(found) != (total, 0, 0):
+            raise ValueError(f"{cube}: the cube holds {found[0]:,} opportunities, its windows {total:,}; "
+                             f"{found[1]:,} rows have no count, {found[2]:,} a key with a NUL byte")
+    return check
 
 
 def summed(con, windows):
@@ -75,7 +114,8 @@ def main():
     con = connect()
     if args.command == "sum":
         with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as folder:
-            write(con, summed(con, unpacked(args.windows, folder)), args.output)
+            windows, total = unpacked(args.windows, folder)
+            write(con, summed(con, windows), args.output, check=holding(con, total))
     else:
         write(con, joined(args.contigs, args.species, args.sample), args.output)
 

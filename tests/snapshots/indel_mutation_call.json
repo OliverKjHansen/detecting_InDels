@@ -140,7 +140,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s1/haploid/all.fastq.gz",
@@ -158,7 +158,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s2/haploid/all.fastq.gz",
@@ -176,7 +176,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/haploid/all.fastq.gz",
@@ -194,7 +194,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s1/haploid/hap1.bam",
@@ -211,7 +211,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s2/haploid/hap1.bam",
@@ -228,7 +228,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/haploid/hap1.bam",
@@ -245,7 +245,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s1/haploid/hap2.bam",
@@ -262,7 +262,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s2/haploid/hap2.bam",
@@ -279,7 +279,7 @@
    "account": "mutationalscanning",
    "cores": 16,
    "memory": "100g",
-   "walltime": "24:00:00"
+   "walltime": "08:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/haploid/hap2.bam",

@@ -234,7 +234,7 @@ for species, samples in config["samples"].items():
                 f"TRMergeOpportunities_{contig}_{species}_{sample}",
                 inputs=[window_file for model in models for window_file in window_opportunities[model]],
                 outputs=list(opportunities.values()),
-                cores=4,   # DuckDB uses them
+                cores=4,   # DuckDB and the unpacking use them
                 memory="16g",
                 walltime="02:00:00",
             ) << f"""
@@ -258,7 +258,7 @@ for species, samples in config["samples"].items():
             outputs=[combined_fastq, remapped_bam, haploid_locations],
             cores=16,
             memory="100g",
-            walltime="24:00:00",
+            walltime="08:00:00",
         ) << f"""
         mkdir -p {haploid_dir}
         cat {fastq_list} > {combined_fastq}
@@ -278,7 +278,7 @@ for species, samples in config["samples"].items():
                 outputs=[haplotype_bam, haplotype_locations[haplotype]],
                 cores=16,
                 memory="100g",
-                walltime="24:00:00",
+                walltime="08:00:00",
             ) << f"""
             {remapping(reference, combined_fastq, haplotype_bam, haplotype_locations[haplotype])}
             """

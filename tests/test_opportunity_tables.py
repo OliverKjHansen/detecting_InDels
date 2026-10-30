@@ -10,6 +10,10 @@ import subprocess
 import sys
 
 import duckdb
+import pytest
+
+from duckdb_tables import write
+from opportunity_tables import holding
 
 SCRIPT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "opportunity_tables.py")
 HEADER = "contig\tindel_type\tsize\tcontext\ttissue\tcount\n"
@@ -73,6 +77,42 @@ def test_a_merge_that_fails_leaves_no_file(tmp_path):
     done = opportunity_tables("sum", out, window(tmp_path / "a.tsv.gz", [("c1", "insertion", 1, "A", "liver", 5)]), cut)
     assert done.returncode != 0
     assert not out.exists()
+
+
+def test_a_cube_without_its_windows_total_is_not_written(tmp_path):
+    # Only DuckDB misreading the windows makes such a cube (ticket 41), so the
+    # check is given one directly.
+    con = duckdb.connect()
+    with pytest.raises(ValueError):
+        write(con, "SELECT 'c1' AS contig, 4::BIGINT AS count", tmp_path / "c1.parquet", check=holding(con, 5))
+    assert not list(tmp_path.glob("c1.parquet*"))
+
+
+def test_a_cube_with_a_row_without_a_count_is_not_written(tmp_path):
+    con = duckdb.connect()
+    cube = "SELECT * FROM (VALUES ('c1', 5::BIGINT), ('c2', NULL)) AS t(contig, count)"
+    with pytest.raises(ValueError):
+        write(con, cube, tmp_path / "c1.parquet", check=holding(con, 5))
+    assert not list(tmp_path.glob("c1.parquet*"))
+
+
+def test_a_key_with_a_nul_byte_fails_the_sum_and_leaves_no_file(tmp_path):
+    # In the pilot, DuckDB 2.0 made such a row from clean windows: a key cut
+    # short by a NUL byte, its count lost (ticket 41).
+    out = tmp_path / "c1.parquet"
+    done = opportunity_tables("sum", out, window(tmp_path / "a.tsv.gz", [("c1", "insertion", 1, "A\0", "liver", 5)]))
+    assert done.returncode != 0
+    assert not list(tmp_path.glob("c1.parquet*"))
+
+
+def test_a_count_that_isnt_a_whole_number_fails_the_sum_and_leaves_no_file(tmp_path):
+    # DuckDB alone would read \N as no count, and 5.0 as 5.
+    for count in ("\\N", "5.0"):
+        out = tmp_path / "c1.parquet"
+        done = opportunity_tables("sum", out, window(tmp_path / "a.tsv.gz", [("c1", "insertion", 1, "A", "liver", 5),
+                                                                            ("c1", "insertion", 1, "A", "liver", count)]))
+        assert done.returncode != 0, count
+        assert not list(tmp_path.glob("c1.parquet*")), count
 
 
 def test_workflow_4s_period_is_a_number_too(tmp_path):

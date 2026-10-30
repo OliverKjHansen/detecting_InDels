@@ -3,6 +3,7 @@ The big tables through DuckDB (ticket 40): read and written by the extension of
 their names, .parquet, or TSV, plain or gzipped, and queried with the job's own
 cores and memory, spilling to its temporary folder.
 """
+import contextlib
 import os
 
 import duckdb
@@ -60,15 +61,24 @@ def columns(con, table):
     return [row[0] for row in con.execute(f"DESCRIBE SELECT * FROM {table}").fetchall()]
 
 
-def write(con, query, path):
+def write(con, query, path, check=None):
     """
     Writes the rows of `query` to `path`, Parquet or TSV by its name, to a
-    temporary file first, renamed once complete.
+    temporary file first, renamed once complete and, given `check`, once
+    check(temporary file) returns. If the query or the check fails, no file
+    is left.
     """
     path = str(path)
     if path.endswith(".parquet"):
         options = "FORMAT parquet, COMPRESSION zstd"
     else:
         options = "FORMAT csv, DELIMITER '\t', HEADER, QUOTE ''" + (", COMPRESSION gzip" if path.endswith(".gz") else "")
-    con.execute(f"COPY ({query}) TO {literal(path + '.tmp')} ({options})")
+    try:
+        con.execute(f"COPY ({query}) TO {literal(path + '.tmp')} ({options})")
+        if check is not None:
+            check(path + ".tmp")
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(path + ".tmp")
+        raise
     os.replace(path + ".tmp", path)

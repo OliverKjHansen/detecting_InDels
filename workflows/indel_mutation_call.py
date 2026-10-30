@@ -193,7 +193,7 @@ for species, samples in config["samples"].items():
                 f"non_rep_MergeOpportunities_{contig}_{species}_{sample}_{assembly_type}",
                 inputs=window_opportunities[contig],
                 outputs=[opportunities[contig]],
-                cores=4,   # DuckDB uses them
+                cores=4,   # DuckDB and the unpacking use them
                 memory="16g",
                 walltime="02:00:00",
             ) << f"""
@@ -215,7 +215,7 @@ for species, samples in config["samples"].items():
             outputs=[combined_fastq, remapped_bam, haploid_locations],
             cores=16,
             memory="100g",
-            walltime="24:00:00",
+            walltime="08:00:00",
         ) << f"""
         mkdir -p {haploid_dir}
         cat {fastq_list} > {combined_fastq}
@@ -235,7 +235,7 @@ for species, samples in config["samples"].items():
                 outputs=[haplotype_bam, haplotype_locations[haplotype]],
                 cores=16,
                 memory="100g",
-                walltime="24:00:00",
+                walltime="08:00:00",
             ) << f"""
             {remapping(reference, combined_fastq, haplotype_bam, haplotype_locations[haplotype])}
             """

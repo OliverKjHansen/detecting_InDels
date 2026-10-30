@@ -528,7 +528,10 @@ and every unresolved-haplotype region. Intermediates go to
    cores, from copies of the windows unpacked into its `$TMPDIR` on the
    node's local disk (DuckDB 2.0 can fail rereading a gzipped table), and
    spilling there, in a job of their own (3b): the calls and reads, and the remapping after them, don't
-   depend on how the opportunities are kept. Each contig is its own job, so
+   depend on how the opportunities are kept. The contig's cube is kept only if
+   it holds the windows' total, counted in Python as they are unpacked, with
+   no row without a count and no key with a NUL byte: in the pilot DuckDB 2.0
+   once misread clean windows into such a row. Each contig is its own job, so
    the contigs merge side by side and a failure costs one contig.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
@@ -1266,7 +1269,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
 | [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells (from their reads' base qualities) dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report; Parquet, plain and gzipped tables |
-| [tests/test_opportunity_tables.py](tests/test_opportunity_tables.py) | the opportunity cube: a contig's windows summed per key into Parquet, `size`, `k` and `count` as numbers, a sample's contigs joined with its species and sample, nothing left behind when a sum or a join fails |
+| [tests/test_opportunity_tables.py](tests/test_opportunity_tables.py) | the opportunity cube: a contig's windows summed per key into Parquet, `size`, `k` and `count` as numbers, a sample's contigs joined with its species and sample, nothing left behind when a sum or a join fails, a count that isn't a whole number or a key with a NUL byte failing the sum |
 | [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
