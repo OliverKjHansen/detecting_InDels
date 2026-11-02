@@ -159,6 +159,7 @@ for species, samples in config["samples"].items():
                     inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs + read_bins_inputs,
                     outputs=[w_calls, w_opportunities, w_fastq],
                     cores=1,
+                    memory="20g"
                     walltime="04:00:00",
                 ) << f"""
                 mkdir -p {folder("nonrepetitive_window_calls")} {folder("nonrepetitive_window_opportunities")} {folder("nonrepetitive_window_reads")}
