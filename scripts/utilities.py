@@ -5,6 +5,7 @@ from bisect import bisect_right
 from collections import defaultdict, namedtuple
 from intervaltree import IntervalTree
 
+from read_bins import load as load_read_bins
 from read_tags import (Blocks, describe, events, indels, nearest_other_event, nearest_outside, subread_support,
                        subread_tags, tag)
 from strata import Site, Strata, Tract
@@ -66,19 +67,6 @@ class Mask:
         if i >= 0 and self.ends[i] > position:
             return 0
         return self.starts[i + 1] - position if i + 1 < len(self.starts) else math.inf
-
-
-def load_read_classification(classification_file):
-    """
-    readID -> germline/somatic bin, from read_classification.sh's table.
-    Samples without methylation scores pass "NA": every read is NA.
-    """
-    if classification_file == "NA":
-        return {}
-    with open(classification_file) as f:
-        header = f.readline().rstrip("\n").split("\t")
-        read, label = header.index("readID"), header.index("classification_bin")
-        return {fields[read]: fields[label] for fields in (line.rstrip("\n").split("\t") for line in f)}
 
 
 def load_tissue_classification(tissue_file):
@@ -157,7 +145,7 @@ def flanking(values, before, after):
 def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
-                       *, coverage_band, indel_sizes, key_parameters, flank_width, classification_file="NA"):
+                       *, coverage_band, indel_sizes, key_parameters, flank_width, read_bins_file="NA"):
     """
     Call InDels of the sizes in indel_sizes, (smallest, largest) in bp, and
     count opportunities outside the mask in one pass over the BAM, and write
@@ -170,8 +158,8 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     coverage_band, (low, high) multiples of the sample's mean coverage, are
     called and counted. key_parameters are the `strata` block of config.yaml.
     Each call carries flank_width bases of the assembly on each side of its
-    anchor. classification_file is read_classification.sh's table of the
-    sample's reads, or "NA".
+    anchor. read_bins_file is the compact table of the sample's read bins
+    (read_bins.py, ticket 44), or "NA".
 
     Calls: InDels of those sizes at positions outside the mask (the filters
     BED), except those whose sequence plus one flanking base on each side is a
@@ -207,7 +195,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     fasta = pysam.FastaFile(fastafile)
     mask = Mask(filters, window_start, window_end, reach=largest)
     d = load_tissue_classification(tissue_file)
-    classified = load_read_classification(classification_file)
+    classified = load_read_bins(read_bins_file)
     strata = Strata(**key_parameters)
 
     min_mapping_qual = 0 # to have more contorl over pysam
@@ -536,7 +524,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
                        *, coverage_band, key_parameters, flank_width, reach, min_flank,
-                       classification_file="NA"):
+                       read_bins_file="NA"):
     """
     Call InDels and count opportunities inside the tandem repeat tracts of
     several repeat models (M0, M1, M2) in one pass over the BAM.
@@ -570,8 +558,8 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     Only tracts whose first base has a depth within coverage_band, (low, high)
     multiples of the sample's mean coverage, are used. key_parameters are the
     `strata` block of config.yaml. Each call carries flank_width bases of the
-    assembly on each side of its anchor. classification_file is
-    read_classification.sh's table of the sample's reads, or "NA".
+    assembly on each side of its anchor. read_bins_file is the compact table
+    of the sample's read bins (read_bins.py, ticket 44), or "NA".
 
     With window_start/window_end only the tracts that begin in [window_start,
     window_end) are used; each tract belongs to one window, so windows never
@@ -591,7 +579,7 @@ def tandem_repeat_scan(tr_beds, contig, bamfile, fastafile,
     tracts = {model: load_tracts(bedfile, window_start, window_end, reach) for model, bedfile in tr_beds.items()}
 
     d = load_tissue_classification(tissue_file)
-    classified = load_read_classification(classification_file)
+    classified = load_read_bins(read_bins_file)
     strata = Strata(**key_parameters)
 
     # counts[model][(canonical_motif, k, *tract keys, *read keys, *site keys)] = count

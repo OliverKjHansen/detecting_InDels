@@ -9,6 +9,7 @@ import os
 import subprocess
 
 import make_fixtures as mf
+from read_bins import write
 from scans import nonrepetitive_scan, rows_of, tandem_repeat_scan
 
 REFERENCE = mf.build_reference()
@@ -16,14 +17,16 @@ SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 
 def dataset(tmp_path, reads, bins):
-    """A dataset whose read classification table gives these reads these bins."""
+    """
+    A dataset whose read classification table gives these reads these bins,
+    in the compact form the scans read (ticket 44).
+    """
     clean = [mf.make_read(f"clean{i:02d}", REFERENCE) for i in range(4)]
     paths = mf.write_dataset(str(tmp_path), REFERENCE, reads + clean)
-    paths["classification"] = str(tmp_path / "read_classification.tsv")
-    with open(paths["classification"], "w") as out:
-        out.write("readID\tmax_germline\tmax_somatic\tclassification_diff\tclassification_bin\tCpGs_onRead\n")
-        for name, label in bins.items():
-            out.write(f"{name}\t-20\t-21\t1\t{label}\t12\n")
+    table = str(tmp_path / "read_classification.tsv")
+    mf.write_read_classification(table, bins.items())
+    paths["read_bins"] = str(tmp_path / "read_bins.npz")
+    write(table, paths["read_bins"])
     return paths
 
 
@@ -50,7 +53,7 @@ def test_per_bin_opportunities_add_up_to_the_samples_total(tmp_path):
     # Six reads, all clean copies of the contig: each counts the same positions.
     assert set(per_bin) == {"4", "-6", "NA"}
     assert per_bin["4"] == per_bin["-6"] == per_bin["NA"] / 4
-    _, plain, _ = nonrepetitive_scan({**paths, "classification": "NA"})
+    _, plain, _ = nonrepetitive_scan({**paths, "read_bins": "NA"})
     assert sum(per_bin.values()) == sum(int(row["count"]) for row in rows_of(plain))
     assert set(bins_of(rows_of(plain))) == {"NA"}
 

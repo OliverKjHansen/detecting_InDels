@@ -79,12 +79,13 @@ for species, samples in config["samples"].items():
         else:
             tissue        = "NA"
             tissue_inputs = []
-        # Samples with methylation scores: each read's germline/somatic bin.
+        # Samples with methylation scores: each read's germline/somatic bin,
+        # from the compact table (ticket 44).
         if pipeline.is_listed("methylation_samples", species, sample):
-            classification_inputs = [path("read_classification")]
-            sample_scan_options   = f"{scan_options} --read-classification {classification_inputs[0]}"
+            read_bins_inputs      = [path("read_bins")]
+            sample_scan_options   = f"{scan_options} --read-bins {read_bins_inputs[0]}"
         else:
-            classification_inputs = []
+            read_bins_inputs      = []
             sample_scan_options   = scan_options
 
         # Shared by the models: the reads carrying calls, and their remapping.
@@ -195,7 +196,7 @@ for species, samples in config["samples"].items():
                 # reads carrying a call, for haploid remapping.
                 gwf.target(
                     f"TRScan_{contig}_{start}_{species}_{sample}",
-                    inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs + classification_inputs,
+                    inputs=[assembly, alignment, coverage] + list(repeat_beds.values()) + tissue_inputs + read_bins_inputs,
                     outputs=list(w_calls.values()) + list(w_opportunities.values()) + [w_fastq],
                     cores=1,
                     walltime="04:00:00",

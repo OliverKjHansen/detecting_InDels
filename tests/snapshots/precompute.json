@@ -204,6 +204,21 @@
   ],
   "spec": "\n            cat {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/chunks/c2_0_1500000.bed | sort -k1,1 -k2,2n | bedtools merge -i - > {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/c2.bed\n            "
  },
+ "read_bins_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/output/precompute/ape/s1/read_classification.tsv"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 1,
+   "memory": "8g",
+   "walltime": "01:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/precompute/ape/s1/read_bins.npz"
+  ],
+  "spec": "\n            python {ROOT}/scripts/read_bins.py {ROOT}/output/precompute/ape/s1/read_classification.tsv {ROOT}/output/precompute/ape/s1/read_bins.npz\n            "
+ },
  "read_classification_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/classification/ape/s1/s1/05_ReadsClassification/s1_All_Reads_Likelihood_merged.tsv"

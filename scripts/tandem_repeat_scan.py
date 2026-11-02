@@ -41,8 +41,8 @@ def main():
     parser.add_argument("--flank-width", type=int, required=True, metavar="BP")
     parser.add_argument("--reach", type=int, required=True, metavar="BP")
     parser.add_argument("--min-tract-flank", type=int, required=True, metavar="BP")
-    parser.add_argument("--read-classification", default="NA", metavar="TSV",
-                        help="read_classification.sh's table of the sample's reads (default: none)")
+    parser.add_argument("--read-bins", default="NA", metavar="NPZ",
+                        help="read_bins.py's compact table of the sample's read bins (default: none)")
     parser.add_argument("--key-parameters", type=json.loads, required=True, metavar="JSON")
     parser.add_argument("--model", nargs=4, action="append", required=True,
                         metavar=("NAME", "BED", "CALLS", "OPPORTUNITIES"))
@@ -65,7 +65,7 @@ def main():
         flank_width=args.flank_width,
         reach=args.reach,
         min_flank=args.min_tract_flank,
-        classification_file=args.read_classification,
+        read_bins_file=args.read_bins,
     )
 
     for path, handle in handles.items():

@@ -35,8 +35,8 @@ if __name__ == "__main__":
     parser.add_argument("--coverage-band", type=float, nargs=2, required=True, metavar=("LOW", "HIGH"))
     parser.add_argument("--indel-sizes", type=int, nargs=2, required=True, metavar=("SMALLEST", "LARGEST"))
     parser.add_argument("--flank-width", type=int, required=True, metavar="BP")
-    parser.add_argument("--read-classification", default="NA", metavar="TSV",
-                        help="read_classification.sh's table of the sample's reads (default: none)")
+    parser.add_argument("--read-bins", default="NA", metavar="NPZ",
+                        help="read_bins.py's compact table of the sample's read bins (default: none)")
     parser.add_argument("--key-parameters", type=json.loads, required=True, metavar="JSON")
     args = parser.parse_args()
     calls, opportunities, fastq = args.calls, args.opportunities, args.fastq
@@ -50,7 +50,7 @@ if __name__ == "__main__":
                            calls_out=calls_out, opportunities_out=opportunities_out, fastq_out=fastq_out,
                            coverage_band=args.coverage_band, indel_sizes=args.indel_sizes,
                            key_parameters=args.key_parameters, flank_width=args.flank_width,
-                           classification_file=args.read_classification)
+                           read_bins_file=args.read_bins)
 
     for path in (calls, opportunities, fastq):
         os.replace(f"{path}.tmp", path)

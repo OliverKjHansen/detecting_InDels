@@ -297,6 +297,7 @@ the one summary to `results/precompute/{species}/{sample}/`.
 | 3c. Share masked | `unresolved_summary_{species}_{sample}_diploid` | sample | `results/precompute/{species}/{sample}/unresolved_summary.tsv` |
 | 4. Tissue table | `sorting_tissue_classification_{species}_{sample}_diploid` | sample in `tissue_samples` | `sorted_tissue_classification.tsv` |
 | 5. Read classification | `read_classification_{species}_{sample}_diploid` | sample in `methylation_samples` | `read_classification.tsv`: every read's germline/somatic score and bin, by [read_classification.sh](scripts/read_classification.sh) |
+| 5b. Read bins, compact | `read_bins_{species}_{sample}_diploid` | sample in `methylation_samples` | `read_bins.npz`: the same bins, as the scans read them, by [read_bins.py](scripts/read_bins.py) |
 
 **Split.** `faSplit byname` writes one FASTA per contig, for mreps in workflow 2.
 
@@ -333,6 +334,14 @@ the share of the genome they mask, per sample (see [Other tables](#other-tables)
 
 **Tissue table.** The read label file (read ID and tissue, whitespace-separated)
 becomes a sorted two-column TSV with a `readID  tissue` header.
+
+**Read bins.** Every scan job of workflows 3 and 4 looks up the germline/somatic
+bins of its window's reads. Read whole in each job, `read_classification.tsv`
+(about 600 MB for a 30x sample) made the jobs wait on the storage, as hundreds
+of them read the same file at once (ticket 42). So step 5b writes the bins
+once more, compact: per read a 64-bit key, a hash of its name, sorted, and the
+bin as one byte, about 100 MB for 10 M reads, loaded in under a second
+(ticket 44). A read missing from it gets `NA`, as from the table.
 
 ---
 
@@ -995,7 +1004,8 @@ output/
 │   ├── haplotypes/                               hap1.fa, hap2.fa
 │   ├── smrt_cells.tsv                            each SMRT Cell's highest base quality
 │   ├── sorted_tissue_classification.tsv          tissue_samples only
-│   └── read_classification.tsv                   methylation_samples only
+│   ├── read_classification.tsv                   methylation_samples only
+│   └── read_bins.npz                             the same, compact, for the scans; methylation_samples only
 ├── repetitive_dna/{species}/{sample}/
 │   ├── per_k/                                    per period (and per window for M1)
 │   ├── {contig}_{model}.bed                      overlaps resolved
@@ -1140,7 +1150,7 @@ tables.
 | Key | Meaning |
 |---|---|
 | `tissue` | the read's tissue label, or `NA` |
-| `methylation_bin` | the read's germline/somatic bin, one of the 14 of the `classification` block, from precompute's `read_classification.tsv`; `NA` for reads without a score and for samples not under `methylation_samples` |
+| `methylation_bin` | the read's germline/somatic bin, one of the 14 of the `classification` block, from precompute's `read_classification.tsv` (read by the scans as `read_bins.npz`); `NA` for reads without a score and for samples not under `methylation_samples` |
 | `read_length_bin` | the read's length, binned by `strata.read_length_bins` |
 | `aligned_strand` | the strand of the assembly the read is aligned to: `+`, or `-` for flag 16 |
 | `smrt_cell` | the SMRT Cell (movie): the first part of the read's name |
@@ -1274,6 +1284,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_geometry.py](tests/test_read_geometry.py) | the read-geometry keys: read length, distance to the read end, aligned strand, SMRT Cell, and kmerQ pass or fail |
 | [tests/test_read_quality.py](tests/test_read_quality.py) | the read-quality keys: diploid mapQ (N1), passes, predicted accuracy, full passes on the weaker strand, the nearest other event; the assembly around each call |
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
+| [tests/test_read_bins.py](tests/test_read_bins.py) | the compact read bins: every read's bin as the classification table gives it, `NA` for a read missing from it, 9 bytes a read, more bins than a byte holds refused, and workflow 1's target writing them |
 | [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells (from their reads' base qualities) dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report; Parquet, plain and gzipped tables |
 | [tests/test_opportunity_tables.py](tests/test_opportunity_tables.py) | the opportunity cube: a contig's windows summed per key into Parquet, `size`, `k` and `count` as numbers, a sample's contigs joined with its species and sample, nothing left behind when a sum or a join fails, a count that isn't a whole number or a key with a NUL byte failing the sum |
 | [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
@@ -1289,7 +1300,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_unresolved_haplotypes.py](tests/test_unresolved_haplotypes.py) | the unresolved-haplotype regions: the evidence rule, and regions that overlap or touch merging to their union |
 | [tests/test_masks.py](tests/test_masks.py) | what the InDel workflows leave out, from the workflows' own targets run with bash on a one-contig sample (TRF and samtools are stand-ins, from [tests/targets.py](tests/targets.py)): the excluded group, workflow 3's mask, the tracts workflow 4 measures (dropped for a homopolymer run, measured over a long-period tract), and their summaries |
 | [tests/test_tract_drop_causes.py](tests/test_tract_drop_causes.py) | why workflow 4 drops tracts: each tract counted once under its first cause, and the tracts each rule ticket 34 weighed would measure, option 2 matching the workflow's own step 0 |
-| [tests/test_mirror_export.py](tests/test_mirror_export.py) | the mirror exporter and the replay, end to end on a fake cluster checkout |
+| [tests/test_mirror_export.py](tests/test_mirror_export.py) | the mirror exporter and the replay, end to end on a fake cluster checkout, one of its samples with read bins, which a window exported before them makes from the text table |
 | [tests/test_strip_notebook_outputs.py](tests/test_strip_notebook_outputs.py) | the notebook clean filter, alone and through git |
 
 The fixtures come from [tests/make_fixtures.py](tests/make_fixtures.py), which
@@ -1368,6 +1379,7 @@ scripts/
   final_filtering.py               the definition of a final call, on calls and opportunities, with the report
   opportunity_tables.py            the opportunity cube: a contig's windows summed, a sample's contigs joined
   smrt_cell_qualities.py           each SMRT Cell's highest base quality (the Q40 rule)
+  read_bins.py                     every read's germline/somatic bin, compact, for the scans
   join_read_classification.sh      germline/somatic columns
   plot_indels.R                    diagnostic PDF
   export_local_subset.py           copy windows of samples from the cluster, to replay locally

@@ -163,6 +163,7 @@ layout:
   unresolved_summary: "{results}/precompute/{species}/{sample}/unresolved_summary.tsv"
   tissue:       "{output}/precompute/{species}/{sample}/sorted_tissue_classification.tsv"
   read_classification: "{output}/precompute/{species}/{sample}/read_classification.tsv"
+  read_bins:    "{output}/precompute/{species}/{sample}/read_bins.npz"
   smrt_cells:   "{output}/precompute/{species}/{sample}/smrt_cells.tsv"
   haplotype_assembly: "{output}/precompute/{species}/{sample}/haplotypes/{haplotype}.fa"
 

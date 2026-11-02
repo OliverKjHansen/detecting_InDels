@@ -21,6 +21,7 @@ import yaml
 import make_fixtures as mf
 import utilities
 from pipeline import Pipeline, final_filtering_options
+from read_bins import write as write_read_bins
 from text_files import open_text
 from workflow_config import REPO_ROOT
 
@@ -32,6 +33,7 @@ TRACTS = {"M0": [(2150, 2300, "AC", 2)],
           "M2": [(2100, 2160, "AC", 2), (2160, 2180, "ACAG", 4, 90.0), (2180, 2300, "AC", 2)]}
 MODELS = list(TRACTS)   # the models config.yaml lists
 SAMPLES = [("testspecies", "testsample"), ("otherspecies", "othersample")]
+METHYLATION_SAMPLE = ("otherspecies", "othersample")   # its reads have germline/somatic bins
 CHUNK = f"{mf.CONTIG}_0_{mf.CONTIG_LENGTH}"   # the contig is shorter than one scan window
 
 
@@ -108,7 +110,8 @@ def cluster(tmp_path_factory, fixture_paths):
     config.update({
         "samples": {species: [sample] for species, sample in SAMPLES},
         "tissue_samples": {"testspecies": ["testsample"]},
-        "methylation_samples": {}, "sperm_samples": {}, "sample_age": {}, "alignment_overrides": {},
+        "methylation_samples": {METHYLATION_SAMPLE[0]: [METHYLATION_SAMPLE[1]]},
+        "sperm_samples": {}, "sample_age": {}, "alignment_overrides": {},
         "paths": {"fasta": f"{root}/fasta", "bam": f"{root}/bam", "read_labels": f"{root}/labels",
                   "classification": f"{root}/classification",
                   "output": "output", "results": "results", "plots": "plots"},
@@ -139,6 +142,16 @@ def cluster(tmp_path_factory, fixture_paths):
         with open(made(path("excluded", contig=mf.CONTIG)), "w") as excluded:
             run_script("find_homopolymers.py", assembly, str(pipeline.config["repeats"]["homopolymer_min_length"]),
                        stdout=excluded)
+        read_bins = "NA"
+        if pipeline.is_listed("methylation_samples", species, sample):
+            # Every read a bin, in turn, and the compact table the scans read.
+            labels = [str(label) for label in pipeline.config["classification"]["bin_labels"]]
+            with pysam.AlignmentFile(bam) as reads:
+                names = sorted({read.query_name for read in reads})
+            mf.write_read_classification(path("read_classification"),
+                                         [(name, labels[i % len(labels)]) for i, name in enumerate(names)])
+            read_bins = path("read_bins")
+            write_read_bins(path("read_classification"), read_bins)
 
         # Workflow 3.
         mask = made(path("nonrepetitive_mask", contig=mf.CONTIG))
@@ -153,7 +166,8 @@ def cluster(tmp_path_factory, fixture_paths):
                                          coverage_band=coverage_band,
                                          indel_sizes=pipeline.config["scan"]["indel_sizes"],
                                          key_parameters=pipeline.config["strata"],
-                                         flank_width=pipeline.config["scan"]["flank_width"])
+                                         flank_width=pipeline.config["scan"]["flank_width"],
+                                         read_bins_file=read_bins)
         calls = made(path("nonrepetitive_calls", contig=mf.CONTIG))
         place(path("nonrepetitive_window_calls", **window), calls)
         locations = made(path("nonrepetitive_haploid_locations"))
@@ -181,7 +195,8 @@ def cluster(tmp_path_factory, fixture_paths):
                 coverage_band=coverage_band, key_parameters=pipeline.config["strata"],
                 flank_width=pipeline.config["scan"]["flank_width"],
                 reach=max(pipeline.config["repeats"]["periods"]),
-                min_flank=pipeline.config["scan"]["min_tract_flank"])
+                min_flank=pipeline.config["scan"]["min_tract_flank"],
+                read_bins_file=read_bins)
         locations = made(path("repetitive_haploid_locations"))
         all_calls = f"{os.path.dirname(locations)}/all_calls.tsv"
         with open(all_calls, "w") as out:
@@ -238,6 +253,22 @@ def test_every_exported_window_replays_both_workflows_to_the_clusters_tables(win
         # Calls, calls after the haploid check and final calls, for workflow 3
         # and each model of workflow 4; opportunities too for a whole scan job.
         assert len(same) == (4 * 4 if kind == "scan job" else 3 * 4), output
+
+
+def test_a_methylation_samples_window_replays_with_its_reads_bins(windows):
+    # The replay above compares every call's bin; here, that they aren't all NA.
+    with open(f"{windows['smaller']}/cluster/nonrepetitive_indels/calls.tsv") as handle:
+        header, *rows = [line.rstrip("\n").split("\t") for line in handle]
+    column = [name.lstrip("#") for name in header].index("methylation_bin")
+    assert rows and all(row[column] != "NA" for row in rows)
+
+
+def test_a_methylation_window_exported_before_the_compact_bins_replays_with_them(windows, tmp_path):
+    # Such a window has the window's rows of the classification table only.
+    window = shutil.copytree(windows["smaller"], tmp_path / f"{mf.CONTIG}_0_3000")
+    os.remove(window / "output" / "precompute" / METHYLATION_SAMPLE[0] / METHYLATION_SAMPLE[1] / "read_bins.npz")
+    code, output = replay(window, repo=REPO_ROOT)
+    assert code == 0, output
 
 
 def test_a_replay_that_differs_from_the_cluster_fails(windows, tmp_path):

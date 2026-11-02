@@ -189,10 +189,11 @@ for species, samples in pipeline.config["samples"].items():
 
         # Step 5 — every read's germline/somatic bin, for the samples listed
         # under methylation_samples in config.yaml. The scans read each read's
-        # bin from it, for calls and opportunities alike.
+        # bin from step 5b's compact copy, for calls and opportunities alike.
         if pipeline.is_listed("methylation_samples", species, sample):
             likelihoods    = pipeline.path("likelihoods", species, sample)
             classification = pipeline.path("read_classification", species, sample)
+            read_bins      = pipeline.path("read_bins", species, sample)
 
             gwf.target(
                 f"read_classification_{species}_{sample}_{assembly_type}",
@@ -204,4 +205,18 @@ for species, samples in pipeline.config["samples"].items():
             ) << f"""
             mkdir -p {pipeline.folder("read_classification", species, sample)}
             bash {scripts}/read_classification.sh {likelihoods} {classification} {pipeline.classification_arguments()}
+            """
+
+            # Step 5b — the same bins, compact, which every scan job loads
+            # (ticket 44): reading the whole table in each of them made them
+            # wait on the storage (ticket 42).
+            gwf.target(
+                f"read_bins_{species}_{sample}_{assembly_type}",
+                inputs=[classification],
+                outputs=[read_bins],
+                cores=1,
+                memory="8g",
+                walltime="01:00:00",
+            ) << f"""
+            python {scripts}/read_bins.py {classification} {read_bins}
             """

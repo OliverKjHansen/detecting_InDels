@@ -285,6 +285,15 @@ def write_tr_bed(path, tracts, model="M1"):
     write_lines(path, lines)
 
 
+def write_read_classification(path, bins):
+    """
+    Write a read classification table as read_classification.sh does, giving
+    the reads their bins: `bins` is (read name, bin) pairs, in the table's order.
+    """
+    write_lines(path, ["readID\tmax_germline\tmax_somatic\tclassification_diff\tclassification_bin\tCpGs_onRead"]
+                + [f"{name}\t-20\t-21\t1\t{label}\t12" for name, label in bins])
+
+
 def build(fixtures):
     """Write the dataset under the directory `fixtures`."""
     reference = build_reference()

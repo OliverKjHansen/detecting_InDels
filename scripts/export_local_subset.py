@@ -28,7 +28,7 @@ A table missing on the cluster stops the export at that sample; the samples
 before it are exported. The final opportunity tables and filter reports are
 not compared, because the cluster writes them per sample, not per window.
 
-It needs only pysam and pyyaml. A 10 Mb window of a 30x sample is roughly
+It needs only pysam, pyyaml and numpy. A 10 Mb window of a 30x sample is roughly
 0.5 GB without the per-base kinetics tags, which are dropped unless
 --keep-kinetics. Each window gets its own folder,
 mirror/{species}/{sample}/{contig}_{start}_{end}/. Copy it to the same place
@@ -72,6 +72,7 @@ import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workflows"))
 from pipeline import Pipeline  # noqa: E402
+from read_bins import write as write_read_bins  # noqa: E402
 from text_files import open_text  # noqa: E402
 
 KINETICS_TAGS = ("fi", "ri", "fp", "rp", "ip", "pw")
@@ -285,6 +286,8 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     source_classification, classification = both("read_classification")
     if source.is_listed("methylation_samples", species, sample) and os.path.exists(source_classification):
         copy_rows_of_reads(source_classification, classification, names, header=True)
+        # The window's reads' bins, compact, as the scans read them (ticket 44).
+        write_read_bins(classification, target.path("read_bins", species, sample))
     models = source.config["repeats"]["models"]
     for model in models:
         copy_overlapping(*both("tandem_repeats", contig=contig, model=model), contig, left, right, header=True)

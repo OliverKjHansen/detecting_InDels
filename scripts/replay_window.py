@@ -20,6 +20,7 @@ import sys
 import yaml
 
 from compare_tables import compare, report
+from read_bins import write as write_read_bins
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(SCRIPTS)
@@ -47,14 +48,20 @@ def main():
     tissue = data.path("tissue", species, sample) if data.is_listed("tissue_samples", species, sample) else "NA"
     inputs = [contig, data.alignment(species, sample), data.path("assembly", species, sample),
               data.path("coverage", species, sample), tissue, start, end]
-    # The reads' germline/somatic bins, if the window has them.
-    classification = data.path("read_classification", species, sample)
-    if os.path.exists(classification):
-        scan_options += ["--read-classification", classification]
-
     local, cluster = f"{window}/local", f"{window}/cluster"
     os.makedirs(local, exist_ok=True)
     log = open(f"{local}/replay.log", "w")
+
+    # The reads' germline/somatic bins, if the window has them, compact (ticket
+    # 44). A window exported before them has its reads' rows of the text table,
+    # which make them, as workflow 1 does.
+    read_bins = data.path("read_bins", species, sample)
+    classification = data.path("read_classification", species, sample)
+    if not os.path.exists(read_bins) and os.path.exists(classification):
+        read_bins = f"{local}/read_bins.npz"
+        write_read_bins(classification, read_bins)
+    if os.path.exists(read_bins):
+        scan_options += ["--read-bins", read_bins]
 
     def run(script, *args, stdout=None):
         subprocess.run([sys.executable, os.path.join(SCRIPTS, script), *map(str, args)],

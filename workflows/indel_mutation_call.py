@@ -79,12 +79,13 @@ for species, samples in config["samples"].items():
         else:
             tissue        = "NA"
             tissue_inputs = []
-        # Samples with methylation scores: each read's germline/somatic bin.
+        # Samples with methylation scores: each read's germline/somatic bin,
+        # from the compact table (ticket 44).
         if pipeline.is_listed("methylation_samples", species, sample):
-            classification_inputs = [path("read_classification")]
-            sample_scan_options   = f"{scan_options} --read-classification {classification_inputs[0]}"
+            read_bins_inputs      = [path("read_bins")]
+            sample_scan_options   = f"{scan_options} --read-bins {read_bins_inputs[0]}"
         else:
-            classification_inputs = []
+            read_bins_inputs      = []
             sample_scan_options   = scan_options
 
         mask_dir          = folder("nonrepetitive_mask")
@@ -155,7 +156,7 @@ for species, samples in config["samples"].items():
                 # haploid remapping.
                 gwf.target(
                     f"non_rep_Scan_{contig}_{start}_{species}_{sample}_{assembly_type}",
-                    inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs + classification_inputs,
+                    inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs + read_bins_inputs,
                     outputs=[w_calls, w_opportunities, w_fastq],
                     cores=1,
                     walltime="04:00:00",
