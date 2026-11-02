@@ -530,9 +530,15 @@ and every unresolved-haplotype region. Intermediates go to
    spilling there, in a job of their own (3b): the calls and reads, and the remapping after them, don't
    depend on how the opportunities are kept. The contig's cube is kept only if
    it holds the windows' total, counted in Python as they are unpacked, with
-   no row without a count and no key with a NUL byte: in the pilot DuckDB 2.0
-   once misread clean windows into such a row. Each contig is its own job, so
-   the contigs merge side by side and a failure costs one contig.
+   no row without a count and no key with a NUL byte (ticket 41). DuckDB 2.0
+   can misread the windows at random, even unpacked: into such rows, or by
+   losing lines, which only the total shows. In the pilot, one contig's sum
+   failed the check (`the cube holds … opportunities, its windows …`) and
+   passed when run again. A sum that fails the check leaves no cube, so the
+   next `gwf -f workflows/<name>.py run` submits it again; one that fails
+   again with the same numbers points at the windows themselves. Workflow 4's
+   sum (step 2b) is the same. Each contig is its own job, so the contigs merge
+   side by side and a failure costs one contig.
 4. **Remap.** All reads carrying a call are aligned to the haploid assembly with
    `pbmm2 align --preset HIFI --sort`. The alignments are reduced to read ID,
    flag, contig, position, mapping quality and CIGAR, sorted by read ID. The

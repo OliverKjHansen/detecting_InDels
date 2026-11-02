@@ -14,9 +14,12 @@ join  a sample's contigs, one after another, with its species and sample.
 The output is written whole or not at all. The windows are unpacked into the
 job's $TMPDIR first: DuckDB 2.0 can fail to read a gzipped table when short of
 memory, as it rereads parts of the file ("Trying to seek a compressed CSV
-File"). In the pilot it once misread one instead, into a row without a count
-(ticket 41), so a contig's cube is kept only if it holds the windows' total,
-counted apart from DuckDB.
+File"). It can also misread a table at random, even unpacked: into a row
+without a count or a key with a NUL byte, or by losing lines, which only the
+total shows (ticket 41). So a contig's cube is kept only if it holds the
+windows' total, counted apart from DuckDB, with no such row. A sum that fails
+the check is run again; one that fails again with the same numbers points at
+the windows.
 """
 import argparse
 import gzip
