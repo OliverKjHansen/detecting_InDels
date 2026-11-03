@@ -87,6 +87,12 @@ for species, samples in config["samples"].items():
         else:
             read_bins_inputs      = []
             sample_scan_options   = scan_options
+        # The scan keeps a count per combination of keys until its window is
+        # done. The bins split every count, and on Revio reads the subread
+        # support's bins do too: ob007's scans needed up to 20 GB and more,
+        # every other sample's 6 GB at most (ticket 45).
+        many_keys   = read_bins_inputs and not pipeline.is_listed("sequel_ii_samples", species, sample)
+        scan_memory = "40g" if many_keys else "10g"
 
         mask_dir          = folder("nonrepetitive_mask")
         calls_dir         = folder("nonrepetitive_calls")
@@ -159,7 +165,7 @@ for species, samples in config["samples"].items():
                     inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs + read_bins_inputs,
                     outputs=[w_calls, w_opportunities, w_fastq],
                     cores=1,
-                    memory="20g",
+                    memory=scan_memory,
                     walltime="04:00:00",
                 ) << f"""
                 mkdir -p {folder("nonrepetitive_window_calls")} {folder("nonrepetitive_window_opportunities")} {folder("nonrepetitive_window_reads")}

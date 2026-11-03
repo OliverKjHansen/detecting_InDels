@@ -84,12 +84,15 @@ class Sample:
             handle.write(script)
         os.chmod(path, 0o755)
 
+    def targets(self, workflow):
+        """The targets of workflows/{workflow}.py for this sample, as gwf loads them."""
+        return runpy.run_path(os.path.join(REPO_ROOT, "workflows", f"{workflow}.py"))["gwf"].targets
+
     def run(self, workflow, target):
         """Run one target of workflows/{workflow}.py with bash, as gwf would."""
-        targets = runpy.run_path(os.path.join(REPO_ROOT, "workflows", f"{workflow}.py"))["gwf"].targets
         env = dict(os.environ, PATH=os.pathsep.join([f"{self.root}/bin", os.path.dirname(sys.executable),
                                                      os.environ["PATH"]]))
-        done = subprocess.run(["bash", "-c", targets[target].spec], cwd=self.root, env=env,
+        done = subprocess.run(["bash", "-c", self.targets(workflow)[target].spec], cwd=self.root, env=env,
                               capture_output=True, text=True)
         assert done.returncode == 0, f"{target} failed:\n{done.stderr}"
 

@@ -545,7 +545,7 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 1,
-   "memory": "10g",
+   "memory": "40g",
    "walltime": "04:00:00"
   },
   "outputs": [
@@ -567,7 +567,7 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 1,
-   "memory": "10g",
+   "memory": "40g",
    "walltime": "04:00:00"
   },
   "outputs": [
@@ -589,7 +589,7 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 1,
-   "memory": "10g",
+   "memory": "40g",
    "walltime": "04:00:00"
   },
   "outputs": [

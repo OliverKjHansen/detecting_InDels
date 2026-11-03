@@ -8,7 +8,10 @@ without a classification, and samples without likelihoods, get NA.
 import os
 import subprocess
 
+import pytest
+
 import make_fixtures as mf
+import targets
 from read_bins import write
 from scans import nonrepetitive_scan, rows_of, tandem_repeat_scan
 
@@ -92,3 +95,18 @@ def test_the_per_read_table_bins_reads_as_the_classification_scripts_do(tmp_path
     assert bins == {"read0": "-12", "read1": "-4", "read2": "0", "read3": "8", "read4": "12"}
     per_bin = {line.split("\t")[0]: line.split("\t")[1] for line in counts.read_text().splitlines()[1:]}
     assert per_bin == {label: "1" for label in bins.values()}
+
+
+@pytest.mark.parametrize("listed_under, memory", [
+    ([], "10g"),
+    (["methylation_samples"], "40g"),
+    (["methylation_samples", "sequel_ii_samples"], "10g"),
+])
+def test_only_a_revio_sample_with_bins_asks_40_gb_for_its_scans(tmp_path, monkeypatch, listed_under, memory):
+    # The bins split every opportunity count, and on Revio reads the subread
+    # support's bins do too: ob007's scans needed up to 20 GB and more (ticket 45).
+    sample = targets.sample(tmp_path, monkeypatch, "ACGT" * 50)
+    for block in listed_under:
+        sample.configure(block, **{targets.SPECIES: [targets.SAMPLE]})
+    scan = f"non_rep_Scan_{targets.CONTIG}_0_{targets.SPECIES}_{targets.SAMPLE}_diploid"
+    assert sample.targets("indel_mutation_call")[scan].options["memory"] == memory
