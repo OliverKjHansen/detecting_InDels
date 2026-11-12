@@ -218,14 +218,17 @@ Parameters:
 | Long-period sub-windows, their overlap, and TRF's time limit on each | 500 kb, plus 10 kb on each side; 30 min | `repeats.long_period_sub_window_size`, `repeats.long_period_overlap`, `repeats.long_period_timeout` |
 | Excluded homopolymer runs | 6 bp or more | `repeats.homopolymer_min_length` |
 | Excluded periods | 7 (one above `repeats.periods`) to 2000 | `repeats.long_period_max` |
-| InDel scan window | 10 Mb | `scan.window_size` |
+| InDel scan window, and workflow 3's windows per job (scanned at the same time, one core and the window's memory each) | 10 Mb; 4 | `scan.window_size`, `scan.windows_per_job` |
+| Workflow 3: the contigs merged in one job, by their total length | 500 Mb (chk: 13 jobs of each merge) | `scan.merge_bp_per_job` |
 | Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
 | Minimum kmerQ, as the key `kmerQ_pass` | 93 | `strata.min_kmerq` |
+| Workflow 3: the bins of `inner_flank_q` and `outer_flank_q`; the inserted bases' minimum quality | 60, 93; 93 | `strata.flank_quality_bins`, `strata.min_inserted_quality` |
+| Workflow 3's cube (ticket 49): the keys it leaves out, and its own bins of the nearest other event, mapping quality and passes | `strand_passes_bin`; 10, 20, 50, 100, 1000 bp; 1, 20, 60; 7, 12, 17 | `strata.nonrepetitive_without`, `strata.nonrepetitive_bins` |
 | Bins of read length and of distance to the read end, keys on calls and opportunities | 4, 8, 12, 16, 20 kb; 25, 100, 300, 500, 1000 bp | `strata.read_length_bins`, `strata.read_end_distance_bins` |
 | Bins of mapping quality, passes, predicted accuracy, passes on the weaker strand, and distance to the nearest other event in the read | 1, 10, 20, 30, 40, 50, 60; 5, 7, 10, 12, 15, 18, 20, 25, 30; 0.99, 0.999, 0.9999; 2, 5, 10; 5, 10, 20, 25, 35, 50, 100, 300, 500, 1000 bp | `strata.mapq_bins`, `.passes_bins`, `.accuracy_bins`, `.strand_passes_bins`, `.nearby_event_bins` |
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
-| The definition of a final call: the values each key keeps, on calls and opportunities alike | `kmerQ_pass` = `pass`; workflow 4 also `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `final_filters.repeat_keep` |
+| The definition of a final call: the values each key keeps, on calls and opportunities alike; then workflow 3's steps on the calls only | workflow 3: `inner_flank_q` ≥ 93, `outer_flank_q` ≥ 60, `base_after_masked` = `no`; then the inserted bases, the haploid check and the hap1/hap2 test. Workflow 4: `kmerQ_pass` = `pass`, `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `.nonrepetitive_keep`, `.nonrepetitive_calls_only`, `.repeat_keep` |
 | SMRT Cells taken to be capped, and dropped, if none of their reads' base qualities is above; reads looked at per sample | Q40; 100,000 | `final_filters.capped_quality`, `precompute.smrt_cell_reads` |
 | Sequel II samples (the others are Revio) | da1, ob2v, stephan, carl, mbewe, samson | `sequel_ii_samples` |
 | Bases a read must cover on each side of a tract to count for it (workflow 4) | 25 bp | `scan.min_tract_flank` |
@@ -502,9 +505,9 @@ and every unresolved-haplotype region. Intermediates go to
 | Step | Target | Runs per | Output |
 |---|---|---|---|
 | 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
-| 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid` | 10 Mb window | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
-| 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid` | contig | `calls/{contig}.tsv`, `fastq/{contig}.fastq.gz` |
-| 3b. Sum the opportunities | `non_rep_MergeOpportunities_{contig}_{species}_{sample}_diploid` | contig | `opportunities/{contig}.parquet` |
+| 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid`, named after its first window | `scan.windows_per_job` 10 Mb windows, scanned at the same time | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
+| 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid`, named after its first contig | contigs adding up to `scan.merge_bp_per_job`, one after the other | `calls/{contig}.tsv`, `fastq/{contig}.fastq.gz` |
+| 3b. Sum the opportunities | `non_rep_MergeOpportunities_{contig}_{species}_{sample}_diploid`, named after its first contig | the same contigs; a sum that fails its check is retried up to three times in the job (ticket 41) | `opportunities/{contig}.parquet` |
 | 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 4b. Remap to each haplotype | `non_rep_HaplotypeMapping_{haplotype}_{species}_{sample}_diploid` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
@@ -814,10 +817,20 @@ tract and two bases on each side (see [Workflow 4](#workflow-4-indels-inside-rep
 
 HiFi base qualities are capped at 93, so kmerQ ≥ 93 means every base in the
 window is at the maximum. The scans write the threshold (`strata.min_kmerq`)
-as the key `kmerQ_pass` on calls and opportunities alike, and final filtering
-keeps `kmerQ_pass` = `pass` on both (`--keep kmerQ_pass=pass`). The calls keep
-the raw `kmerQ` as well; the opportunities don't, so another threshold needs a
-new scan.
+as the key `kmerQ_pass` on calls and opportunities alike. Workflow 4's final
+filtering keeps `kmerQ_pass` = `pass` on both. The calls keep the raw `kmerQ`
+as well.
+
+Workflow 3 tests kmerQ by position (ticket 49,
+artefact_descriptions/kmerq_results.md). The keys `inner_flank_q` (L1 and R1,
+the bases next to the event) and `outer_flank_q` (L2 and R2) bin each pair's
+lowest quality at 60 and 93, and final filtering keeps L1 and R1 at Q93 and L2
+and R2 at Q60 or more, on calls and opportunities alike. An insertion call's
+inserted bases must also all be at `strata.min_inserted_quality` (93): that
+test is on the calls only, as an opportunity has no inserted bases, so the
+insertions' rate is low by the share of real insertions it removes (s in
+kmerq_results.md). The calls carry each flank base's quality and the inserted
+bases' lowest.
 
 ### Haploid concordance
 
@@ -854,11 +867,13 @@ nearest matching haploid InDel: 0 at the same place, more where the two
 alignments put an InDel in a repeat at different places. Without a match it is
 `NA`.
 
-The check is a column, not a filter: final filtering keeps calls whatever their
-`haploid_check`, and the filter report counts the calls without one. It is to be
-compared with the [hap1/hap2 test](#the-hap1hap2-test) before the definition of
-a final call is settled. Tables made before this version dropped the calls the check failed,
-with four bugs in it that failed real InDels (H1–H4 in
+The check is a column of the calls. Workflow 3's final filtering drops the
+calls it fails, keeping `NA`, as a step on the calls only (ticket 49), and the
+filter report counts the calls it removes and those without a check. Which of
+it and the [hap1/hap2 test](#the-hap1hap2-test) a final call must pass is
+ticket 43; each step can be switched off in `final_filters.nonrepetitive_calls_only`.
+Tables made before ticket 18 dropped the calls the check failed, with four bugs
+in it that failed real InDels (H1–H4 in
 [the review](documents/nonrepetitive_indel_review.md)).
 
 ### The hap1/hap2 test
@@ -873,7 +888,8 @@ InDel anywhere in the stretch it can slide over, gives `hap1_check` and
 `hap2_check`: True, False, or `NA` where it cannot be made (no flag 0 or 16
 record, the call clipped off). True in both is what a mutation looks like;
 True in one only, a germline difference. Like the haploid check it is a
-column, not a filter.
+column, and workflow 3's final filtering drops the calls False in either,
+keeping `NA`, on the calls only (ticket 49).
 
 ### Distance to the read end
 
@@ -909,34 +925,46 @@ each on both tables:
    first `precompute.smrt_cell_reads` alignments, so every table of a sample
    drops the same cells; a cell not among those reads is kept. The report's
    note lists the cells dropped.
-2. **The kept values.** Each key under `final_filters.keep`, and for workflow 4
-   under `final_filters.repeat_keep`, keeps the rows whose value is one of
-   those listed: `kmerQ_pass` = `pass`; in workflow 4 also
-   `read_end_distance_bin` from `100-300` on. A filter on a key that is `NA`
-   throughout the sample, a tag its platform lacks (Sequel II reads have no
-   subread tags, and mbewe's and samson's no `np`), is skipped for it and
-   noted (Q15).
+2. **The kept values.** Each key under `final_filters.keep` (both workflows),
+   then `final_filters.nonrepetitive_keep` (workflow 3) or
+   `final_filters.repeat_keep` (workflow 4), keeps the rows whose value is one
+   of those listed. Workflow 3: kmerQ by position (`inner_flank_q` = `>=93`,
+   `outer_flank_q` from `60-93` on) and `base_after_masked` = `no`. Workflow 4:
+   `kmerQ_pass` = `pass` and `read_end_distance_bin` from `100-300` on. A
+   filter on a key that is `NA` throughout the sample, a tag its platform
+   lacks (Sequel II reads have no subread tags, and mbewe's and samson's no
+   `np`), is skipped for it and noted (Q15). Nothing is filtered on the read
+   end in workflow 3: `read_end_distance_bin` is a key to filter on later.
+3. **On the calls only** (workflow 3, `final_filters.nonrepetitive_calls_only`,
+   ticket 49): an insertion's inserted bases (`inserted_bases_pass`), the
+   haploid check (`haploid_check`) and the hap1/hap2 test (`hap1_check`,
+   `hap2_check`). These are properties of the call's read, which the
+   opportunities don't have (Q7), so each lowers the rate by the real calls it
+   removes too, and the report says so. `NA`, a call that can't be checked, is
+   kept. Which haplotype check a final call must pass is ticket 43.
 
 Every row of both outputs gets a `platform` column: `Sequel II` for the samples
 under `sequel_ii_samples`, else `Revio`. Changing a filter or a threshold is a
 change to `final_filters` and a rerun of this step: a labelled sensitivity
 analysis.
 
-`filter_report.tsv` has one row per step (tab-separated): the calls and the
-opportunities (summed counts) before and after it, the calls left without a
-haploid check, and a note:
+`filter_report.tsv` has one row per step (tab-separated): the tables it applies
+to (`both`, or `calls`), the calls and the opportunities (summed counts) before
+and after it and removed by it, the calls left without a haploid check, and a
+note:
 
 ```
-filter              calls_before  calls_after  opportunities_before  opportunities_after  haploid_check_missing  note
-input               …             …            …                     …                    …
-capped_smrt_cells   …             …            …                     …                    …                      the cells dropped
-kmerQ_pass=pass     …             …            …                     …                    …
+filter                     applies_to  calls_before  calls_after  calls_removed  opportunities_before  opportunities_after  opportunities_removed  haploid_check_missing  note
+input                      both        …             …            0              …                     …                    0                      …
+capped_smrt_cells          both        …             …            …              …                     …                    …                      …                      the cells dropped
+inner_flank_q=>=93         both        …             …            …              …                     …                    …                      …
+haploid_check=True,NA      calls       …             …            …              …                     …                    0                      …                      calls only: …
 ```
 
 `haploid_check_missing` counts the calls left after the step that have no
 haploid check (`NA`): their read had no usable haploid alignment, or the
-alignment clipped the call off. The haploid check drops no call, so the `input`
-row counts every call. Values the callers write as `NA` stay `NA` in the output.
+alignment clipped the call off. Values the callers write as `NA` stay `NA` in
+the output.
 
 ### What the opportunities go through
 
@@ -1084,6 +1112,10 @@ positions in the read; the position on the contig is `position`.
 | `indel_class`, `size` | workflow 4 only: `slippage` or `other` (see [InDel size](#indel-size)), and the InDel's length |
 | `tract_copies_bin`, `tract_purity_bin`, `left_flank_bin`, `right_flank_bin` | workflow 4 only, keys: see [Keys](#keys) |
 | the keys | `tissue`, `kmerQ` and the other keys, the same columns as in the opportunity table: see [Keys](#keys) |
+| `qual_L2`, `qual_L1`, `qual_R1`, `qual_R2` | workflow 3 only (ticket 49): the base quality of the two read bases before the event and the two after it, the bases kmerQ tests |
+| `sx_L1`, `sx_R1` | workflow 3 only: subreads mismatching at L1 and R1, the read bases next to the event (the anchor, and the first base after the deletion or after the inserted bases); `NA` without subread tags |
+| `inserted_min_quality`, `inserted_bases_pass` | workflow 3 only: an insertion's lowest inserted base quality, and `pass` if it reaches `strata.min_inserted_quality`, else `fail`; `NA` for a deletion |
+| `mask_distance` | workflow 3 only: bases from the event (the anchor to the base after) to the nearest masked base: 0 if the base after a deletion is masked, 1 if a masked base is right next to it; `NA` if none is within 1,000 bp |
 | `bitflag_hap`, `contig_hap`, `pos_1based_hap`, `map_mapq` | the read's alignment to the haploid assembly: flag, contig, position and mapping quality |
 | `haploid_check` | whether the same InDel is in the haploid alignment, anywhere it can slide; `NA` where that cannot be checked. See [Haploid concordance](#haploid-concordance) |
 | `distance_to_indel_in_hap` | read bases from the call to the matching haploid InDel (0 means the same place; more where the two alignments put an InDel in a repeat at different places). `NA` without a match. |
@@ -1156,11 +1188,15 @@ tables.
 | `smrt_cell` | the SMRT Cell (movie): the first part of the read's name |
 | `kmerQ_pass` | `pass` if every base tested has at least `strata.min_kmerq`, else `fail`; final filtering keeps `pass` on both tables. Calls also carry the raw `kmerQ`. |
 | `read_end_distance_bin` | distance from the anchor to the nearer end of the read's alignment, binned by `strata.read_end_distance_bins`. An opportunity's anchor is the base before its k-mer or gap. |
-| `mapQ_bin` | the read's mapping quality to the diploid assembly, binned by `strata.mapq_bins` (N1) |
-| `np_bin`, `rq_bin` | the read's passes (`np`) and predicted accuracy (`rq`), binned by `strata.passes_bins` and `strata.accuracy_bins`; `NA` without the tag |
-| `strand_passes_bin` | full passes on the weaker strand of the molecule, the smaller of `fn` and `rn`, binned by `strata.strand_passes_bins`; `NA` without the tags |
-| `nearby_event_bin` | distance from the anchor to the read's nearest other InDel or mismatch with the assembly, binned by `strata.nearby_event_bins`; `none` if the read has none. Events at the anchor itself, such as the call's own InDel, don't count. |
+| `mapQ_bin` | the read's mapping quality to the diploid assembly, binned by `strata.mapq_bins` (N1); in workflow 3 by `strata.nonrepetitive_bins.mapq_bins` |
+| `np_bin`, `rq_bin` | the read's passes (`np`) and predicted accuracy (`rq`), binned by `strata.passes_bins` (in workflow 3 `strata.nonrepetitive_bins.passes_bins`) and `strata.accuracy_bins`; `NA` without the tag |
+| `strand_passes_bin` | full passes on the weaker strand of the molecule, the smaller of `fn` and `rn`, binned by `strata.strand_passes_bins`; `NA` without the tags. Workflow 4 only since ticket 49 (`strata.nonrepetitive_without`); workflow 3's calls keep `fn` and `rn` |
+| `nearby_event_bin` | distance from the anchor to the read's nearest other InDel or mismatch with the assembly, binned by `strata.nearby_event_bins` (in workflow 3 `strata.nonrepetitive_bins.nearby_event_bins`); `none` if the read has none. Events at the anchor itself, such as the call's own InDel, don't count. |
 | `subread_support` | lowest share of covering subreads that match (`sm`/`sa`), among the bases tested, binned by `strata.subread_support_bins`; `NA` for reads without subread tags (Sequel II) |
+| `inner_flank_q`, `outer_flank_q` | workflow 3 only (ticket 49): the lowest base quality of L1 and R1, the read bases next to the event, and of L2 and R2, the two outside them, binned by `strata.flank_quality_bins` (`<60`, `60-93`, `>=93`). Final filtering keeps `inner_flank_q` = `>=93` and `outer_flank_q` from `60-93` on: kmerQ by position, see [kmerQ](#kmerq) |
+| `junction_disagreement` | workflow 3 only: `yes` if a subread mismatches the read at L1 or R1, else `no`; `NA` without subread tags |
+| `repeats_next` | workflow 3 only: for a deletion, `yes` if the deleted bases repeat right before or right after them (as AC in ACAC), else `no`; from the assembly for a call, which lacks them, and from the read for an opportunity. `NA` for an insertion |
+| `base_after_masked` | workflow 3 only: `yes` if the base after a deletion is masked. The mask test covers the anchor and the deleted bases, not the base after; the class the expected rates are for excludes these deletions. Always `no` for an insertion, whose mask test covers it. Final filtering keeps `no` |
 | `tract_copies_bin`, `tract_purity_bin` | workflow 4 only: the tract's copies and purity (`model_purity`), binned by `strata.tract_copies_bins` and `strata.tract_purity_bins` (`>=100` is a pure tract) |
 | `left_flank_bin`, `right_flank_bin` | workflow 4 only: how many bases of the read's alignment lie before the tract and after it, binned by `strata.read_end_distance_bins`; at least `scan.min_tract_flank` |
 
@@ -1207,9 +1243,10 @@ need no approximation.
   unresolved-haplotype regions; `bp`, their bases; `contigs_bp`, the bases of
   the contigs analysed; and `share`, `bp` over `contigs_bp`, the share of the
   genome both InDel workflows leave out for them; then `species` and `sample`.
-- `filter_report.tsv`: `filter`, `calls_before`, `calls_after`,
-  `opportunities_before`, `opportunities_after`, `haploid_check_missing`,
-  `note`, see [the report](#final-filtering-and-the-filter-report).
+- `filter_report.tsv`: `filter`, `applies_to`, `calls_before`, `calls_after`,
+  `calls_removed`, `opportunities_before`, `opportunities_after`,
+  `opportunities_removed`, `haploid_check_missing`, `note`, see
+  [the report](#final-filtering-and-the-filter-report).
 - `indels_classified.tsv`: `indels.tsv` plus the five columns under
   [Germline or somatic](#tissue-and-cell-type-labels).
 

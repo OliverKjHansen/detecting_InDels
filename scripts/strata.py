@@ -36,7 +36,14 @@ Read = namedtuple("Read", "name tissue methylation_bin length reverse mapq passe
 # subread tags), the distance from the anchor to the nearer end of the read's
 # alignment, and the distance from the anchor to the read's nearest other
 # InDel or mismatch (None if it has none).
-Site = namedtuple("Site", "qualities support read_end_distance nearest_event")
+#
+# Workflow 3 also fills (ticket 49), None elsewhere: the disagreeing subreads
+# (sx) at the two read bases next to the event, L1 and R1 (None without subread
+# tags); for a deletion, whether the deleted bases repeat right before or right
+# after them (None for an insertion); and whether the base after the event is
+# masked (only a deletion's can be: the mask test covers an insertion's).
+Site = namedtuple("Site", "qualities support read_end_distance nearest_event "
+                          "junction_sx repeats_next base_after_masked", defaults=(None, None, None))
 
 # What a tract key sees, for one tract in one read that spans it: the tract's
 # copies and purity (model_purity, %), and how many bases of the read's
@@ -109,6 +116,31 @@ def keys(**parameters):
     return read_keys, site_keys
 
 
+def yes_no(value):
+    return "NA" if value is None else ("yes" if value else "no")
+
+
+def nonrepetitive_site_keys(**parameters):
+    """
+    Workflow 3's own site keys (ticket 49), on top of keys(): coarse, so the
+    opportunity cube stays small; the calls carry the details as columns of
+    their own (utilities.CALL_DETAIL_COLUMNS).
+    """
+    flank_bin = binned(parameters["flank_quality_bins"])
+    return [
+        # kmerQ by position (artefact_descriptions/kmerq_results.md): the
+        # lowest base quality of the two bases next to the event, L1 and R1,
+        # and of the two outside them, L2 and R2. site.qualities is L2 L1 R1 R2.
+        ("inner_flank_q", lambda site: flank_bin(min(site.qualities[1], site.qualities[2]))),
+        ("outer_flank_q", lambda site: flank_bin(min(site.qualities[0], site.qualities[3]))),
+        # A subread that disagrees with the read at L1 or R1
+        # (artefact_descriptions/false_positive_deletions.md); NA without tags.
+        ("junction_disagreement", lambda site: yes_no(None if site.junction_sx is None else max(site.junction_sx) > 0)),
+        ("repeats_next", lambda site: yes_no(site.repeats_next)),
+        ("base_after_masked", lambda site: yes_no(site.base_after_masked)),
+    ]
+
+
 def tract_keys(**parameters):
     """Workflow 4's tract keys: a list of (column name, function). `parameters` as for keys()."""
     copies_bin = binned(parameters["tract_copies_bins"])
@@ -124,10 +156,21 @@ def tract_keys(**parameters):
 
 
 class Strata:
-    """The keys of one scan: their column names, and their values for a read, a site or a tract."""
+    """
+    The keys of one scan: their column names, and their values for a read, a
+    site or a tract. `nonrepetitive` gives workflow 3's (ticket 49): its own
+    site keys added, the keys under `nonrepetitive_without` left out, and the
+    bins under `nonrepetitive_bins` in place of the shared ones.
+    """
 
-    def __init__(self, **parameters):
+    def __init__(self, nonrepetitive=False, **parameters):
+        if nonrepetitive:
+            parameters = {**parameters, **(parameters.get("nonrepetitive_bins") or {})}
         self.read_keys, self.site_keys = keys(**parameters)
+        if nonrepetitive:
+            without = set(parameters.get("nonrepetitive_without") or ())
+            self.read_keys = [key for key in self.read_keys if key[0] not in without]
+            self.site_keys = [key for key in self.site_keys if key[0] not in without] + nonrepetitive_site_keys(**parameters)
         self.columns = [name for name, _ in self.read_keys + self.site_keys]
         self.tract_keys = tract_keys(**parameters)
         self.tract_columns = [name for name, _ in self.tract_keys]

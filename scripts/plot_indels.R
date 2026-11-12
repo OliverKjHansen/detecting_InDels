@@ -146,5 +146,138 @@ if ("sa" %in% colnames(indels)) {
   message("Skipping subread coverage plot: 'sa' column not found")
 }
 
+# ---------- Workflow 3's own columns (ticket 49) ----------
+# read.delim turns True/False into TRUE/FALSE: a check passes if it is TRUE, or
+# NA (it couldn't be made).
+passes_or_na <- function(x) is.na(x) | toupper(as.character(x)) == "TRUE"
+has <- function(...) all(c(...) %in% colnames(indels))
+if (has("indel_string")) indels$size <- factor(nchar(indels$indel_string))
+
+# ---------- Plot 9: kmerQ by position ----------
+if (has("inner_flank_q", "outer_flank_q")) {
+  levels_q <- c("<60", "60-93", ">=93")
+  by_flank <- indels %>%
+    mutate(inner_flank_q = factor(inner_flank_q, levels_q), outer_flank_q = factor(outer_flank_q, levels_q)) %>%
+    count(indel_type, inner_flank_q, outer_flank_q)
+  p9 <- ggplot(by_flank, aes(x = outer_flank_q, y = inner_flank_q, fill = n)) +
+    geom_tile(colour = "white") +
+    geom_text(aes(label = n), size = 3) +
+    scale_fill_gradient(low = "#cde2fb", high = "#184f95", trans = "log10") +
+    facet_wrap(~ indel_type) +
+    labs(title = "kmerQ by position: the lowest quality of L1, R1 (inner) and of L2, R2 (outer)",
+         subtitle = "The proposed rule keeps inner >=93 and outer 60-93 or >=93 (kmerq_results.md)",
+         x = "Outer flanks (L2, R2)", y = "Inner flanks (L1, R1)", fill = "Calls") +
+    theme_minimal()
+  print(p9)
+}
+
+# ---------- Plot 10: an insertion's inserted bases ----------
+if (has("inserted_min_quality", "size")) {
+  inserted <- indels %>% filter(indel_type == "insertion", !is.na(inserted_min_quality))
+  if (nrow(inserted) > 0) {
+    p10 <- ggplot(inserted, aes(x = as.numeric(inserted_min_quality))) +
+      geom_histogram(binwidth = 1, fill = "#2a78d6") +
+      facet_wrap(~ size, scales = "free_y", labeller = label_both) +
+      geom_vline(xintercept = 93, linetype = "dashed", color = "red") +
+      labs(title = "Insertion calls: the lowest base quality among the inserted bases",
+           subtitle = "Final filtering keeps the calls at 93 (calls only)",
+           x = "Lowest inserted base quality", y = "Calls") +
+      theme_minimal()
+    print(p10)
+  }
+}
+
+# ---------- Plot 11: subreads disagreeing at the junction ----------
+if (has("junction_disagreement", "size")) {
+  p11 <- ggplot(indels, aes(x = size, fill = addNA(factor(junction_disagreement)))) +
+    geom_bar(position = "fill") +
+    facet_wrap(~ indel_type) +
+    labs(title = "A subread that disagrees with the read at L1 or R1",
+         x = "Size (bp)", y = "Share of calls", fill = "Disagreeing") +
+    theme_minimal()
+  print(p11)
+}
+
+# ---------- Plot 12: the distance to the mask ----------
+if (has("mask_distance", "size")) {
+  distance_bins <- c("0", "1-5", "6-10", "11-20", "21-50", "51-100", "101-1000", "none within 1000")
+  by_distance <- indels %>%
+    mutate(d = suppressWarnings(as.numeric(mask_distance)),
+           bin = factor(case_when(is.na(d) ~ "none within 1000", d == 0 ~ "0", d <= 5 ~ "1-5", d <= 10 ~ "6-10",
+                                  d <= 20 ~ "11-20", d <= 50 ~ "21-50", d <= 100 ~ "51-100", TRUE ~ "101-1000"),
+                        distance_bins))
+  p12 <- ggplot(by_distance, aes(x = bin, fill = size)) +
+    geom_bar(position = "dodge") +
+    facet_wrap(~ indel_type, scales = "free_y") +
+    labs(title = "Distance from the event (anchor to base after) to the nearest masked base",
+         subtitle = "0: the base after a deletion is masked; final filtering drops those calls and their opportunities",
+         x = "Distance (bp)", y = "Calls", fill = "Size (bp)") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  print(p12)
+}
+
+# ---------- Plot 13: deletions whose bases repeat next to them ----------
+if (has("repeats_next", "size")) {
+  deletions <- indels %>% filter(indel_type == "deletion")
+  if (nrow(deletions) > 0) {
+    p13 <- ggplot(deletions, aes(x = size, fill = addNA(factor(repeats_next)))) +
+      geom_bar(position = "fill") +
+      labs(title = "Deletion calls whose deleted bases repeat right before or after them (ACAC -> AC)",
+           subtitle = "false_positive_deletions.md: 80% of 2 bp calls, against 42% of real 2 bp deletions",
+           x = "Size (bp)", y = "Share of calls", fill = "Repeat next") +
+      theme_minimal()
+    print(p13)
+  }
+}
+
+# ---------- Plot 14: the calls through the filters (calls only) ----------
+# Final filtering's steps for workflow 3 (config.yaml final_filters), then the
+# candidates of false_positive_deletions.md. Counted on the calls only: final
+# filtering applies the keys to the opportunities too, and its filter report
+# counts both.
+steps <- list(
+  list("all calls", "", function(d) rep(TRUE, nrow(d))),
+  list("+ unique", "unique", function(d) d$unique == "unique"),
+  list("+ kmerQ by position", c("inner_flank_q", "outer_flank_q"),
+       function(d) d$inner_flank_q == ">=93" & d$outer_flank_q %in% c("60-93", ">=93")),
+  list("+ base after not masked", "base_after_masked", function(d) d$base_after_masked == "no"),
+  list("+ inserted bases at Q93", "inserted_bases_pass",
+       function(d) is.na(d$inserted_bases_pass) | d$inserted_bases_pass == "pass"),
+  list("+ haploid check", "haploid_check", function(d) passes_or_na(d$haploid_check)),
+  list("+ hap1/hap2 test", c("hap1_check", "hap2_check"),
+       function(d) passes_or_na(d$hap1_check) & passes_or_na(d$hap2_check)),
+  list("candidate: no disagreeing subread at L1, R1", "junction_disagreement",
+       function(d) is.na(d$junction_disagreement) | d$junction_disagreement == "no"),
+  list("candidate: read >= 8 kb", "read_length", function(d) as.numeric(d$read_length) >= 8000),
+  list("candidate: 2 bp deletions don't repeat next", c("repeats_next", "size"),
+       function(d) !(d$indel_type == "deletion" & d$size == "2" & d$repeats_next %in% "yes"))
+)
+if (has("indel_type", "size")) {
+  keep <- rep(TRUE, nrow(indels))
+  funnel <- list()
+  for (step in steps) {
+    if (!all(step[[2]] %in% c("", colnames(indels)))) {
+      message("Skipping funnel step '", step[[1]], "': columns not found")
+      next
+    }
+    keep <- keep & step[[3]](indels)
+    keep[is.na(keep)] <- FALSE
+    funnel[[length(funnel) + 1]] <- indels[keep, ] %>% count(indel_type, size) %>% mutate(step = step[[1]])
+  }
+  funnel <- bind_rows(funnel) %>% mutate(step = factor(step, unique(step)))
+  p14 <- ggplot(funnel, aes(x = step, y = n, colour = size, group = size)) +
+    geom_line() +
+    geom_point() +
+    scale_y_log10() +
+    facet_wrap(~ indel_type) +
+    labs(title = "Calls left after each filter (calls only)",
+         subtitle = "Final filtering's steps, then the candidates of false_positive_deletions.md",
+         x = NULL, y = "Calls (log scale)", colour = "Size (bp)") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  print(p14)
+}
+
 dev.off()
 message("Plots saved to: ", out_pdf)

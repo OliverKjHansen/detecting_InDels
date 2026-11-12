@@ -22,7 +22,8 @@ KEY_PARAMETERS = {"subread_support_bins": [0.8, 0.9, 1.0], "min_kmerq": 93,
                   "mapq_bins": [1, 20, 60], "passes_bins": [5, 10, 15, 20, 30],
                   "accuracy_bins": [0.99, 0.999, 0.9999], "strand_passes_bins": [2, 5, 10],
                   "nearby_event_bins": [5, 25, 100],
-                  "tract_copies_bins": [5, 10, 20, 50], "tract_purity_bins": [90, 95, 99, 100]}
+                  "tract_copies_bins": [5, 10, 20, 50], "tract_purity_bins": [90, 95, 99, 100],
+                  "flank_quality_bins": [60, 93], "min_inserted_quality": 93}
 
 
 def rows_of(text):

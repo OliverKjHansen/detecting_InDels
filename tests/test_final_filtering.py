@@ -146,6 +146,49 @@ def test_the_report_lists_every_step_with_rows_before_and_after(tmp_path):
     ]
 
 
+def test_the_report_counts_what_each_step_removes_and_from_which_tables(tmp_path):
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "high", ">=1", "False"),
+                 ("c", "m1", 93, "pass", "high", ">=1", "NA"), ("d", "m1", 10, "fail", "high", ">=1", "NA")]
+    opportunity_rows = [("m1", "pass", "low", ">=1", 30), ("m1", "pass", "high", ">=1", 60),
+                        ("m1", "fail", "high", ">=1", 10)]
+    _, _, report = final(tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows),
+                         "--keep", "kmerQ_pass=pass", "--keep", "depth_bin=high")
+    columns = ("filter", "applies_to", "calls_removed", "opportunities_removed")
+    assert [tuple(row[column] for column in columns) for row in report] == [
+        ("input", "both", "0", "0"),
+        ("capped_smrt_cells", "both", "0", "0"),
+        ("kmerQ_pass=pass", "both", "1", "10"),
+        ("depth_bin=high", "both", "1", "30"),
+    ]
+
+
+def test_a_calls_only_step_filters_the_calls_and_leaves_the_opportunities(tmp_path):
+    # Ticket 49: the haploid checks and an insertion's inserted bases are the call's own.
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "low", ">=1", "False"),
+                 ("c", "m1", 93, "pass", "low", ">=1", "NA"), ("d", "m1", 10, "fail", "low", ">=1", "False")]
+    opportunity_rows = [("m1", "pass", "low", ">=1", 90), ("m1", "fail", "low", ">=1", 10)]
+    final_calls, final_opportunities, report = final(
+        tmp_path, calls(tmp_path, call_rows), opportunities(tmp_path, opportunity_rows),
+        "--keep", "kmerQ_pass=pass", "--calls-only", "haploid_check=True,NA")
+    assert [row["readID"] for row in final_calls] == ["a", "c"]
+    assert sum(int(row["count"]) for row in final_opportunities) == 90
+    step = next(row for row in report if row["filter"] == "haploid_check=True,NA")
+    assert (step["applies_to"], step["calls_before"], step["calls_removed"],
+            step["opportunities_before"], step["opportunities_removed"]) == ("calls", "3", "1", "90", "0")
+    assert step["note"].startswith("calls only")
+
+
+def test_a_calls_only_step_on_a_column_the_calls_lack_is_skipped_and_noted(tmp_path):
+    # A check that wasn't made: the hap1/hap2 test on a window exported before it.
+    call_rows = [("a", "m1", 93, "pass", "low", ">=1", "True"), ("b", "m1", 93, "pass", "low", ">=1", "True")]
+    final_calls, _, report = final(tmp_path, calls(tmp_path, call_rows),
+                                   opportunities(tmp_path, [("m1", "pass", "low", ">=1", 5)]),
+                                   "--calls-only", "hap1_check=True")
+    assert len(final_calls) == 2
+    step = next(row for row in report if row["filter"] == "hap1_check=True")
+    assert (step["calls_removed"], step["note"]) == ("0", "skipped: the calls have no column hap1_check")
+
+
 # -- big tables (tickets 32, 40) -----------------------------------------------
 
 

@@ -2,7 +2,8 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import Pipeline, final_filtering_options, joined_calls, joined_reads, remapping, shell
+from pipeline import (Pipeline, final_filtering_options, grouped_by_length, joined_calls, joined_reads, remapping,
+                      retried, shell)
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -39,13 +40,18 @@ scripts           = pipeline.scripts
 # Repeat models whose tracts are masked out, from repetitive_dna.py.
 models = config["repeats"]["models"]
 
-# Step 2 splits each contig into windows of this many bp, one scan job per window.
+# Step 2 splits each contig into windows of this many bp, and runs this many
+# windows in one job, at the same time, one core each: fewer jobs, each as long
+# as its slowest window.
 chunk_size = config["scan"]["window_size"]
+windows_per_job = config["scan"]["windows_per_job"]
+# Step 3 merges the windows of contigs adding up to this many bp in one job.
+merge_bp_per_job = config["scan"]["merge_bp_per_job"]
 # The positions scanned, and the InDel sizes called and counted.
 scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
                 f"--indel-sizes {' '.join(map(str, config['scan']['indel_sizes']))} "
                 f"--flank-width {config['scan']['flank_width']} "
-                f"--key-parameters {pipeline.key_parameters()}")
+                f"--key-parameters {pipeline.key_parameters(nonrepetitive=True)}")
 
 
 
@@ -90,9 +96,10 @@ for species, samples in config["samples"].items():
         # The scan keeps a count per combination of keys until its window is
         # done. The bins split every count, and on Revio reads the subread
         # support's bins do too: ob007's scans needed up to 20 GB and more,
-        # every other sample's 6 GB at most (ticket 45).
+        # every other sample's 6 GB at most (ticket 45). This is per window;
+        # a job asks for it once for each of its windows.
         many_keys   = read_bins_inputs and not pipeline.is_listed("sequel_ii_samples", species, sample)
-        scan_memory = "40g" if many_keys else "10g"
+        window_memory_gb = 40 if many_keys else 10
 
         mask_dir          = folder("nonrepetitive_mask")
         calls_dir         = folder("nonrepetitive_calls")
@@ -144,6 +151,7 @@ for species, samples in config["samples"].items():
         window_calls         = {contig: [] for contig in long_contigs}
         window_opportunities = {contig: [] for contig in long_contigs}
         window_fastqs        = {contig: [] for contig in long_contigs}
+        windows              = []
 
         for contig, length in long_contigs.items():
             for start in range(0, length, chunk_size):
@@ -154,60 +162,81 @@ for species, samples in config["samples"].items():
                 window_calls[contig].append(w_calls)
                 window_opportunities[contig].append(w_opportunities)
                 window_fastqs[contig].append(w_fastq)
+                windows.append((contig, start, end, w_calls, w_opportunities, w_fastq))
 
-                # Step 2 — one pass over the window: call 1-3 bp InDels outside
-                # the mask, dropping those in a homopolymer context; count the
-                # opportunities (the denominator of the rate) with the same
-                # homopolymer rule; and write the reads carrying a call, for
-                # haploid remapping.
-                gwf.target(
-                    f"non_rep_Scan_{contig}_{start}_{species}_{sample}_{assembly_type}",
-                    inputs=[assembly, alignment, coverage, masks[contig]] + tissue_inputs + read_bins_inputs,
-                    outputs=[w_calls, w_opportunities, w_fastq],
-                    cores=1,
-                    memory=scan_memory,
-                    walltime="04:00:00",
-                ) << f"""
-                mkdir -p {folder("nonrepetitive_window_calls")} {folder("nonrepetitive_window_opportunities")} {folder("nonrepetitive_window_reads")}
-                python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} {tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq} {sample_scan_options}
-                """
+        # Step 2 — one pass over each window: call 1-3 bp InDels outside the
+        # mask, dropping those in a homopolymer context; count the
+        # opportunities (the denominator of the rate) with the same homopolymer
+        # rule; and write the reads carrying a call, for haploid remapping.
+        # windows_per_job windows per job, in the order above, scanned at the
+        # same time; the job fails if any of them fails.
+        for first in range(0, len(windows), windows_per_job):
+            group = windows[first:first + windows_per_job]
+            scans = "\n".join(
+                f"python {scripts}/nonrepetitive_scan.py {masks[contig]} {contig} {alignment} {assembly} {coverage} "
+                f"{tissue} {start} {end} {w_calls} {w_opportunities} {w_fastq} {sample_scan_options} & pids+=($!)"
+                for contig, start, end, w_calls, w_opportunities, w_fastq in group)
+            group_masks = list(dict.fromkeys(masks[contig] for contig, *_ in group))
+            contig, start = group[0][:2]
 
-        # Step 3 — join the windows back into one file per contig, one job per
-        # contig (ticket 37), so the contigs merge side by side and a failure
-        # costs one contig.
+            gwf.target(
+                f"non_rep_Scan_{contig}_{start}_{species}_{sample}_{assembly_type}",
+                inputs=[assembly, alignment, coverage] + group_masks + tissue_inputs + read_bins_inputs,
+                outputs=[path for window in group for path in window[3:]],
+                cores=len(group),
+                memory=f"{window_memory_gb * len(group)}g",
+                walltime="04:00:00",
+            ) << f"""
+set -euo pipefail
+mkdir -p {folder("nonrepetitive_window_calls")} {folder("nonrepetitive_window_opportunities")} {folder("nonrepetitive_window_reads")}
+pids=()
+{scans}
+for pid in "${{pids[@]}}"; do wait "$pid"; done
+"""
+
+        # Step 3 — join the windows back into one file per contig (ticket 37),
+        # for the contigs of a group (merge_bp_per_job of them) in one job,
+        # one after the other:
         #   calls:         concatenated, header kept from the first window
         #   FASTQ:         concatenated, a read carrying calls in two windows is
         #                  kept once
         # 3b — the opportunities, counts per contig, context, mapQ and the keys
         # of strata.py, summed over the windows into the cube's Parquet (ticket
-        # 40), in a job of their own: the calls and reads, and the remapping
-        # after them, don't depend on how the opportunities are kept.
-        for contig in long_contigs:
+        # 40), in jobs of their own: the calls and reads, and the remapping
+        # after them, don't depend on how the opportunities are kept. A sum
+        # that fails its check at random (ticket 41) is retried in the job, so
+        # the group's other contigs aren't summed again.
+        for group in grouped_by_length(long_contigs, merge_bp_per_job):
+            first = group[0]
+            joins = "\n".join(f"{joined_calls(window_calls[contig], calls[contig])}\n"
+                              f"{joined_reads(window_fastqs[contig], fastqs[contig])}" for contig in group)
             gwf.target(
-                f"non_rep_MergeWindows_{contig}_{species}_{sample}_{assembly_type}",
-                inputs=window_calls[contig] + window_fastqs[contig],
-                outputs=[calls[contig], fastqs[contig]],
+                f"non_rep_MergeWindows_{first}_{species}_{sample}_{assembly_type}",
+                inputs=[path for contig in group for path in window_calls[contig] + window_fastqs[contig]],
+                outputs=[path for contig in group for path in (calls[contig], fastqs[contig])],
                 cores=1,
                 memory="4g",
-                walltime="02:00:00",
+                walltime="04:00:00",
             ) << f"""
-            set -e
-            mkdir -p {calls_dir} {fastq_dir}
-            {joined_calls(window_calls[contig], calls[contig])}
-            {joined_reads(window_fastqs[contig], fastqs[contig])}
-            """
+set -e
+mkdir -p {calls_dir} {fastq_dir}
+{joins}
+"""
 
+            sums = "\n".join(retried(f"python {scripts}/opportunity_tables.py sum {opportunities[contig]} "
+                                     f"{' '.join(window_opportunities[contig])}") for contig in group)
             gwf.target(
-                f"non_rep_MergeOpportunities_{contig}_{species}_{sample}_{assembly_type}",
-                inputs=window_opportunities[contig],
-                outputs=[opportunities[contig]],
+                f"non_rep_MergeOpportunities_{first}_{species}_{sample}_{assembly_type}",
+                inputs=[path for contig in group for path in window_opportunities[contig]],
+                outputs=[opportunities[contig] for contig in group],
                 cores=4,   # DuckDB and the unpacking use them
                 memory="16g",
-                walltime="02:00:00",
+                walltime="04:00:00",
             ) << f"""
-            mkdir -p {opportunities_dir}
-            python {scripts}/opportunity_tables.py sum {opportunities[contig]} {' '.join(window_opportunities[contig])}
-            """
+set -e
+mkdir -p {opportunities_dir}
+{sums}
+"""
 
         fastq_list        = " ".join(fastqs.values())
         combined_fastq    = path("nonrepetitive_haploid_reads")
@@ -290,9 +319,12 @@ for species, samples in config["samples"].items():
         Rscript {scripts}/plot_indels.R {merged_indels} {plots_pdf}
         """
 
-        # Step 7 — final filtering, with a report of rows removed per step.
-        # These small tables are the results. The haploid check is a column
-        # of the calls, not a filter; the report counts the calls without one.
+        # Step 7 — final filtering, with a report of the rows each step removes.
+        # These small tables are the results. kmerQ by position and the base
+        # after a deletion apply to calls and opportunities alike; the
+        # inserted bases and the haplotype checks to the calls only (ticket 49,
+        # final_filters in config.yaml). The report counts the calls without a
+        # haploid check.
         results_calls         = path("nonrepetitive_results_calls")
         results_opportunities = path("nonrepetitive_results_opportunities")
         results_report        = path("nonrepetitive_results_report")

@@ -5,7 +5,7 @@ by what it removes from the calls alone. Writes the tables the notebooks read.
 
     python final_filtering.py <calls.tsv> <opportunities.parquet> <final_calls.tsv> <final_opportunities.parquet> \\
         <filter_report.tsv> --platform <Revio | "Sequel II"> --smrt-cells <smrt_cells.tsv> --capped-quality <Q> \\
-        [--keep COLUMN=VALUE[,VALUE...] ...]
+        [--keep COLUMN=VALUE[,VALUE...] ...] [--calls-only COLUMN=VALUE[,VALUE...] ...]
 
 A table is read and written as its name says: Parquet (the opportunity cube,
 ticket 40), or TSV, gzipped if the name ends in .gz, its values as written.
@@ -23,10 +23,21 @@ The steps, in order, each on both tables:
                      of the values. Skipped, and noted, when every row that
                      reaches it is NA in the column: a tag the sample's
                      platform lacks (Q15).
+  calls only         then each --calls-only COLUMN=VALUES: keep the calls whose
+                     COLUMN has one of the values. The opportunities are left
+                     as they are: the column is a property of the call's read
+                     or of its inserted bases, which an opportunity doesn't
+                     have (the haploid checks, an insertion's inserted bases;
+                     ticket 49). Such a step lowers the rate by what it
+                     removes from real calls too, and its note says so.
+                     Skipped like a --keep step unless NA is among the values,
+                     and skipped, and noted, if the calls have no such column
+                     (a check that wasn't made).
 
 Every row of both outputs gets a `platform` column. The report has one row per
-step, `input` first: the calls and the opportunities (summed counts) before and
-after it, the calls left without a haploid check, and a note.
+step, `input` first: the tables it applies to, the calls and the opportunities
+(summed counts) before and after it and removed by it, the calls left without a
+haploid check, and a note.
 """
 import argparse
 
@@ -65,46 +76,51 @@ class Table:
         return written[:at] + [platform_column] + written[at:]
 
 
+BOTH = ("calls", "opportunities")
+CALLS_ONLY_NOTE = "calls only: the opportunities can't take this test, so it also lowers the rate by the real calls it removes"
+
+
 class Step:
     """
-    One step: the rows it keeps, as an SQL condition, and the rows of each
-    table before and after it.
+    One step: the rows it keeps, as an SQL condition, the tables it applies
+    to, and the rows of each table before and after it.
     """
 
-    def __init__(self, step_name, keeps="true", note=""):
-        self.name, self.keeps, self.note = step_name, keeps, note
+    def __init__(self, step_name, keeps="true", note="", tables=BOTH):
+        self.name, self.keeps, self.note, self.tables = step_name, keeps, note, tables
         self.before, self.after = {}, {}
         self.haploid_check_missing = 0
 
     def row(self, has_haploid_check):
-        return {"filter": self.name, "calls_before": self.before.get("calls", 0),
-                "calls_after": self.after.get("calls", 0),
-                "opportunities_before": self.before.get("opportunities", 0),
-                "opportunities_after": self.after.get("opportunities", 0),
-                "haploid_check_missing": self.haploid_check_missing if has_haploid_check else "NA",
+        counts = {}
+        for name in BOTH:
+            before, after = self.before.get(name, 0), self.after.get(name, 0)
+            counts |= {f"{name}_before": before, f"{name}_after": after, f"{name}_removed": before - after}
+        return {"filter": self.name, "applies_to": "both" if self.tables == BOTH else ",".join(self.tables),
+                **counts, "haploid_check_missing": self.haploid_check_missing if has_haploid_check else "NA",
                 "note": self.note}
 
 
-def kept(steps):
-    """The SQL condition of the rows every one of the steps keeps."""
-    return " AND ".join(f"({step.keeps})" for step in steps) or "true"
+def kept(steps, table_name):
+    """The SQL condition of the rows of the table `table_name` that every one of the steps keeps."""
+    return " AND ".join(f"({step.keeps})" for step in steps if table_name in step.tables) or "true"
 
 
 def has_values(con, tables, steps, column):
     """
-    Whether a row that the steps leave, in either table, has a value other
-    than NA in `column`: whether the sample has that tag (Q15).
+    Whether a row that the steps leave, in any of the tables, has a value
+    other than NA in `column`: whether the sample has that tag (Q15).
     """
     return any(con.execute(f"SELECT bool_or(coalesce({identifier(column)}, '') <> 'NA') FROM {table.relation} "
-                           f"WHERE {kept(steps)}").fetchone()[0] for table in tables)
+                           f"WHERE {kept(steps, table.name)}").fetchone()[0] for table in tables)
 
 
 def record_rows(con, table, steps):
     """Records each step's rows of `table` before and after it, in one pass over the table."""
-    after = [f"{table.size()} FILTER (WHERE {kept(steps[:i + 1])})" for i in range(len(steps))]
+    after = [f"{table.size()} FILTER (WHERE {kept(steps[:i + 1], table.name)})" for i in range(len(steps))]
     missing = []
     if "haploid_check" in table.columns:
-        missing = [f"count(*) FILTER (WHERE {kept(steps[:i + 1])} AND {identifier('haploid_check')} = 'NA')"
+        missing = [f"count(*) FILTER (WHERE {kept(steps[:i + 1], table.name)} AND {identifier('haploid_check')} = 'NA')"
                    for i in range(len(steps))]
     total, *counts = con.execute(f"SELECT {', '.join([table.size()] + after + missing)} FROM {table.relation}").fetchone()
     before = total or 0
@@ -126,6 +142,7 @@ def main():
     parser.add_argument("--smrt-cells", required=True, metavar="TSV")
     parser.add_argument("--capped-quality", type=int, required=True, metavar="Q")
     parser.add_argument("--keep", action="append", default=[], metavar="COLUMN=VALUE[,VALUE...]")
+    parser.add_argument("--calls-only", action="append", default=[], metavar="COLUMN=VALUE[,VALUE...]")
     args = parser.parse_args()
 
     con = connect()
@@ -148,11 +165,23 @@ def main():
             steps.append(Step(keep, f"{identifier(column)} IN ({', '.join(map(literal, values.split(',')))})"))
         else:
             steps.append(Step(keep, note="skipped: NA throughout the sample"))
+    for keep in args.calls_only:
+        column, values = keep.split("=", 1)
+        values = values.split(",")
+        # A check that wasn't made, such as the hap1/hap2 test on a window
+        # exported before it, is skipped and noted rather than failing the run.
+        if column not in tables[0].columns:
+            steps.append(Step(keep, note=f"skipped: the calls have no column {column}", tables=("calls",)))
+        elif "NA" in values or has_values(con, tables[:1], steps, column):
+            steps.append(Step(keep, f"{identifier(column)} IN ({', '.join(map(literal, values))})",
+                              note=CALLS_ONLY_NOTE, tables=("calls",)))
+        else:
+            steps.append(Step(keep, note="skipped: NA throughout the sample", tables=("calls",)))
 
     for table in tables:
         record_rows(con, table, steps)
-        write(con, f"SELECT {', '.join(table.output_columns(args.platform))} FROM {table.relation} WHERE {kept(steps)}",
-              table.target)
+        write(con, f"SELECT {', '.join(table.output_columns(args.platform))} FROM {table.relation} "
+                   f"WHERE {kept(steps, table.name)}", table.target)
 
     has_haploid_check = "haploid_check" in tables[0].columns
     pandas.DataFrame([step.row(has_haploid_check) for step in steps]).to_csv(args.report, sep="\t", index=False)

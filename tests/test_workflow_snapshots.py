@@ -99,22 +99,31 @@ def test_workflow_4_reads_the_long_period_window_beds_workflow_2_writes(tmp_path
     assert written and read == written
 
 
-def test_workflow_3_merges_each_contig_in_its_own_job(tmp_path, monkeypatch):
-    # So contigs merge side by side, and a failure costs one contig. The
-    # opportunities are summed in a job of their own (ticket 40), so changing
-    # how leaves the calls and reads, and the remapping after them, as they are.
+@pytest.mark.parametrize("budget, groups", [(500_000_000, [["c1", "c2"]]), (10_000_000, [["c1"], ["c2"]])])
+def test_workflow_3_merges_each_contig_once_in_groups_up_to_the_budget(tmp_path, monkeypatch, budget, groups):
+    # Contigs adding up to scan.merge_bp_per_job are merged in one job (ticket
+    # 49). The opportunities are summed in jobs of their own (ticket 40), so
+    # changing how leaves the calls and reads, and the remapping after them,
+    # as they are. ape/s1's contigs: c1 (12 Mb) and c2 (1.5 Mb).
+    import yaml
     root = os.path.realpath(tmp_path)
     write_config(root)
+    with open(os.path.join(root, "config.yaml")) as handle:
+        config = yaml.safe_load(handle)
+    config["scan"]["merge_bp_per_job"] = budget
+    with open(os.path.join(root, "config.yaml"), "w") as handle:
+        yaml.safe_dump(config, handle)
     targets = load_targets("indel_mutation_call", root, monkeypatch)
-    for contig in ("c1", "c2"):
-        merge = targets[f"non_rep_MergeWindows_{contig}_ape_s1_diploid"]
-        assert merge["inputs"] and all(os.path.basename(path).startswith(f"{contig}_") for path in merge["inputs"])
-        assert sorted(os.path.basename(path) for path in merge["outputs"]) == [f"{contig}.fastq.gz", f"{contig}.tsv"]
-        opportunities = targets[f"non_rep_MergeOpportunities_{contig}_ape_s1_diploid"]
-        assert opportunities["inputs"] and all("/opportunities/chunks/" in path and
-                                               os.path.basename(path).startswith(f"{contig}_")
-                                               for path in opportunities["inputs"])
-        assert [os.path.basename(path) for path in opportunities["outputs"]] == [f"{contig}.parquet"]
+    for kind, suffixes in (("non_rep_MergeWindows_", [".fastq.gz", ".tsv"]), ("non_rep_MergeOpportunities_", [".parquet"])):
+        jobs = {name: target for name, target in targets.items() if name.startswith(kind) and name.endswith("_ape_s1_diploid")}
+        made = [sorted(os.path.basename(path) for path in target["outputs"]) for target in jobs.values()]
+        assert sorted(made) == sorted(sorted(f"{contig}{suffix}" for contig in group for suffix in suffixes)
+                                      for group in groups)
+        for target in jobs.values():
+            contigs = {os.path.basename(path).split(".")[0] for path in target["outputs"]}
+            assert target["inputs"] and all(os.path.basename(path).split("_")[0] in contigs for path in target["inputs"])
+            if kind == "non_rep_MergeOpportunities_":
+                assert all("/opportunities/chunks/" in path for path in target["inputs"])
 
 
 def test_workflow_4_sums_the_opportunities_in_their_own_job(tmp_path, monkeypatch):

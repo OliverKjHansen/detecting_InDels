@@ -169,12 +169,18 @@ def test_the_final_filters_keep_values_their_keys_can_take(cfg):
     bins = {"read_end_distance_bin": "read_end_distance_bins", "read_length_bin": "read_length_bins",
             "mapQ_bin": "mapq_bins", "subread_support": "subread_support_bins",
             "tract_copies_bin": "tract_copies_bins", "tract_purity_bin": "tract_purity_bins"}
-    labels = {"kmerQ_pass": {"pass", "fail"}}
+    bins |= {"inner_flank_q": "flank_quality_bins", "outer_flank_q": "flank_quality_bins"}
+    yes_no = {"yes", "no", "NA"}
+    labels = {"kmerQ_pass": {"pass", "fail"}, "junction_disagreement": yes_no, "repeats_next": yes_no,
+              "base_after_masked": yes_no, "inserted_bases_pass": {"pass", "fail", "NA"},
+              "haploid_check": {"True", "False", "NA"}, "hap1_check": {"True", "False", "NA"},
+              "hap2_check": {"True", "False", "NA"}}
     for column, name in bins.items():
         edges = cfg["strata"][name]
         bin_of = strata.binned(edges)
         labels[column] = {bin_of(value) for value in [edges[0] - 1, *edges]}
     filters = cfg["final_filters"]
-    for column, values in {**filters["keep"], **filters["repeat_keep"]}.items():
+    for column, values in {**(filters["keep"] or {}), **filters["nonrepetitive_keep"],
+                           **filters["nonrepetitive_calls_only"], **filters["repeat_keep"]}.items():
         assert column in labels, f"final_filters.{column}: add its labels to this test"
         assert set(map(str, values)) <= labels[column], f"final_filters.{column}: {values} are not all its labels"

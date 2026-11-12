@@ -26,6 +26,9 @@ import yaml
 # gives its core with this in the motif column.
 TIMED_OUT = "timed_out"
 
+# The entries of the `strata` block that only workflow 3's scan reads (ticket 49).
+NONREPETITIVE_STRATA = ("flank_quality_bins", "min_inserted_quality", "nonrepetitive_without", "nonrepetitive_bins")
+
 
 class Pipeline:
     def __init__(self, config_path="config.yaml", base=None):
@@ -86,9 +89,15 @@ class Pipeline:
                   ",".join(map(str, block["bin_edges"])), ",".join(map(str, block["bin_labels"]))]
         return shell(values)
 
-    def key_parameters(self):
-        """The scans' --key-parameters: the `strata` block, as JSON quoted for the shell."""
-        return shell([json.dumps(self.config["strata"], separators=(",", ":"))])
+    def key_parameters(self, nonrepetitive=False):
+        """
+        The scans' --key-parameters: the `strata` block, as JSON quoted for the
+        shell. Workflow 3's own entries only for workflow 3 (`nonrepetitive`),
+        so workflow 4's commands don't change with them.
+        """
+        strata = {key: value for key, value in self.config["strata"].items()
+                  if nonrepetitive or key not in NONREPETITIVE_STRATA}
+        return shell([json.dumps(strata, separators=(",", ":"))])
 
     @property
     def haplotypes(self):
@@ -120,15 +129,20 @@ class Pipeline:
 def final_filtering_options(config, species, sample, repeats=False):
     """
     final_filtering.py's options for one sample, as arguments: its platform
-    and the `final_filters` block of the config, with workflow 4's own filters
-    when `repeats`.
+    and the `final_filters` block of the config: the filters of both
+    workflows, then workflow 4's own when `repeats`, or else workflow 3's own
+    and its calls-only steps.
     """
     filters = config["final_filters"]
     sequel_ii = sample in ((config.get("sequel_ii_samples") or {}).get(species) or [])
     options = ["--platform", "Sequel II" if sequel_ii else "Revio",
                "--capped-quality", str(filters["capped_quality"])]
-    for column, values in {**filters["keep"], **(filters["repeat_keep"] if repeats else {})}.items():
+    own = filters["repeat_keep"] if repeats else filters["nonrepetitive_keep"]
+    for column, values in {**(filters["keep"] or {}), **own}.items():
         options += ["--keep", f"{column}={','.join(map(str, values))}"]
+    if not repeats:
+        for column, values in filters["nonrepetitive_calls_only"].items():
+            options += ["--calls-only", f"{column}={','.join(map(str, values))}"]
     return options
 
 
@@ -162,6 +176,33 @@ def into_file(output):
 # through a temporary file, so a job stopped part-way leaves no file gwf would
 # take as done (ticket 37). The opportunity tables are joined by
 # scripts/opportunity_tables.py (ticket 40).
+
+
+def grouped_by_length(lengths, budget):
+    """
+    The contigs in their order, in groups whose lengths add up to at most
+    `budget` bp; a contig longer than the budget is a group of its own.
+    `lengths`: {contig: bp}.
+    """
+    groups, total = [], 0
+    for contig, length in lengths.items():
+        if groups and total + length <= budget:
+            groups[-1].append(contig)
+            total += length
+        else:
+            groups.append([contig])
+            total = length
+    return groups
+
+
+def retried(command, attempts=3):
+    """
+    A shell command that runs `command` up to `attempts` times, until it
+    succeeds, and fails if every attempt does: for a step that fails at random
+    and leaves no output when it does (ticket 41's opportunity sums).
+    """
+    return (f"for attempt in $(seq {attempts}); do {command} && break; "
+            f"[ \"$attempt\" -lt {attempts} ] || exit 1; done")
 
 
 def joined_calls(inputs, output):

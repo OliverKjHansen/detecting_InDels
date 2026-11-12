@@ -91,22 +91,32 @@ def test_the_classification_scripts_get_their_cell_types_and_bins_from_the_confi
 def test_the_key_parameters_are_the_strata_block_as_one_shell_word(pipeline):
     import json
     import shlex
-    words = shlex.split(f"--key-parameters {pipeline.key_parameters()}")
+    from pipeline import NONREPETITIVE_STRATA
+    words = shlex.split(f"--key-parameters {pipeline.key_parameters(nonrepetitive=True)}")
     assert len(words) == 2
     assert json.loads(words[1]) == pipeline.config["strata"]
+    # Workflow 4's commands don't change with workflow 3's own entries (ticket 49).
+    repeats = json.loads(shlex.split(f"--key-parameters {pipeline.key_parameters()}")[1])
+    assert repeats == {key: value for key, value in pipeline.config["strata"].items() if key not in NONREPETITIVE_STRATA}
+    assert set(NONREPETITIVE_STRATA) <= set(pipeline.config["strata"])
 
 
 def test_final_filtering_gets_the_platform_and_the_filters_of_its_workflow():
     import shlex
     from pipeline import final_filtering_options, shell
     config = {"sequel_ii_samples": {"ape": ["s2"]},
-              "final_filters": {"keep": {"kmerQ_pass": ["pass"]}, "repeat_keep": {"read_end_distance_bin": [">=1000"]},
+              "final_filters": {"keep": {"depth_bin": ["high"]},
+                                "nonrepetitive_keep": {"inner_flank_q": [">=93"]},
+                                "nonrepetitive_calls_only": {"haploid_check": ["True", "NA"]},
+                                "repeat_keep": {"kmerQ_pass": ["pass"], "read_end_distance_bin": [">=1000"]},
                                 "capped_quality": 40}}
     revio = final_filtering_options(config, "ape", "s1")
-    assert revio == ["--platform", "Revio", "--capped-quality", "40", "--keep", "kmerQ_pass=pass"]
+    assert revio == ["--platform", "Revio", "--capped-quality", "40", "--keep", "depth_bin=high",
+                     "--keep", "inner_flank_q=>=93", "--calls-only", "haploid_check=True,NA"]
     sequel = final_filtering_options(config, "ape", "s2", repeats=True)
     assert sequel[:2] == ["--platform", "Sequel II"]
-    assert sequel[-2:] == ["--keep", "read_end_distance_bin=>=1000"]
+    assert sequel[4:] == ["--keep", "depth_bin=high", "--keep", "kmerQ_pass=pass",
+                          "--keep", "read_end_distance_bin=>=1000"]
     # The shell sees each argument as one word, so ">=" is no redirection.
     assert shlex.split(shell(sequel)) == sequel
 
@@ -115,6 +125,32 @@ def as_gwf_runs_it(command, tmp_path):
     """Run a target's command as gwf's Slurm script does: bash, stopping at the first failing command."""
     marker = tmp_path / "went_on"
     return subprocess.run(["bash", "-c", f"set -e\n{command}\ntouch {marker}"], capture_output=True), marker.exists()
+
+
+def test_contigs_are_grouped_in_order_up_to_the_budget():
+    from pipeline import grouped_by_length
+    lengths = {"a": 300, "b": 150, "c": 100, "d": 700, "e": 50, "f": 50}
+    assert grouped_by_length(lengths, 500) == [["a", "b"], ["c"], ["d"], ["e", "f"]]
+    # Every contig once, in its order.
+    groups = grouped_by_length(lengths, 1)
+    assert [contig for group in groups for contig in group] == list(lengths)
+
+
+def test_a_retried_command_runs_until_it_succeeds(tmp_path):
+    from pipeline import retried
+    counter = tmp_path / "tries"
+    # Fails the first time, succeeds the second.
+    flaky = f"n=$(cat {counter} 2>/dev/null || echo 0); echo $((n + 1)) > {counter}; [ \"$n\" -ge 1 ]"
+    done, went_on = as_gwf_runs_it(retried(flaky), tmp_path)
+    assert done.returncode == 0 and went_on and counter.read_text().strip() == "2"
+
+
+def test_a_retried_command_fails_the_job_when_every_attempt_fails(tmp_path):
+    from pipeline import retried
+    counter = tmp_path / "tries"
+    failing = f"n=$(cat {counter} 2>/dev/null || echo 0); echo $((n + 1)) > {counter}; false"
+    done, went_on = as_gwf_runs_it(retried(failing, attempts=3), tmp_path)
+    assert done.returncode != 0 and not went_on and counter.read_text().strip() == "3"
 
 
 def test_joining_reads_stops_the_job_and_leaves_no_file_when_a_window_cant_be_read(tmp_path):

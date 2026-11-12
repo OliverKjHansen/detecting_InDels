@@ -68,6 +68,28 @@ class Mask:
             return 0
         return self.starts[i + 1] - position if i + 1 < len(self.starts) else math.inf
 
+    def distance(self, first, last, limit):
+        """
+        Bases from the stretch first..last to the nearest masked base: 0 if
+        one is in it, 1 if one is right next to it; None if none is within
+        `limit` (or among the intervals kept).
+        """
+        i = bisect_right(self.starts, last) - 1
+        if i >= 0 and self.ends[i] > first:
+            return 0
+        found = []
+        if i >= 0:
+            found.append(first - (self.ends[i] - 1))
+        if i + 1 < len(self.starts):
+            found.append(self.starts[i + 1] - last)
+        return min(found) if found and min(found) <= limit else None
+
+
+def repeats_next(sequence, start, k):
+    """Whether the k bases from `start` repeat right before them or right after them."""
+    bases = sequence[start:start + k]
+    return (start >= k and sequence[start - k:start] == bases) or sequence[start + k:start + 2 * k] == bases
+
 
 def load_tissue_classification(tissue_file):
     """
@@ -142,6 +164,24 @@ def flanking(values, before, after):
     """
     return values[before - 1:before + 1] + values[after:after + 2]
 
+
+# How far from a call the distance to the mask is looked for, bp (ticket 49).
+MASK_DISTANCE_LIMIT = 1000
+
+# Workflow 3's call columns after the keys (ticket 49): the base quality of
+# L2, L1, R1 and R2; the subreads disagreeing at L1 and R1 (NA without subread
+# tags); an insertion's lowest inserted base quality, and whether it reaches
+# the strata block's min_inserted_quality (NA for a deletion); and the bases
+# from the anchor..base after to the nearest masked base (0: the base after is
+# masked; NA: none within MASK_DISTANCE_LIMIT).
+CALL_DETAIL_COLUMNS = ["qual_L2", "qual_L1", "qual_R1", "qual_R2", "sx_L1", "sx_R1",
+                       "inserted_min_quality", "inserted_bases_pass", "mask_distance"]
+
+
+def junction_sx(tags, before, after):
+    """The disagreeing subreads (sx) at read bases `before` (L1) and `after` (R1); None without subread tags."""
+    return None if tags is None else (tags[1][before], tags[1][after])
+
 def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_file, tissue_file,
                        window_start=None, window_end=None,
                        calls_out=None, opportunities_out=None, fastq_out=None,
@@ -178,6 +218,13 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     two read bases on each side of the event, never on the event's own bases,
     and are neither called nor counted without them (D3, D4).
 
+    Workflow 3's own keys (strata.nonrepetitive_site_keys, ticket 49) are
+    filled the same way for both: the subreads disagreeing at L1 and R1; for
+    a deletion, whether its bases repeat right before or after them (in the
+    assembly for a call, which lacks them, in the read for an opportunity) and
+    whether the base after them is masked. Nothing is filtered on them here:
+    final filtering does. The calls also carry CALL_DETAIL_COLUMNS.
+
     fastq_out gets every read carrying a call, once, as forward-strand FASTQ
     for haploid remapping.
 
@@ -193,10 +240,14 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
     sizes = range(smallest, largest + 1)
 
     fasta = pysam.FastaFile(fastafile)
-    mask = Mask(filters, window_start, window_end, reach=largest)
+    # The bases an event anchored in the window touches, the base after it,
+    # and MASK_DISTANCE_LIMIT on each side for the calls' distance to the mask.
+    mask = Mask(filters, None if window_start is None else window_start - MASK_DISTANCE_LIMIT, window_end,
+                reach=largest + 1 + MASK_DISTANCE_LIMIT)
     d = load_tissue_classification(tissue_file)
     classified = load_read_bins(read_bins_file)
-    strata = Strata(**key_parameters)
+    strata = Strata(nonrepetitive=True, **key_parameters)
+    min_inserted_quality = key_parameters["min_inserted_quality"]
 
     min_mapping_qual = 0 # to have more contorl over pysam
     min_base_qual = 0 #--||---
@@ -208,7 +259,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
         print("#contig", "start", "end", "ref", "alt",
         "indel_type","unique","indel_string","canonical_indel","context","read_length",
         "np","ec","rq","fn","rn","mapQ","sm","sx","sa","sm_pre","sx_pre","ToreadEnd","kmerQ",
-        "position","readID", "diploid_direction", "flank_sequence", *strata.columns,
+        "position","readID", "diploid_direction", "flank_sequence", *strata.columns, *CALL_DETAIL_COLUMNS,
         sep= "\t", file=calls_out) #header for output
 
     # Each read's ReadEntry, built once rather than at every position it
@@ -307,9 +358,10 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                     to_read_end = min(anchor - alignment.reference_start, entry.end - anchor)
                     nearest = nearest_other_event(entry.events, anchor)
 
-                    def keys(before, after):
+                    def keys(before, after, repeats=None, base_after_masked=False):
                         site = Site(flanking(base_qualities, before, after),
-                                    None if support is None else flanking(support, before, after), to_read_end, nearest)
+                                    None if support is None else flanking(support, before, after), to_read_end, nearest,
+                                    junction_sx(entry.tags, before, after), repeats, base_after_masked)
                         return entry.key + strata.of_site(site)
 
                     #quality, insertion   deletion of 1    deletion of 3
@@ -337,7 +389,12 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                         lexi, homopolymer = info
                         if homopolymer == True: # filter out homopolymers
                             continue
-                        data[("deletion", indel_length, lexi) + keys(read_pos - 1, read_pos + indel_length)] += 1
+                        # The base after the k-mer is masked if the unmasked
+                        # stretch from the anchor ends right before it.
+                        data[("deletion", indel_length, lexi)
+                             + keys(read_pos - 1, read_pos + indel_length,
+                                    repeats=repeats_next(read_seq, read_pos, indel_length),
+                                    base_after_masked=anchor_clear == indel_length + 1)] += 1
 
                 # ---- calls ----
                 if not calling:
@@ -376,11 +433,31 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
 
                 diploid_strand = "-" if alignment.is_reverse == True else "+"
 
+                # Workflow 3's own keys, as for the opportunities. A deletion
+                # call's read lacks the deleted bases: whether they repeat next
+                # to them is read from the assembly.
+                if indel < 0:
+                    start = max(0, position + 1 - indel_length)
+                    reference = fasta.fetch(contig, start, position + 1 + 2 * indel_length).upper()
+                    repeats = repeats_next(reference, position + 1 - start, indel_length)
+                    base_after_masked = clear == indel_length + 1
+                    window_last = position + indel_length + 1
+                    inserted_min = inserted_pass = "NA"
+                else:
+                    repeats, base_after_masked, window_last = None, False, position + 1
+                    inserted_min = min(base_qualities[read_pos + 1:read_pos + 1 + indel_length])
+                    inserted_pass = "pass" if inserted_min >= min_inserted_quality else "fail"
+
                 #quality check, as for the opportunities
                 #AA|ACG|TT
                 #00|xxx|00
                 site = Site(flanking(base_qualities, before, after),
-                            None if call_support is None else flanking(call_support, before, after), ToreadEnd, nearest)
+                            None if call_support is None else flanking(call_support, before, after), ToreadEnd, nearest,
+                            junction_sx(tags, before, after), repeats, base_after_masked)
+                at_junction = site.junction_sx or ("NA", "NA")
+                mask_distance = mask.distance(position, window_last, MASK_DISTANCE_LIMIT)
+                details = (*site.qualities, *at_junction, inserted_min, inserted_pass,
+                           "NA" if mask_distance is None else mask_distance)
 
                 if indel < 0:
                 # -------------------
@@ -416,7 +493,7 @@ def nonrepetitive_scan(filters, contig, bamfile, fastafile, average_coverage_fil
                            *read_tag_columns(alignment),sm,sx,sa,sm_pre,sx_pre,ToreadEnd,min(site.qualities),
                            position+1,query_name, diploid_strand, flank)
 
-                print(*row, *entry.key, *strata.of_site(site), sep="\t", file=calls_out)
+                print(*row, *entry.key, *strata.of_site(site), *details, sep="\t", file=calls_out)
 
                 # The read, for remapping to the haploid assembly
                 if fastq_out is not None and query_name not in fastq_reads:

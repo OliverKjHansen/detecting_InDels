@@ -299,8 +299,17 @@ repeats:
 
 # Workflows 3 and 4.
 scan:
-  # Each contig is scanned in windows of this many bp, one job each.
+  # Each contig is scanned in windows of this many bp.
   window_size: 10_000_000
+  # Workflow 3 runs this many windows in one job, at the same time, one core
+  # each (fewer jobs; a job takes as long as its slowest window). The job's
+  # memory is the window's times this.
+  windows_per_job: 4
+  # Workflow 3 merges the windows of contigs adding up to this many bp in one
+  # job, one contig after the other: in the pilot, chk's merges took 1.5 min
+  # (calls and reads) and 0.4 min (opportunities) per contig on average, 9.8
+  # h and 2.5 h for its 414 contigs (5.9 Gb), so about an hour per job.
+  merge_bp_per_job: 500_000_000
   # Only positions whose depth is within these multiples of the sample's mean
   # coverage are scanned.
   coverage_band: [0.5, 2.0]
@@ -322,6 +331,23 @@ strata:
   subread_support_bins: [0.8, 0.9, 1.0]
   # kmerQ_pass: whether every base tested has at least this Phred quality.
   min_kmerq: 93
+  # Workflow 3 (ticket 49): the bins of inner_flank_q, the lowest base quality
+  # of L1 and R1, and of outer_flank_q, that of L2 and R2
+  # (artefact_descriptions/kmerq_results.md).
+  flank_quality_bins: [60, 93]
+  # Workflow 3, calls only: an insertion call's inserted_bases_pass is "pass"
+  # if every inserted base has at least this Phred quality.
+  min_inserted_quality: 93
+  # Workflow 3's opportunity cube (ticket 49): without these keys, and with
+  # these bins in place of the ones above, so its own keys don't make it
+  # bigger than before them. On chk's mirror window the cube had 17.3 M key
+  # combinations before ticket 49, 59.7 M with its keys, and 16.0 M with these.
+  # The calls keep the raw np, mapQ, fn and rn.
+  nonrepetitive_without: [strand_passes_bin]
+  nonrepetitive_bins:
+    nearby_event_bins: [10, 20, 50, 100, 1000]
+    mapq_bins: [1, 20, 60]
+    passes_bins: [7, 12, 17]
   # Read length, bp.
   read_length_bins: [4000, 8000, 12000, 16000, 20000]
   # Distance from the anchor to the nearer end of the read's alignment, bp;
@@ -347,10 +373,39 @@ strata:
 # a tag its platform lacks, is skipped for it and noted in the filter report
 # (Q15). The thresholds are to be tuned after the rerun (Q13).
 final_filters:
-  keep:
-    kmerQ_pass: [pass]
-  # Workflow 4 also: tracts at least 100 bp from the read's ends.
+  # Both workflows.
+  keep: {}
+  # Workflow 3 (ticket 49), on calls and opportunities alike: kmerQ by
+  # position, the proposed rule of artefact_descriptions/kmerq_results.md (L1
+  # and R1 at Q93, L2 and R2 at Q60 or more), and no masked base right after a
+  # deletion (artefact_descriptions/false_positive_deletions.md). Nothing is
+  # filtered on the read end: read_end_distance_bin is a column and a key.
+  # Other keys tested there, not applied yet:
+  #   junction_disagreement: ["no"]     a disagreeing subread at L1 or R1
+  #   read_length_bin: ["8000-12000", "12000-16000", "16000-20000", ">=20000"]
+  #   rq_bin, subread_support, nearby_event_bin: the plan's other candidate filters
+  #   repeats_next: ["no", "NA"]        helps 2 bp deletions only, which a keep
+  #                                     filter can't yet restrict to one size
+  nonrepetitive_keep:
+    inner_flank_q: [">=93"]
+    outer_flank_q: ["60-93", ">=93"]
+    base_after_masked: ["no"]
+  # Workflow 3, on the calls only: the opportunities can't take these tests
+  # (Q7), so each also lowers the rate by the real calls it removes. An
+  # insertion's inserted bases at min_inserted_quality, the rest of the
+  # proposed kmerQ rule: the insertions' rate then needs the correction s of
+  # kmerq_results.md. The haploid check (ticket 18) and the hap1/hap2 test
+  # (ticket 19): which a final call must pass is ticket 43. NA is kept: a call
+  # that can't be checked.
+  nonrepetitive_calls_only:
+    inserted_bases_pass: ["pass", "NA"]
+    haploid_check: ["True", "NA"]
+    hap1_check: ["True", "NA"]
+    hap2_check: ["True", "NA"]
+  # Workflow 4: kmerQ as before, and tracts at least 100 bp from the read's
+  # ends.
   repeat_keep:
+    kmerQ_pass: [pass]
     read_end_distance_bin: ["100-300", "300-500", "500-1000", ">=1000"]
   # SMRT Cells none of whose reads has a base quality above this (precompute's
   # smrt_cells.tsv) are taken to be capped at it, and dropped from both

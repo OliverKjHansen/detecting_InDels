@@ -28,3 +28,4 @@ __pycache__/
 # Written by `python tests/make_fixtures.py`; the tests build their own copy.
 /tests/fixtures/
 
+.Rproj.user

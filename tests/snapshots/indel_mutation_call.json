@@ -32,7 +32,7 @@
    "{ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.parquet",
    "{ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.parquet \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.parquet \\\n            {ROOT}/results/nonrepetitive_indels/ape/s1/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s1/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA\n        "
  },
  "non_rep_FinalFiltering_ape_s2_diploid": {
   "inputs": [
@@ -51,7 +51,7 @@
    "{ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.parquet",
    "{ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.parquet \\\n            {ROOT}/results/nonrepetitive_indels/ape/s2/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.parquet \\\n            {ROOT}/results/nonrepetitive_indels/ape/s2/indels.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s2/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA\n        "
  },
  "non_rep_FinalFiltering_monkey_s3_diploid": {
   "inputs": [
@@ -70,7 +70,7 @@
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.parquet",
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.parquet \\\n            {ROOT}/results/nonrepetitive_indels/monkey/s3/indels.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.parquet {ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep kmerQ_pass=pass\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/final_filtering.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.parquet \\\n            {ROOT}/results/nonrepetitive_indels/monkey/s3/indels.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/opportunities.parquet {ROOT}/results/nonrepetitive_indels/monkey/s3/filter_report.tsv \\\n            --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA\n        "
  },
  "non_rep_HaploidFilter_ape_s1_diploid": {
   "inputs": [
@@ -405,33 +405,20 @@
  "non_rep_MergeOpportunities_c1_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_0_10000000.tsv.gz",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz"
-  ],
-  "options": {
-   "account": "mutationalscanning",
-   "cores": 4,
-   "memory": "16g",
-   "walltime": "02:00:00"
-  },
-  "outputs": [
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/c1.parquet"
-  ],
-  "spec": "\n            mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities\n            python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/c1.parquet {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz\n            "
- },
- "non_rep_MergeOpportunities_c2_ape_s1_diploid": {
-  "inputs": [
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c2_0_1500000.tsv.gz"
   ],
   "options": {
    "account": "mutationalscanning",
    "cores": 4,
    "memory": "16g",
-   "walltime": "02:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/c1.parquet",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/c2.parquet"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities\n            python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/c2.parquet {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c2_0_1500000.tsv.gz\n            "
+  "spec": "\nset -e\nmkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities\nfor attempt in $(seq 3); do python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/c1.parquet {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz && break; [ \"$attempt\" -lt 3 ] || exit 1; done\nfor attempt in $(seq 3); do python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/c2.parquet {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c2_0_1500000.tsv.gz && break; [ \"$attempt\" -lt 3 ] || exit 1; done\n"
  },
  "non_rep_MergeOpportunities_c2_ape_s2_diploid": {
   "inputs": [
@@ -441,12 +428,12 @@
    "account": "mutationalscanning",
    "cores": 4,
    "memory": "16g",
-   "walltime": "02:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/c2.parquet"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities\n            python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/c2.parquet {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/chunks/c2_0_1500000.tsv.gz\n            "
+  "spec": "\nset -e\nmkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities\nfor attempt in $(seq 3); do python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/c2.parquet {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/chunks/c2_0_1500000.tsv.gz && break; [ \"$attempt\" -lt 3 ] || exit 1; done\n"
  },
  "non_rep_MergeOpportunities_c2_monkey_s3_diploid": {
   "inputs": [
@@ -456,34 +443,19 @@
    "account": "mutationalscanning",
    "cores": 4,
    "memory": "16g",
-   "walltime": "02:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/c2.parquet"
   ],
-  "spec": "\n            mkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities\n            python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/c2.parquet {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/chunks/c2_0_1500000.tsv.gz\n            "
+  "spec": "\nset -e\nmkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities\nfor attempt in $(seq 3); do python {ROOT}/scripts/opportunity_tables.py sum {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/c2.parquet {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/chunks/c2_0_1500000.tsv.gz && break; [ \"$attempt\" -lt 3 ] || exit 1; done\n"
  },
  "non_rep_MergeWindows_c1_ape_s1_diploid": {
   "inputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_0_10000000.tsv",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_10000000_12000000.tsv",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz"
-  ],
-  "options": {
-   "account": "mutationalscanning",
-   "cores": 1,
-   "memory": "4g",
-   "walltime": "02:00:00"
-  },
-  "outputs": [
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz"
-  ],
-  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/calls {ROOT}/output/nonrepetitive_indels/ape/s1/fastq\n            set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv\n            set -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz\n            "
- },
- "non_rep_MergeWindows_c2_ape_s1_diploid": {
-  "inputs": [
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c2_0_1500000.tsv",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz"
   ],
@@ -491,13 +463,15 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "4g",
-   "walltime": "02:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/c2.tsv",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c2.fastq.gz"
   ],
-  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/calls {ROOT}/output/nonrepetitive_indels/ape/s1/fastq\n            set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c2.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c2.tsv.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c2.tsv\n            set -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c2.fastq.gz\n            "
+  "spec": "\nset -e\nmkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/calls {ROOT}/output/nonrepetitive_indels/ape/s1/fastq\nset -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_10000000_12000000.tsv | cat > {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c1.tsv\nset -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c1.fastq.gz\nset -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c2.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c2.tsv.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/calls/c2.tsv\nset -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c2.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/c2.fastq.gz\n"
  },
  "non_rep_MergeWindows_c2_ape_s2_diploid": {
   "inputs": [
@@ -508,13 +482,13 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "4g",
-   "walltime": "02:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/ape/s2/calls/c2.tsv",
    "{ROOT}/output/nonrepetitive_indels/ape/s2/fastq/c2.fastq.gz"
   ],
-  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/calls {ROOT}/output/nonrepetitive_indels/ape/s2/fastq\n            set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/ape/s2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/nonrepetitive_indels/ape/s2/calls/c2.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s2/calls/c2.tsv.tmp {ROOT}/output/nonrepetitive_indels/ape/s2/calls/c2.tsv\n            set -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/c2.fastq.gz\n            "
+  "spec": "\nset -e\nmkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/calls {ROOT}/output/nonrepetitive_indels/ape/s2/fastq\nset -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/ape/s2/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/nonrepetitive_indels/ape/s2/calls/c2.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s2/calls/c2.tsv.tmp {ROOT}/output/nonrepetitive_indels/ape/s2/calls/c2.tsv\nset -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/c2.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/c2.fastq.gz\n"
  },
  "non_rep_MergeWindows_c2_monkey_s3_diploid": {
   "inputs": [
@@ -525,13 +499,13 @@
    "account": "mutationalscanning",
    "cores": 1,
    "memory": "4g",
-   "walltime": "02:00:00"
+   "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/calls/c2.tsv",
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/c2.fastq.gz"
   ],
-  "spec": "\n            set -e\n            mkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/calls {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq\n            set -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/c2.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/c2.tsv.tmp {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/c2.tsv\n            set -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/c2.fastq.gz\n            "
+  "spec": "\nset -e\nmkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/calls {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq\nset -o pipefail; awk 'FNR==1 && NR==1 || FNR>1' {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/chunks/c2_0_1500000.tsv | cat > {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/c2.tsv.tmp; mv {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/c2.tsv.tmp {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/c2.tsv\nset -o pipefail; gzip -dcf {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz | awk 'NR % 4 == 1 {keep = !seen[$1]++} keep' | gzip -6 > {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp; mv {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/c2.fastq.gz.tmp {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/c2.fastq.gz\n"
  },
  "non_rep_Scan_c1_0_ape_s1_diploid": {
   "inputs": [
@@ -539,65 +513,28 @@
    "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
    "{ROOT}/output/precompute/ape/s1/avg_coverage.txt",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed",
-   "{ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv",
-   "{ROOT}/output/precompute/ape/s1/read_bins.npz"
-  ],
-  "options": {
-   "account": "mutationalscanning",
-   "cores": 1,
-   "memory": "40g",
-   "walltime": "04:00:00"
-  },
-  "outputs": [
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_0_10000000.tsv",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_0_10000000.tsv.gz",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz"
-  ],
-  "spec": "\n                mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks\n                python {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed c1 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv 0 10000000 {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' --read-bins {ROOT}/output/precompute/ape/s1/read_bins.npz\n                "
- },
- "non_rep_Scan_c1_10000000_ape_s1_diploid": {
-  "inputs": [
-   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
-   "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
-   "{ROOT}/output/precompute/ape/s1/avg_coverage.txt",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed",
-   "{ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv",
-   "{ROOT}/output/precompute/ape/s1/read_bins.npz"
-  ],
-  "options": {
-   "account": "mutationalscanning",
-   "cores": 1,
-   "memory": "40g",
-   "walltime": "04:00:00"
-  },
-  "outputs": [
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_10000000_12000000.tsv",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz",
-   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz"
-  ],
-  "spec": "\n                mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks\n                python {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed c1 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv 10000000 12000000 {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_10000000_12000000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' --read-bins {ROOT}/output/precompute/ape/s1/read_bins.npz\n                "
- },
- "non_rep_Scan_c2_0_ape_s1_diploid": {
-  "inputs": [
-   "{ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa",
-   "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
-   "{ROOT}/output/precompute/ape/s1/avg_coverage.txt",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/mask/c2.bed",
    "{ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv",
    "{ROOT}/output/precompute/ape/s1/read_bins.npz"
   ],
   "options": {
    "account": "mutationalscanning",
-   "cores": 1,
-   "memory": "40g",
+   "cores": 3,
+   "memory": "120g",
    "walltime": "04:00:00"
   },
   "outputs": [
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_0_10000000.tsv",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_0_10000000.tsv.gz",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_10000000_12000000.tsv",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c2_0_1500000.tsv",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks\n                python {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c2.bed c2 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv 0 1500000 {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c2_0_1500000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c2_0_1500000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' --read-bins {ROOT}/output/precompute/ape/s1/read_bins.npz\n                "
+  "spec": "\nset -euo pipefail\nmkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks\npids=()\npython {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed c1 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv 0 10000000 {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_0_10000000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_0_10000000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_0_10000000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"flank_quality_bins\":[60,93],\"min_inserted_quality\":93,\"nonrepetitive_without\":[\"strand_passes_bin\"],\"nonrepetitive_bins\":{\"nearby_event_bins\":[10,20,50,100,1000],\"mapq_bins\":[1,20,60],\"passes_bins\":[7,12,17]},\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' --read-bins {ROOT}/output/precompute/ape/s1/read_bins.npz & pids+=($!)\npython {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed c1 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv 10000000 12000000 {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c1_10000000_12000000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c1_10000000_12000000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c1_10000000_12000000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"flank_quality_bins\":[60,93],\"min_inserted_quality\":93,\"nonrepetitive_without\":[\"strand_passes_bin\"],\"nonrepetitive_bins\":{\"nearby_event_bins\":[10,20,50,100,1000],\"mapq_bins\":[1,20,60],\"passes_bins\":[7,12,17]},\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' --read-bins {ROOT}/output/precompute/ape/s1/read_bins.npz & pids+=($!)\npython {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c2.bed c2 {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam {ROOT}/fasta/ape/s1/diploid_assembly/s1_diploid.fa {ROOT}/output/precompute/ape/s1/avg_coverage.txt {ROOT}/output/precompute/ape/s1/sorted_tissue_classification.tsv 0 1500000 {ROOT}/output/nonrepetitive_indels/ape/s1/calls/chunks/c2_0_1500000.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/opportunities/chunks/c2_0_1500000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s1/fastq/chunks/c2_0_1500000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"flank_quality_bins\":[60,93],\"min_inserted_quality\":93,\"nonrepetitive_without\":[\"strand_passes_bin\"],\"nonrepetitive_bins\":{\"nearby_event_bins\":[10,20,50,100,1000],\"mapq_bins\":[1,20,60],\"passes_bins\":[7,12,17]},\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' --read-bins {ROOT}/output/precompute/ape/s1/read_bins.npz & pids+=($!)\nfor pid in \"${pids[@]}\"; do wait \"$pid\"; done\n"
  },
  "non_rep_Scan_c2_0_ape_s2_diploid": {
   "inputs": [
@@ -617,7 +554,7 @@
    "{ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/nonrepetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/calls/chunks {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/chunks {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/chunks\n                python {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s2/mask/c2.bed c2 {ROOT}/override/s2_diploid.bam {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precompute/ape/s2/avg_coverage.txt NA 0 1500000 {ROOT}/output/nonrepetitive_indels/ape/s2/calls/chunks/c2_0_1500000.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/chunks/c2_0_1500000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}'\n                "
+  "spec": "\nset -euo pipefail\nmkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/calls/chunks {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/chunks {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/chunks\npids=()\npython {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/ape/s2/mask/c2.bed c2 {ROOT}/override/s2_diploid.bam {ROOT}/fasta/ape/s2/diploid_assembly/s2_diploid.fa {ROOT}/output/precompute/ape/s2/avg_coverage.txt NA 0 1500000 {ROOT}/output/nonrepetitive_indels/ape/s2/calls/chunks/c2_0_1500000.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/opportunities/chunks/c2_0_1500000.tsv.gz {ROOT}/output/nonrepetitive_indels/ape/s2/fastq/chunks/c2_0_1500000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"flank_quality_bins\":[60,93],\"min_inserted_quality\":93,\"nonrepetitive_without\":[\"strand_passes_bin\"],\"nonrepetitive_bins\":{\"nearby_event_bins\":[10,20,50,100,1000],\"mapq_bins\":[1,20,60],\"passes_bins\":[7,12,17]},\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' & pids+=($!)\nfor pid in \"${pids[@]}\"; do wait \"$pid\"; done\n"
  },
  "non_rep_Scan_c2_0_monkey_s3_diploid": {
   "inputs": [
@@ -637,6 +574,6 @@
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/chunks/c2_0_1500000.tsv.gz",
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz"
   ],
-  "spec": "\n                mkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/chunks {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/chunks {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/chunks\n                python {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/c2.bed c2 {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precompute/monkey/s3/avg_coverage.txt NA 0 1500000 {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/chunks/c2_0_1500000.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/chunks/c2_0_1500000.tsv.gz {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}'\n                "
+  "spec": "\nset -euo pipefail\nmkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/chunks {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/chunks {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/chunks\npids=()\npython {ROOT}/scripts/nonrepetitive_scan.py {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/c2.bed c2 {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam {ROOT}/fasta/monkey/s3/diploid_assembly/s3_diploid.fa {ROOT}/output/precompute/monkey/s3/avg_coverage.txt NA 0 1500000 {ROOT}/output/nonrepetitive_indels/monkey/s3/calls/chunks/c2_0_1500000.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/opportunities/chunks/c2_0_1500000.tsv.gz {ROOT}/output/nonrepetitive_indels/monkey/s3/fastq/chunks/c2_0_1500000.fastq.gz --coverage-band 0.5 2.0 --indel-sizes 1 3 --flank-width 25 --key-parameters '{\"subread_support_bins\":[0.8,0.9,1.0],\"min_kmerq\":93,\"flank_quality_bins\":[60,93],\"min_inserted_quality\":93,\"nonrepetitive_without\":[\"strand_passes_bin\"],\"nonrepetitive_bins\":{\"nearby_event_bins\":[10,20,50,100,1000],\"mapq_bins\":[1,20,60],\"passes_bins\":[7,12,17]},\"read_length_bins\":[4000,8000,12000,16000,20000],\"read_end_distance_bins\":[25,100,300,500,1000],\"mapq_bins\":[1,10,20,30,40,50,60],\"passes_bins\":[5,7,10,12,15,18,20,25,30],\"accuracy_bins\":[0.99,0.999,0.9999],\"strand_passes_bins\":[2,5,10],\"nearby_event_bins\":[5,10,20,25,35,50,100,300,500,1000],\"tract_copies_bins\":[5,10,20,50],\"tract_purity_bins\":[90,95,99,100]}' & pids+=($!)\nfor pid in \"${pids[@]}\"; do wait \"$pid\"; done\n"
  }
 }
