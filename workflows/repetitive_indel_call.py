@@ -235,7 +235,7 @@ for species, samples in config["samples"].items():
                 f"TRMergeOpportunities_{contig}_{species}_{sample}",
                 inputs=[window_file for model in models for window_file in window_opportunities[model]],
                 outputs=list(opportunities.values()),
-                cores=4,   # DuckDB and the unpacking use them
+                cores=4,   # sort and DuckDB use them
                 memory="16g",
                 walltime="02:00:00",
             ) << f"""

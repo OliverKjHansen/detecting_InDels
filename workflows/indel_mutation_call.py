@@ -229,8 +229,8 @@ mkdir -p {calls_dir} {fastq_dir}
                 f"non_rep_MergeOpportunities_{first}_{species}_{sample}_{assembly_type}",
                 inputs=[path for contig in group for path in window_opportunities[contig]],
                 outputs=[opportunities[contig] for contig in group],
-                cores=4,   # DuckDB and the unpacking use them
-                memory="32g",   # DuckDB gets half; 8 GB ran out on ob006's longest contig
+                cores=4,   # sort and DuckDB use them
+                memory="32g",   # sort, then DuckDB, gets half (ticket 50)
                 walltime="04:00:00",
             ) << f"""
 set -e

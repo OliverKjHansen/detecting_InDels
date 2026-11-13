@@ -535,18 +535,20 @@ and every unresolved-haplotype region. Intermediates go to
 3. **Join.** Per contig, the windows' calls are concatenated, their opportunity
    counts summed per value of every other column into the contig's part of the
    [opportunity cube](#opportunities), and their FASTQs concatenated keeping
-   each read once. DuckDB sums the counts
-   ([opportunity_tables.py](scripts/opportunity_tables.py)) with the job's 4
-   cores, from copies of the windows unpacked into its `$TMPDIR` on the
-   node's local disk (DuckDB 2.0 can fail rereading a gzipped table), and
-   spilling there, in a job of their own (3b): the calls and reads, and the remapping after them, don't
-   depend on how the opportunities are kept. The contig's cube is kept only if
-   it holds the windows' total, counted in Python as they are unpacked, with
-   no row without a count and no key with a NUL byte (ticket 41). DuckDB 2.0
-   can misread the windows at random, even unpacked: into such rows, or by
-   losing lines, which only the total shows. In the pilot, one contig's sum
-   failed the check (`the cube holds … opportunities, its windows …`) and
-   passed when run again. A sum that fails the check leaves no cube, so the
+   each read once. The counts are summed
+   ([opportunity_tables.py](scripts/opportunity_tables.py)) in a job of their
+   own (3b): the calls and reads, and the remapping after them, don't depend on
+   how the opportunities are kept. A contig can have hundreds of millions of
+   keys (374 M in one of ob007's), more than a sum can hold in memory, so
+   `sort` puts the windows' lines in key order, with the job's 4 cores and half
+   its memory, spilling to its `$TMPDIR` on the node's local disk, and the
+   lines of each key, then next to each other, are added up one key at a time
+   (ticket 50). DuckDB only writes the summed lines to Parquet. The contig's
+   cube is kept only if it holds the windows' total, counted as they are added
+   up (and `sort` must give back as many lines as it was given), with no row
+   without a count and no key with a NUL byte (ticket 41):
+   DuckDB 2.0 has misread tables at random, into such rows or by losing lines,
+   which only the total shows. A sum that fails the check leaves no cube, so the
    next `gwf -f workflows/<name>.py run` submits it again; one that fails
    again with the same numbers points at the windows themselves. Workflow 4's
    sum (step 2b) is the same. Each contig is its own job, so the contigs merge
@@ -1323,7 +1325,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_methylation_bins.py](tests/test_methylation_bins.py) | the germline/somatic bin as a key of calls and opportunities, and the per-read table binning reads as the classification scripts do |
 | [tests/test_read_bins.py](tests/test_read_bins.py) | the compact read bins: every read's bin as the classification table gives it, `NA` for a read missing from it, 9 bytes a read, more bins than a byte holds refused, and workflow 1's target writing them |
 | [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells (from their reads' base qualities) dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report; Parquet, plain and gzipped tables |
-| [tests/test_opportunity_tables.py](tests/test_opportunity_tables.py) | the opportunity cube: a contig's windows summed per key into Parquet, `size`, `k` and `count` as numbers, a sample's contigs joined with its species and sample, nothing left behind when a sum or a join fails, a count that isn't a whole number or a key with a NUL byte failing the sum |
+| [tests/test_opportunity_tables.py](tests/test_opportunity_tables.py) | the opportunity cube: a contig's windows summed per key into Parquet, sorted by key as text, counts past 4 billion exact, `size`, `k` and `count` as numbers, an empty cube for a contig without opportunities, a sample's contigs joined with its species and sample, nothing left behind when a sum or a join fails, a count that isn't a whole number, a key with a NUL byte or windows with different columns failing the sum |
 | [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |

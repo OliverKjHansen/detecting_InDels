@@ -44,10 +44,43 @@ def test_a_contigs_windows_are_summed_per_key_into_parquet(tmp_path):
                                  ("c1", "insertion", 1, "A", "liver", 7)]
 
 
+def test_counts_past_four_billion_add_up_exactly(tmp_path):
+    # A contig's sums reach billions (ticket 41: 6,307,196,945 in one of carl's).
+    windows = [window(tmp_path / "a.tsv.gz", [("c1", "insertion", 1, "A", "liver", 4_000_000_000)]),
+               window(tmp_path / "b.tsv.gz", [("c1", "insertion", 1, "A", "liver", 4_000_000_001)])]
+    out = tmp_path / "c1.parquet"
+    done = opportunity_tables("sum", out, *windows)
+    assert done.returncode == 0, done.stderr
+    assert rows(out) == [("c1", "insertion", 1, "A", "liver", 8_000_000_001)]
+
+
+def test_the_cubes_rows_are_sorted_by_key_as_text(tmp_path):
+    # Methylation bins where one starts like another ("1" and "12", "-1" and "-10").
+    header = b"contig\tmethylation_bin\tcount\n"
+    a, b = tmp_path / "a.tsv.gz", tmp_path / "b.tsv.gz"
+    a.write_bytes(gzip.compress(header + b"c1\t12\t1\nc1\t1\t20\n"))
+    b.write_bytes(gzip.compress(header + b"c1\t1\t5\nc1\t-1\t3\nc1\t-10\t4\n"))
+    out = tmp_path / "c1.parquet"
+    done = opportunity_tables("sum", out, a, b)
+    assert done.returncode == 0, done.stderr
+    assert rows(out) == [("c1", "-1", 3), ("c1", "-10", 4), ("c1", "1", 25), ("c1", "12", 1)]
+
+
 def test_the_cube_keeps_the_scans_columns_with_size_and_count_as_numbers(tmp_path):
     out = tmp_path / "c1.parquet"
     done = opportunity_tables("sum", out, window(tmp_path / "a.tsv.gz", [("c1", "insertion", 1, "A", "liver", 5)]))
     assert done.returncode == 0, done.stderr
+    columns = duckdb.sql(f"DESCRIBE SELECT * FROM read_parquet('{out}')").fetchall()
+    assert [(name, kind) for name, kind, *_ in columns] == [
+        ("contig", "VARCHAR"), ("indel_type", "VARCHAR"), ("size", "INTEGER"), ("context", "VARCHAR"),
+        ("tissue", "VARCHAR"), ("count", "BIGINT")]
+
+
+def test_a_contig_without_opportunities_gets_an_empty_cube_with_the_columns(tmp_path):
+    out = tmp_path / "c1.parquet"
+    done = opportunity_tables("sum", out, window(tmp_path / "a.tsv.gz", []), window(tmp_path / "b.tsv.gz", []))
+    assert done.returncode == 0, done.stderr
+    assert rows(out) == []
     columns = duckdb.sql(f"DESCRIBE SELECT * FROM read_parquet('{out}')").fetchall()
     assert [(name, kind) for name, kind, *_ in columns] == [
         ("contig", "VARCHAR"), ("indel_type", "VARCHAR"), ("size", "INTEGER"), ("context", "VARCHAR"),
@@ -77,6 +110,17 @@ def test_a_merge_that_fails_leaves_no_file(tmp_path):
     done = opportunity_tables("sum", out, window(tmp_path / "a.tsv.gz", [("c1", "insertion", 1, "A", "liver", 5)]), cut)
     assert done.returncode != 0
     assert not out.exists()
+
+
+def test_windows_with_different_columns_fail_the_sum_and_leave_no_file(tmp_path):
+    # One window with a methylation bin where the other has a tissue.
+    other = tmp_path / "b.tsv.gz"
+    other.write_bytes(gzip.compress(b"contig\tindel_type\tsize\tcontext\tmethylation_bin\tcount\n"
+                                    b"c1\tinsertion\t1\tA\t12\t5\n"))
+    out = tmp_path / "c1.parquet"
+    done = opportunity_tables("sum", out, window(tmp_path / "a.tsv.gz", [("c1", "insertion", 1, "A", "liver", 5)]), other)
+    assert done.returncode != 0
+    assert not list(tmp_path.glob("c1.parquet*"))
 
 
 def test_a_cube_without_its_windows_total_is_not_written(tmp_path):
