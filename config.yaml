@@ -341,8 +341,9 @@ strata:
   # Workflow 3's opportunity cube (ticket 49): without these keys, and with
   # these bins in place of the ones above, so its own keys don't make it
   # bigger than before them. On chk's mirror window the cube had 17.3 M key
-  # combinations before ticket 49, 59.7 M with its keys, and 16.0 M with these.
-  # The calls keep the raw np, mapQ, fn and rn.
+  # combinations before ticket 49, 59.7 M with its keys, and 18.6 M with these
+  # (the scan: 57 min of CPU, 3.6 GB at most). The calls keep the raw np,
+  # mapQ, fn and rn.
   nonrepetitive_without: [strand_passes_bin]
   nonrepetitive_bins:
     nearby_event_bins: [10, 20, 50, 100, 1000]

@@ -230,7 +230,7 @@ mkdir -p {calls_dir} {fastq_dir}
                 inputs=[path for contig in group for path in window_opportunities[contig]],
                 outputs=[opportunities[contig] for contig in group],
                 cores=4,   # DuckDB and the unpacking use them
-                memory="16g",
+                memory="32g",   # DuckDB gets half; 8 GB ran out on ob006's longest contig
                 walltime="04:00:00",
             ) << f"""
 set -e
