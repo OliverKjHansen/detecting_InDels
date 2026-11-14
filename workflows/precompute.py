@@ -31,13 +31,13 @@ gwf = Workflow(
         'account': 'mutationalscanning'})
 
 
+# Steps 1 and 1b follow from the assembly alone: new data sharing another
+# sample's assembly (assembly_of) use that sample's, split once.
 for species, samples in pipeline.config["samples"].items():
     for sample in samples:
+        if pipeline.shares_assembly(species, sample):
+            continue
         assembly  = pipeline.path("assembly", species, sample)
-        # Samples listed under alignment_overrides in config.yaml use that BAM.
-        alignment = pipeline.alignment(species, sample)
-        outdir    = pipeline.folder("coverage", species, sample)
-        coverage  = pipeline.path("coverage", species, sample)
         long_contigs = pipeline.long_contigs(species, sample)
 
         # Step 1 — split the assembly into per-contig FASTAs.
@@ -72,6 +72,16 @@ for species, samples in pipeline.config["samples"].items():
         mkdir -p {pipeline.folder("haplotype_assembly", species, sample)}
         {split_commands}
         """
+
+
+for species, samples in pipeline.config["samples"].items():
+    for sample in samples:
+        assembly  = pipeline.path("assembly", species, sample)
+        # Samples listed under alignment_overrides in config.yaml use that BAM.
+        alignment = pipeline.alignment(species, sample)
+        outdir    = pipeline.folder("coverage", species, sample)
+        coverage  = pipeline.path("coverage", species, sample)
+        long_contigs = pipeline.long_contigs(species, sample)
 
         # Step 2 — average depth across the positions samtools reports.
         long_contigs_bed = pipeline.path("long_contigs", species, sample)

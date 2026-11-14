@@ -1,10 +1,11 @@
 
 samples:
-  human: [ob2v, ob003h, ob006, ob007, ob008, ob009, da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
+  human: [ob2v, ob003h, ob006, ob007, ob008, ob009, da1, la4, tsaed, aa_sperm, chk, la, ph, tr,
+          ob2v_new_data, ob003h_new_data, ob006_new_data, ob007_new_data, ob009_new_data, tr_new_data] #ob008_new_data: no methylation classification yet
   marmoset: [marmoset, lambiek, sidonia]
   chimp: [stephan, carl, marlock, mongo, yoran] #martin
   bonobo: [matos]
-  gorilla: [mbewe, samson, kipenzi] 
+  gorilla: [mbewe, samson, kipenzi, samson_new_data]
   baboon: [sethi]     # bs5v: contaminated
   gibbon: [tarzan, pink_eric] 
   orangutan: [sibu, kevin]
@@ -28,14 +29,14 @@ tissue_samples:
 # indel pipelines add the germline/somatic classification columns for these, from
 # {classification}/{species}/{sample}/{sample}/05_ReadsClassification/.
 methylation_samples:
-  human: [ob006, ob007, ob008, ob009] #ob003h, 
-  gorilla: [mbewe, samson, kipenzi] 
+  human: [ob006, ob007, ob008, ob009, ob006_new_data, ob007_new_data, ob009_new_data] #ob003h, ob008_new_data
+  gorilla: [mbewe, samson, kipenzi, samson_new_data]
   chimp: [stephan, carl, marlock, mongo] #martin
   gibbon: [tarzan]
 
 #the  sample benjie is not here, 
 sperm_samples:
-  human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr]
+  human:   [da1, la4, tsaed, aa_sperm, chk, la, ph, tr, tr_new_data]
 
 # Samples sequenced on Sequel II; the others are Revio (Q12, Q15). Their reads
 # have no sm, sx or sa tags, and mbewe's and samson's no np either, so final
@@ -66,6 +67,14 @@ sample_age:
     la: 27
     ph: 35
     tr: 38
+    # New data of the same individuals: their sample's age.
+    ob2v_new_data: 15
+    ob003h_new_data: 56
+    ob006_new_data: 64
+    ob007_new_data: 44
+    ob008_new_data: 62
+    ob009_new_data: 60
+    tr_new_data: 38
   marmoset:
     marmoset: 11
   chimp:
@@ -80,6 +89,7 @@ sample_age:
     matos: 61
   gorilla:
     samson: 43
+    samson_new_data: 43
     mbewe: 22
     kipenzi: 21
   baboon:
@@ -116,6 +126,23 @@ alignment_overrides:
   gorilla:
     mbewe:  "~/mutationalscanning/DerivedData/bam/HiFi/gorilla/mbewe/diploid_assembly/mbewe_plus_unmapped_no_clips_diploid_v2.bam"
     samson: "~/mutationalscanning/DerivedData/bam/HiFi/gorilla/samson/diploid_assembly/samson_plus_unmapped_no_clips_diploid_v2.bam"
+
+# New data of a sample sequenced again (Revio), aligned to that sample's
+# assembly: new data -> the sample. The new data are a sample of their own from
+# the reads on (their BAM at the standard path, coverage, SMRT Cells, unresolved
+# haplotypes, methylation bins, scans); the assembly, its contigs and haplotypes
+# and workflow 2's repeats are the sample's, made once (pipeline.ASSEMBLY_LAYOUT).
+assembly_of:
+  human:
+    ob2v_new_data: ob2v
+    ob003h_new_data: ob003h
+    ob006_new_data: ob006
+    ob007_new_data: ob007
+    ob008_new_data: ob008
+    ob009_new_data: ob009
+    tr_new_data: tr
+  gorilla:
+    samson_new_data: samson
 
 assembly_type: diploid
 

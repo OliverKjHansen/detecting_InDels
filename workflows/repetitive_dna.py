@@ -105,6 +105,10 @@ gwf = Workflow(
 
 for species, samples in config["samples"].items():
     for sample in samples:
+        # The repeats follow from the assembly alone: new data sharing another
+        # sample's assembly (assembly_of) use that sample's, annotated once.
+        if pipeline.shares_assembly(species, sample):
+            continue
         path        = partial(pipeline.path, species=species, sample=sample)
         assembly    = path("assembly")
         outdir      = pipeline.folder("tandem_repeats", species, sample)

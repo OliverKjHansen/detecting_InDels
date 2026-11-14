@@ -30,6 +30,18 @@ TIMED_OUT = "timed_out"
 NONREPETITIVE_STRATA = ("flank_quality_bins", "min_inserted_quality", "nonrepetitive_without", "nonrepetitive_bins")
 
 
+# The layout entries that follow from the assembly alone: the assembly itself,
+# its contigs and haplotypes (workflow 1, steps 1 and 1b), and workflow 2's
+# repeat annotation. New data sharing another sample's assembly (assembly_of)
+# use that sample's, made once; everything from the reads on is their own.
+ASSEMBLY_LAYOUT = frozenset({
+    "assembly", "assembly_fai", "haploid", "contig_fasta", "haplotype_assembly",
+    "repeats_per_k", "repeats_per_k_window", "tandem_repeats", "repeat_bases", "tandem_repeats_sample",
+    "repeats_summary", "repeats_dropped_summary", "homopolymers", "long_periods_window", "long_periods",
+    "excluded", "excluded_summary",
+})
+
+
 class Pipeline:
     def __init__(self, config_path="config.yaml", base=None):
         """
@@ -48,11 +60,22 @@ class Pipeline:
         """Whether the sample is listed under its species in a table such as `tissue_samples`."""
         return sample in ((self.config.get(table) or {}).get(species) or [])
 
+    def assembly_sample(self, species, sample):
+        """The sample whose assembly `sample` is aligned to: its entry under assembly_of, if any, else itself."""
+        return ((self.config.get("assembly_of") or {}).get(species) or {}).get(sample, sample)
+
+    def shares_assembly(self, species, sample):
+        """Whether `sample` uses another sample's assembly, and so its contigs, haplotypes and repeats."""
+        return self.assembly_sample(species, sample) != sample
+
     def path(self, name, species, sample, **fields):
         """
         The `layout` template `name` for one sample, filled in from `paths` and
-        `assembly_type` plus `fields` such as contig or model.
+        `assembly_type` plus `fields` such as contig or model. For what follows
+        from the assembly alone, the sample whose assembly it is.
         """
+        if name in ASSEMBLY_LAYOUT:
+            sample = self.assembly_sample(species, sample)
         return self.config["layout"][name].format(
             **self.roots, assembly_type=self.config["assembly_type"],
             species=species, sample=sample, **fields)

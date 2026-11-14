@@ -49,6 +49,21 @@ def test_every_age_belongs_to_a_known_species(cfg):
             assert isinstance(age, (int, float)) and age >= 0, f"sample_age.{species}.{sample}: {age!r}"
 
 
+def test_new_data_share_the_assembly_of_a_switched_on_sample_of_their_species(cfg):
+    # The new data use the sample's contigs and repeats, which only that
+    # sample's own targets make (workflows 1 and 2).
+    for species, shared in (cfg.get("assembly_of") or {}).items():
+        assert species in cfg["samples"], f"assembly_of: unknown species {species}"
+        assert isinstance(shared, dict), f"assembly_of.{species} must map new data to a sample"
+        for new, sample in shared.items():
+            assert new in known_samples(cfg, species), f"assembly_of.{species}: {new} is not a sample of {species}"
+            assert sample != new, f"assembly_of.{species}.{new} names itself"
+            assert sample not in shared, f"assembly_of.{species}.{new}: {sample} shares another's assembly itself"
+            if new in (cfg["samples"].get(species) or []):
+                assert sample in cfg["samples"][species], (
+                    f"assembly_of.{species}.{new} is switched on, but {sample}, whose assembly it uses, is not")
+
+
 def test_override_paths_are_bams_of_switched_on_samples(cfg):
     for species, overrides in (cfg.get("alignment_overrides") or {}).items():
         for sample, path in overrides.items():

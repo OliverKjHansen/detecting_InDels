@@ -191,6 +191,7 @@ in.
 | `tissue_samples` | Samples with a read → tissue label file. Reads of the other samples get tissue `NA`. |
 | `methylation_samples` | Samples with per-read cell-type likelihoods. Both InDel workflows add germline/somatic columns for these. |
 | `alignment_overrides` | species → sample → BAM, for samples whose alignment is not at the standard path. |
+| `assembly_of` | species → new data → sample, for new data of a sample sequenced again and aligned to that sample's assembly. The new data are a sample of their own from the reads on; the assembly, its contigs and haplotypes and workflow 2's repeats are the sample's, made once. |
 | `assembly_type` | `diploid`: the assembly the reads are aligned to. |
 | `min_contig_length` | Contigs of this length or shorter are skipped. |
 | `paths.fasta`, `paths.bam` | Roots of the assemblies and alignments (see [Inputs](#inputs)). |
@@ -246,8 +247,8 @@ roots under `paths`. All of these are made outside this repository.
 
 | Input | Path | Used by |
 |---|---|---|
-| Diploid assembly, with `.fai` | `{fasta}/{species}/{sample}/diploid_assembly/{sample}_diploid.fa` | all |
-| Haploid assembly | `{fasta}/{species}/{sample}/haploid_assembly/{sample}_haploid.fa` | 3, 4 |
+| Diploid assembly, with `.fai` | `{fasta}/{species}/{sample}/diploid_assembly/{sample}_diploid.fa`, of the `assembly_of` sample for new data | all |
+| Haploid assembly | `{fasta}/{species}/{sample}/haploid_assembly/{sample}_haploid.fa`, likewise | 3, 4 |
 | Reads aligned to the diploid assembly, indexed | `{bam}/{species}/{sample}/kinetics/{sample}_kinetics_diploid.bam`, or the `alignment_overrides` entry | 1, 3, 4 |
 | Read → tissue labels | `{read_labels}/{species}/{sample}/{sample}_read_labels.txt` | 1, `tissue_samples` only |
 | Per-read cell-type likelihoods | `{classification}/{species}/{sample}/{sample}/05_ReadsClassification/{sample}_All_Reads_Likelihood_merged.tsv` | 1, 3, 4, `methylation_samples` only |
@@ -280,7 +281,10 @@ gwf -f workflows/repetitive_indel_call.py run
 To add a sample, list it under `samples` (and under `tissue_samples`,
 `methylation_samples` or `alignment_overrides` if they apply), check that its
 inputs are at the paths above, and run the four workflows again. GWF only runs
-targets whose outputs are missing or out of date.
+targets whose outputs are missing or out of date. New data of a sample
+sequenced again (`{sample}_new_data`, aligned to the sample's assembly) are
+added the same way, with an `assembly_of` entry naming the sample, and the
+sample's age under `sample_age`.
 
 ---
 
@@ -1335,7 +1339,8 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_compare_tables.py](tests/test_compare_tables.py) | the mirror replay's table comparison: by content, whatever the row order, number format or appended columns |
 | [tests/test_integration.py](tests/test_integration.py) | the callers on a small synthetic assembly and BAM with planted InDels: the right reads, positions, types and sizes; masking; windows adding up to the whole contig; one scan for three models matching three separate scans; the haploid check on several call tables |
 | [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
-| [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve, and every key is read by a workflow or a notebook |
+| [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, new data share the assembly of a switched-on sample of their species, the layout templates resolve, and every key is read by a workflow or a notebook |
+| [tests/test_shared_assembly.py](tests/test_shared_assembly.py) | new data sharing a sample's assembly (`assembly_of`): scanned with their own reads on that assembly, the assembly split and annotated once (no two targets make one file), every repeat file they read made by workflow 2 |
 | [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/`; workflow 4's step 0 reading the long-period window BEDs workflow 2 writes; workflow 3 merging each contig in its own job; both workflows summing the opportunities in jobs of their own |
 | [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, a sample's own workflow 3 window size, the long contigs; the joins of calls and reads, which stop the job at a window they can't read and leave no file behind |
 | [tests/test_unresolved_haplotypes.py](tests/test_unresolved_haplotypes.py) | the unresolved-haplotype regions: the evidence rule, and regions that overlap or touch merging to their union |
