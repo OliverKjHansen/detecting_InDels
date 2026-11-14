@@ -96,10 +96,14 @@ for species, samples in config["samples"].items():
         # The scan keeps a count per combination of keys until its window is
         # done. The bins split every count, and on Revio reads the subread
         # support's bins do too: ob007's scans needed up to 20 GB and more,
-        # every other sample's 6 GB at most (ticket 45). This is per window;
-        # a job asks for it once for each of its windows.
+        # every other sample's 6 GB at most (ticket 45). A tissue sample's
+        # tissues (ten for R22013) split them as well, and each scan loads the
+        # sample's read-to-tissue table (12 M reads, about 2.4 GB): R22013's
+        # scans peaked at 35-41 GB of 40, and 1,376 of the tissue samples'
+        # failed there (ticket 51). This is per window; a job asks for it once
+        # for each of its windows.
         many_keys   = read_bins_inputs and not pipeline.is_listed("sequel_ii_samples", species, sample)
-        window_memory_gb = 40 if many_keys else 10
+        window_memory_gb = 40 if many_keys else 20 if tissue_inputs else 10
 
         mask_dir          = folder("nonrepetitive_mask")
         calls_dir         = folder("nonrepetitive_calls")

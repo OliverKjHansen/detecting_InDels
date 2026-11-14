@@ -101,10 +101,14 @@ def test_the_per_read_table_bins_reads_as_the_classification_scripts_do(tmp_path
     ([], "10g"),
     (["methylation_samples"], "40g"),
     (["methylation_samples", "sequel_ii_samples"], "10g"),
+    (["tissue_samples"], "20g"),
+    (["tissue_samples", "methylation_samples"], "40g"),
 ])
-def test_only_a_revio_sample_with_bins_asks_40_gb_for_its_scans(tmp_path, monkeypatch, listed_under, memory):
+def test_a_scan_asks_memory_by_how_its_samples_reads_split_the_counts(tmp_path, monkeypatch, listed_under, memory):
     # The bins split every opportunity count, and on Revio reads the subread
-    # support's bins do too: ob007's scans needed up to 20 GB and more (ticket 45).
+    # support's bins do too: ob007's scans needed up to 20 GB and more (ticket
+    # 45). A tissue sample's ten tissues split them as well, and its scans load
+    # its read-to-tissue table: R22013's peaked at 35-41 GB of 40 (ticket 51).
     sample = targets.sample(tmp_path, monkeypatch, "ACGT" * 50)
     for block in listed_under:
         sample.configure(block, **{targets.SPECIES: [targets.SAMPLE]})
