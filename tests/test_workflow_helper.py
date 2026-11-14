@@ -10,6 +10,7 @@ import subprocess
 
 import pytest
 
+import targets
 from workflow_config import write_config
 
 
@@ -40,6 +41,22 @@ def test_paths_come_from_the_layout_templates(pipeline, root):
 def test_an_override_replaces_the_standard_alignment(pipeline, root):
     assert pipeline.alignment("ape", "s2") == f"{root}/override/s2_diploid.bam"
     assert pipeline.alignment("ape", "s1") == f"{root}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam"
+
+
+def test_a_sample_listed_with_its_own_window_size_is_scanned_in_windows_of_it(tmp_path, monkeypatch):
+    # The heaviest samples' 10 Mb windows needed more than 20 GB and 4 h (ticket 52).
+    sample = targets.sample(tmp_path, monkeypatch, "ACGT" * 50)   # one contig of 200 bp
+
+    def scanned_windows():
+        jobs = [target for name, target in sample.targets("indel_mutation_call").items()
+                if name.startswith("non_rep_Scan_")]
+        return sorted(os.path.basename(path) for job in jobs for path in job.outputs
+                      if "/opportunities/chunks/" in path)
+
+    assert scanned_windows() == [f"{targets.CONTIG}_0_200.tsv.gz"]
+    sample.configure("scan", window_size_by_sample={targets.SPECIES: {targets.SAMPLE: 80}})
+    assert scanned_windows() == sorted(f"{targets.CONTIG}_{start}_{end}.tsv.gz"
+                                       for start, end in [(0, 80), (80, 160), (160, 200)])
 
 
 def test_long_contigs_are_strictly_longer_than_the_minimum_in_index_order(pipeline):

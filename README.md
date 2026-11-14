@@ -104,7 +104,8 @@ Workflows 3 and 4 have the same shape:
  └─ opportunities ────────────────────────────────────────────────────┴─> final filters
 ```
 
-- **One pass per window.** Each contig is cut into 10 Mb windows. One job reads
+- **One pass per window.** Each contig is cut into 10 Mb windows (smaller for
+  the heaviest samples in workflow 3). One job reads
   a window once and writes the calls, the opportunity counts and a FASTQ of the
   reads carrying a call. Every position belongs to exactly one window, so no call
   or opportunity is counted twice. The windows are then joined per contig: calls
@@ -219,6 +220,7 @@ Parameters:
 | Excluded homopolymer runs | 6 bp or more | `repeats.homopolymer_min_length` |
 | Excluded periods | 7 (one above `repeats.periods`) to 2000 | `repeats.long_period_max` |
 | InDel scan window, and workflow 3's windows per job (scanned at the same time, one core and the window's memory each) | 10 Mb; 4 | `scan.window_size`, `scan.windows_per_job` |
+| Workflow 3's window for the samples too heavy at 10 Mb (ticket 52) | 2.5 Mb: R21008, R22013, yoran, pink_eric; 5 Mb: J12013, lambiek, sidonia | `scan.window_size_by_sample` |
 | Workflow 3: the contigs merged in one job, by their total length | 500 Mb (chk: 13 jobs of each merge) | `scan.merge_bp_per_job` |
 | Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
@@ -505,7 +507,7 @@ and every unresolved-haplotype region. Intermediates go to
 | Step | Target | Runs per | Output |
 |---|---|---|---|
 | 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
-| 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid`, named after its first window | `scan.windows_per_job` 10 Mb windows, scanned at the same time | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
+| 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid`, named after its first window | `scan.windows_per_job` 10 Mb windows (or the sample's `scan.window_size_by_sample`), scanned at the same time | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
 | 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid`, named after its first contig | contigs adding up to `scan.merge_bp_per_job`, one after the other | `calls/{contig}.tsv`, `fastq/{contig}.fastq.gz` |
 | 3b. Sum the opportunities | `non_rep_MergeOpportunities_{contig}_{species}_{sample}_diploid`, named after its first contig | the same contigs; a sum that fails its check is retried up to three times in the job (ticket 41) | `opportunities/{contig}.parquet` |
 | 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
@@ -1335,7 +1337,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_shapes.py](tests/test_read_shapes.py) | the scans on the read shapes real data has: reverse strand (with subread tags in sequencing order), base qualities below 93, reads ending early or crossing a window edge, soft clips, mapQ below 60, overlapping tracts |
 | [tests/test_config.py](tests/test_config.py) | config.yaml: every sample belongs to a known species, override BAMs are well formed, the layout templates resolve, and every key is read by a workflow or a notebook |
 | [tests/test_workflow_snapshots.py](tests/test_workflow_snapshots.py) | every target each workflow would run (name, inputs, outputs, options, command) for a fixture config, against the snapshots in `tests/snapshots/`; workflow 4's step 0 reading the long-period window BEDs workflow 2 writes; workflow 3 merging each contig in its own job; both workflows summing the opportunities in jobs of their own |
-| [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, the long contigs; the joins of calls and reads, which stop the job at a window they can't read and leave no file behind |
+| [tests/test_workflow_helper.py](tests/test_workflow_helper.py) | `workflows/pipeline.py`: paths from the layout templates, alignment overrides, a sample's own workflow 3 window size, the long contigs; the joins of calls and reads, which stop the job at a window they can't read and leave no file behind |
 | [tests/test_unresolved_haplotypes.py](tests/test_unresolved_haplotypes.py) | the unresolved-haplotype regions: the evidence rule, and regions that overlap or touch merging to their union |
 | [tests/test_masks.py](tests/test_masks.py) | what the InDel workflows leave out, from the workflows' own targets run with bash on a one-contig sample (TRF and samtools are stand-ins, from [tests/targets.py](tests/targets.py)): the excluded group, workflow 3's mask, the tracts workflow 4 measures (dropped for a homopolymer run, measured over a long-period tract), and their summaries |
 | [tests/test_tract_drop_causes.py](tests/test_tract_drop_causes.py) | why workflow 4 drops tracts: each tract counted once under its first cause, and the tracts each rule ticket 34 weighed would measure, option 2 matching the workflow's own step 0 |

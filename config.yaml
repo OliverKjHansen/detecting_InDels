@@ -301,6 +301,15 @@ repeats:
 scan:
   # Each contig is scanned in windows of this many bp.
   window_size: 10_000_000
+  # Workflow 3's windows for samples too heavy at window_size: at 10 Mb (and
+  # 20 GB a window) their scans ran out of memory or past 4 h of CPU, while
+  # the other tissue samples' finished (ticket 52). Workflow 4 keeps window_size.
+  window_size_by_sample:
+    rhesus_macaque:      {R21008: 2_500_000, R22013: 2_500_000}
+    chimp:               {yoran: 2_500_000}
+    gibbon:              {pink_eric: 2_500_000}
+    long_tailed_macaque: {J12013: 5_000_000}
+    marmoset:            {lambiek: 5_000_000, sidonia: 5_000_000}
   # Workflow 3 runs this many windows in one job, at the same time, one core
   # each (fewer jobs; a job takes as long as its slowest window). The job's
   # memory is the window's times this.

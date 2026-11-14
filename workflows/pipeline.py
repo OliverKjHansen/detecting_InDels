@@ -78,6 +78,11 @@ class Pipeline:
             return os.path.expanduser(overrides[sample])
         return self.path("alignment", species, sample)
 
+    def window_size(self, species, sample):
+        """The sample's workflow 3 window, bp: its entry under scan.window_size_by_sample, if any, else scan.window_size."""
+        scan = self.config["scan"]
+        return ((scan.get("window_size_by_sample") or {}).get(species) or {}).get(sample, scan["window_size"])
+
     def classification_arguments(self):
         """
         The last four arguments of join_read_classification.sh and

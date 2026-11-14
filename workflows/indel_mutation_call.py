@@ -40,10 +40,10 @@ scripts           = pipeline.scripts
 # Repeat models whose tracts are masked out, from repetitive_dna.py.
 models = config["repeats"]["models"]
 
-# Step 2 splits each contig into windows of this many bp, and runs this many
-# windows in one job, at the same time, one core each: fewer jobs, each as long
-# as its slowest window.
-chunk_size = config["scan"]["window_size"]
+# Step 2 splits each contig into windows (scan.window_size bp, or the sample's
+# own under scan.window_size_by_sample: pipeline.window_size), and runs this
+# many windows in one job, at the same time, one core each: fewer jobs, each as
+# long as its slowest window.
 windows_per_job = config["scan"]["windows_per_job"]
 # Step 3 merges the windows of contigs adding up to this many bp in one job.
 merge_bp_per_job = config["scan"]["merge_bp_per_job"]
@@ -151,7 +151,9 @@ for species, samples in config["samples"].items():
         # Step 2 runs per window. The windows [0, chunk_size),
         # [chunk_size, 2*chunk_size), ... tile each contig, and every pileup
         # position belongs to exactly one window, so each call and each
-        # opportunity is counted once.
+        # opportunity is counted once. The heaviest samples have smaller
+        # windows: at 10 Mb theirs needed more than 20 GB and 4 h (ticket 52).
+        chunk_size           = pipeline.window_size(species, sample)
         window_calls         = {contig: [] for contig in long_contigs}
         window_opportunities = {contig: [] for contig in long_contigs}
         window_fastqs        = {contig: [] for contig in long_contigs}

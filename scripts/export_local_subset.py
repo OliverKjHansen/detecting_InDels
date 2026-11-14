@@ -224,14 +224,19 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     contigs = source.long_contigs(species, sample)
     if contig not in contigs or not 0 <= start < end <= contigs[contig]:
         sys.exit(f"{species}/{sample}: {contig}:{start}-{end} is not inside a contig longer than min_contig_length")
-    scan_window = source.config["scan"]["window_size"]
-    is_scan_job = start % scan_window == 0 and end == min(start + scan_window, contigs[contig])
+    # Whether the window is one whole scan job of each workflow: workflow 3's
+    # windows can be the sample's own size (ticket 52), workflow 4's are not.
+    is_scan_job = {workflow: start % size == 0 and end == min(start + size, contigs[contig])
+                   for workflow, size in (("nonrepetitive", source.window_size(species, sample)),
+                                          ("repetitive", source.config["scan"]["window_size"]))}
+    scan_jobs = ", ".join(f"workflow {number}: {'one scan job' if is_scan_job[workflow] else 'not a scan job'}"
+                          for number, workflow in ((3, "nonrepetitive"), (4, "repetitive")))
     root = os.path.abspath(os.path.join(out, species, sample, f"{contig}_{start}_{end}"))
     os.makedirs(root, exist_ok=True)
     target = mirror_config(source.config, species, sample, root)
     has_workflow4 = os.path.exists(source.path("repetitive_haploid_locations", species, sample))
-    log(f"{species}/{sample} {contig}:{start}-{end}"
-        f" ({'one scan job' if is_scan_job else 'not a scan job: calls compared, opportunities not'})")
+    log(f"{species}/{sample} {contig}:{start}-{end} ({scan_jobs}; "
+        "opportunities are compared only for a whole scan job)")
     if not has_workflow4:
         log("  workflow 4 has not run for this sample: exporting workflow 3 only")
 
@@ -309,11 +314,11 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     # The cluster's tables for the window, to compare a local run with.
     log("  the cluster's tables for the window")
     copy_cluster_tables(source, species, sample, "nonrepetitive", f"{root}/cluster/nonrepetitive_indels",
-                        contig, start, end, is_scan_job)
+                        contig, start, end, is_scan_job["nonrepetitive"])
     if has_workflow4:
         for model in models:
             copy_cluster_tables(source, species, sample, "repetitive", f"{root}/cluster/repetitive_indels/{model}",
-                                contig, start, end, is_scan_job, model=model)
+                                contig, start, end, is_scan_job["repetitive"], model=model)
 
     with open(f"{root}/run_local.sh", "w") as handle:
         handle.write(REPLAY_SCRIPT)
@@ -324,7 +329,7 @@ def export_window(source, species, sample, contig, start, end, out, keep_kinetic
     with open(f"{root}/README.txt", "w") as handle:
         handle.write(f"Made by scripts/export_local_subset.py on {time.strftime('%Y-%m-%d %H:%M')}\n"
                      f"command: {' '.join(sys.argv)}\n"
-                     f"window: {contig}:{start}-{end} ({'one scan job' if is_scan_job else 'not a scan job'})\n"
+                     f"window: {contig}:{start}-{end} ({scan_jobs})\n"
                      f"BAM: {source.alignment(species, sample)}\n"
                      f"alignment records: {records:,} of {len(names):,} reads\n"
                      f"kinetics kept: {keep_kinetics}\n"
@@ -349,12 +354,12 @@ def main():
     args = parser.parse_args()
 
     source = Pipeline(args.config)
-    window_size = args.window_size or source.config["scan"]["window_size"]
     for spec in args.samples:
         species, sample, window = parse_sample(spec)
-        if window is None:
+        if window is None:   # by default one of workflow 3's scan jobs, of the sample's own size
             window = busiest_window(source.path("nonrepetitive_results_calls", species, sample),
-                                    source.long_contigs(species, sample), window_size)
+                                    source.long_contigs(species, sample),
+                                    args.window_size or source.window_size(species, sample))
         export_window(source, species, sample, *window, args.out, args.keep_kinetics)
 
 
