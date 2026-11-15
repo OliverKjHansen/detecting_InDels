@@ -45,8 +45,10 @@ models = config["repeats"]["models"]
 # many windows in one job, at the same time, one core each: fewer jobs, each as
 # long as its slowest window.
 windows_per_job = config["scan"]["windows_per_job"]
-# Step 3 merges the windows of contigs adding up to this many bp in one job.
-merge_bp_per_job = config["scan"]["merge_bp_per_job"]
+# Step 3 merges the windows of contigs adding up to this many bp in one job;
+# a tissue sample's opportunity sums take at most the second (ticket 55).
+merge_bp_per_job      = config["scan"]["merge_bp_per_job"]
+tissue_sum_bp_per_job = config["scan"]["tissue_sum_bp_per_job"]
 # The positions scanned, and the InDel sizes called and counted.
 scan_options = (f"--coverage-band {' '.join(map(str, config['scan']['coverage_band']))} "
                 f"--indel-sizes {' '.join(map(str, config['scan']['indel_sizes']))} "
@@ -213,7 +215,9 @@ for pid in "${{pids[@]}}"; do wait "$pid"; done
         # 40), in jobs of their own: the calls and reads, and the remapping
         # after them, don't depend on how the opportunities are kept. A sum
         # that fails its check at random (ticket 41) is retried in the job, so
-        # the group's other contigs aren't summed again.
+        # the group's other contigs aren't summed again. A tissue sample's
+        # sums are in smaller groups: its tissues split the window tables, and
+        # pink_eric's 500 Mb took about 6 h (ticket 55).
         for group in grouped_by_length(long_contigs, merge_bp_per_job):
             first = group[0]
             joins = "\n".join(f"{joined_calls(window_calls[contig], calls[contig])}\n"
@@ -231,6 +235,9 @@ mkdir -p {calls_dir} {fastq_dir}
 {joins}
 """
 
+        sum_bp_per_job = min(merge_bp_per_job, tissue_sum_bp_per_job) if tissue_inputs else merge_bp_per_job
+        for group in grouped_by_length(long_contigs, sum_bp_per_job):
+            first = group[0]
             sums = "\n".join(retried(f"python {scripts}/opportunity_tables.py sum {opportunities[contig]} "
                                      f"{' '.join(window_opportunities[contig])}") for contig in group)
             gwf.target(

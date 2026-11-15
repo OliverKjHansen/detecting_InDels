@@ -126,6 +126,28 @@ def test_workflow_3_merges_each_contig_once_in_groups_up_to_the_budget(tmp_path,
                 assert all("/opportunities/chunks/" in path for path in target["inputs"])
 
 
+def test_workflow_3_sums_a_tissue_samples_opportunities_in_groups_up_to_its_own_budget(tmp_path, monkeypatch):
+    # pink_eric's sums of 500 Mb of contigs timed out at 4 h (ticket 55); its
+    # calls and reads merged in time. ape/s1 is a tissue sample: c1 (12 Mb)
+    # and c2 (1.5 Mb).
+    import yaml
+    root = os.path.realpath(tmp_path)
+    write_config(root)
+    with open(os.path.join(root, "config.yaml")) as handle:
+        config = yaml.safe_load(handle)
+    config["scan"].update(merge_bp_per_job=500_000_000, tissue_sum_bp_per_job=12_000_000)
+    with open(os.path.join(root, "config.yaml"), "w") as handle:
+        yaml.safe_dump(config, handle)
+    targets = load_targets("indel_mutation_call", root, monkeypatch)
+
+    def groups(kind):
+        return sorted(sorted(os.path.basename(path).split(".")[0] for path in target["outputs"])
+                      for name, target in targets.items() if name.startswith(kind) and name.endswith("_ape_s1_diploid"))
+
+    assert groups("non_rep_MergeWindows_") == [["c1", "c1", "c2", "c2"]]   # calls and reads of each
+    assert groups("non_rep_MergeOpportunities_") == [["c1"], ["c2"]]
+
+
 def test_workflow_4_sums_the_opportunities_in_their_own_job(tmp_path, monkeypatch):
     root = os.path.realpath(tmp_path)
     write_config(root)

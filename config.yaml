@@ -352,6 +352,11 @@ scan:
   # (calls and reads) and 0.4 min (opportunities) per contig on average, 9.8
   # h and 2.5 h for its 414 contigs (5.9 Gb), so about an hour per job.
   merge_bp_per_job: 500_000_000
+  # A tissue sample's opportunity sums take contigs adding up to at most this
+  # many bp in one job: its tissues split the window tables. pink_eric's took
+  # about 5 min per GB of gzipped window tables, with about 0.15 GB per Mb of
+  # contig, so 500 Mb took about 6 h, 200 Mb about 2.5 h (ticket 55).
+  tissue_sum_bp_per_job: 200_000_000
   # Only positions whose depth is within these multiples of the sample's mean
   # coverage are scanned.
   coverage_band: [0.5, 2.0]

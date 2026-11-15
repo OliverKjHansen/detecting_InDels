@@ -224,6 +224,7 @@ Parameters:
 | Workflow 3's window for the samples too heavy at 10 Mb (ticket 52) | 2.5 Mb: R21008, R22013, yoran, pink_eric; 5 Mb: J12013, lambiek, sidonia | `scan.window_size_by_sample` |
 | Workflow 3's memory a window for the samples that need more than their kind gets (40 GB Revio with methylation bins, 20 GB tissue samples, else 10 GB; ticket 54) | 30 GB: J12013 | `scan.window_memory_gb_by_sample` |
 | Workflow 3: the contigs merged in one job, by their total length | 500 Mb (chk: 13 jobs of each merge) | `scan.merge_bp_per_job` |
+| Workflow 3: at most the contigs of a tissue sample's opportunity sums in one job (ticket 55) | 200 Mb | `scan.tissue_sum_bp_per_job` |
 | Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
 | Minimum kmerQ, as the key `kmerQ_pass` | 93 | `strata.min_kmerq` |
@@ -514,7 +515,7 @@ and every unresolved-haplotype region. Intermediates go to
 | 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
 | 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid`, named after its first window | `scan.windows_per_job` 10 Mb windows (or the sample's `scan.window_size_by_sample`), scanned at the same time | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
 | 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid`, named after its first contig | contigs adding up to `scan.merge_bp_per_job`, one after the other | `calls/{contig}.tsv`, `fastq/{contig}.fastq.gz` |
-| 3b. Sum the opportunities | `non_rep_MergeOpportunities_{contig}_{species}_{sample}_diploid`, named after its first contig | the same contigs; a sum that fails its check is retried up to three times in the job (ticket 41) | `opportunities/{contig}.parquet` |
+| 3b. Sum the opportunities | `non_rep_MergeOpportunities_{contig}_{species}_{sample}_diploid`, named after its first contig | the same contigs, or for a tissue sample those adding up to `scan.tissue_sum_bp_per_job` (ticket 55); a sum that fails its check is retried up to three times in the job (ticket 41) | `opportunities/{contig}.parquet` |
 | 4. Remap to haploid | `non_rep_HaploidMapping_{species}_{sample}_diploid` | sample | `haploid/all.fastq.gz`, `haploid/remapped.bam`, `haploid/locations.tsv` |
 | 4b. Remap to each haplotype | `non_rep_HaplotypeMapping_{haplotype}_{species}_{sample}_diploid` | sample × haplotype | `haploid/{haplotype}.bam`, `haploid/{haplotype}_locations.tsv` |
 | 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
