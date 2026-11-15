@@ -29,7 +29,7 @@ tissue_samples:
 # indel pipelines add the germline/somatic classification columns for these, from
 # {classification}/{species}/{sample}/{sample}/05_ReadsClassification/.
 methylation_samples:
-  human: [ob006, ob007, ob008, ob009, ob006_new_data, ob007_new_data, ob009_new_data] #ob003h, ob008_new_data
+  human: [ob006, ob007, ob008, ob009, ob2v_new_data, ob003h_new_data, ob006_new_data, ob007_new_data, ob009_new_data] #ob003h, ob008_new_data
   gorilla: [mbewe, samson, kipenzi, samson_new_data]
   chimp: [stephan, carl, marlock, mongo] #martin
   gibbon: [tarzan]
