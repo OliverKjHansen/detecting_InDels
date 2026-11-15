@@ -180,6 +180,14 @@ def final_filtering_options(config, species, sample, repeats=False):
     return options
 
 
+def filter_rate_steps(config):
+    """filter_rates.py's own funnel steps, as arguments: workflow 3's under `filter_rates` (ticket 56)."""
+    options = []
+    for column, values in config["filter_rates"]["nonrepetitive_steps"].items():
+        options += ["--step", f"{column}={','.join(map(str, values))}"]
+    return options
+
+
 def shell(arguments):
     """Arguments as one string for a shell command."""
     return " ".join(shlex.quote(argument) for argument in arguments)

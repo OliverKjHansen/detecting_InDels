@@ -239,6 +239,8 @@ layout:
   nonrepetitive_results_report:       "{results}/nonrepetitive_indels/{species}/{sample}/filter_report.tsv"
   nonrepetitive_results_classified:   "{results}/nonrepetitive_indels/{species}/{sample}/indels_classified.tsv"
   nonrepetitive_classification_reads: "{results}/nonrepetitive_indels/{species}/{sample}/classification_reads.tsv"
+  nonrepetitive_rates_by_filter:      "{results}/nonrepetitive_indels/{species}/{sample}/rates_by_filter.tsv"
+  nonrepetitive_rates_funnel:         "{results}/nonrepetitive_indels/{species}/{sample}/rates_funnel.tsv"
 
   # Written by repetitive_indel_call.py (workflow 4): the reads and their
   # remapping are shared by the models, everything else is per model.
@@ -459,6 +461,20 @@ final_filters:
   # smrt_cells.tsv) are taken to be capped at it, and dropped from both
   # tables (Q12, Q17).
   capped_quality: 40
+
+# Workflow 3's rates by filter (ticket 56): filter_rates.py's funnel applies
+# final filtering's steps, then these, in this order, to the candidate calls
+# and opportunities alike, and gives the rate after each step. The candidates
+# of ticket 49's session filters (subreads_analysis/filters/our_funnel.py):
+# subread support at least 0.8, no other event within 10 bp, rq at least
+# 0.999, no subread disagreeing at L1 or R1, reads of 8 kb or more.
+filter_rates:
+  nonrepetitive_steps:
+    subread_support: ["0.8-0.9", "0.9-1", ">=1"]
+    nearby_event_bin: ["10-20", "20-50", "50-100", "100-1000", ">=1000", "none"]
+    rq_bin: ["0.999-0.9999", ">=0.9999"]
+    junction_disagreement: ["no"]
+    read_length_bin: ["8000-12000", "12000-16000", "16000-20000", ">=20000"]
 
 # Germline/somatic classification of reads with methylation scores, by
 # join_read_classification.sh (a bin on every call) and

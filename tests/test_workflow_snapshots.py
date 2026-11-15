@@ -158,3 +158,28 @@ def test_workflow_4_sums_the_opportunities_in_their_own_job(tmp_path, monkeypatc
     assert sorted(path.split("/")[-3:] for path in opportunities["outputs"]) == [
         [model, "opportunities", "c1.parquet"] for model in ("M0", "M1", "M2")]
     assert opportunities["inputs"] and all("/opportunities/chunks/c1_" in path for path in opportunities["inputs"])
+
+
+def test_workflow_3_rates_each_sample_by_filter_from_its_candidate_tables_with_final_filterings_steps(tmp_path, monkeypatch):
+    # Ticket 56: the calls and opportunities before final filtering; final
+    # filtering's own steps, then the funnel's (filter_rates in config.yaml).
+    import shlex
+    root = os.path.realpath(tmp_path)
+    config = write_config(root)
+    targets = load_targets("indel_mutation_call", root, monkeypatch)
+    rates = targets["non_rep_FilterRates_ape_s1_diploid"]
+    final = targets["non_rep_FinalFiltering_ape_s1_diploid"]
+    assert sorted(path.split("/", 1)[1] for path in rates["outputs"]) == [
+        "results/nonrepetitive_indels/ape/s1/rates_by_filter.tsv", "results/nonrepetitive_indels/ape/s1/rates_funnel.tsv"]
+    candidates = [path for path in final["inputs"] if "/merged/" in path]
+    assert len(candidates) == 2 and set(candidates) <= set(rates["inputs"])
+
+    def options(spec, name):
+        words = shlex.split(spec)
+        return [words[i + 1] for i, word in enumerate(words) if word == name]
+
+    for name in ("--keep", "--calls-only", "--platform", "--capped-quality", "--smrt-cells"):
+        assert options(rates["spec"], name) == options(final["spec"], name), name
+    assert options(rates["spec"], "--step") == [f"{column}={','.join(map(str, values))}" for column, values
+                                                in config["filter_rates"]["nonrepetitive_steps"].items()]
+    assert options(rates["spec"], "--step")

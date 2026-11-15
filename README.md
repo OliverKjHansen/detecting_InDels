@@ -200,7 +200,7 @@ in.
 | `paths.output`, `paths.results`, `paths.plots` | Where intermediates, final tables and PDFs go, relative to the repository root. |
 | `tools.mreps`, `tools.trf` | The two repeat finders. |
 | `layout` | Where every file lives: one path template per file, filled from `paths`, `assembly_type`, species, sample and, per file, contig, model, window start and end, or period k. The workflows build every path from these, through [workflows/pipeline.py](workflows/pipeline.py). |
-| `precompute`, `repeats`, `scan`, `strata`, `final_filters`, `classification` | The workflows' parameters, below. The scripts take them as arguments; the scans take the whole `strata` block as `--key-parameters`. |
+| `precompute`, `repeats`, `scan`, `strata`, `final_filters`, `filter_rates`, `classification` | The workflows' parameters, below. The scripts take them as arguments; the scans take the whole `strata` block as `--key-parameters`. |
 
 No workflow reads `sperm_samples` or `sample_age`; the notebooks do.
 
@@ -235,6 +235,7 @@ Parameters:
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
 | The definition of a final call: the values each key keeps, on calls and opportunities alike; then workflow 3's steps on the calls only | workflow 3: `inner_flank_q` ≥ 93, `outer_flank_q` ≥ 60, `base_after_masked` = `no`; then the inserted bases, the haploid check and the hap1/hap2 test. Workflow 4: `kmerQ_pass` = `pass`, `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `.nonrepetitive_keep`, `.nonrepetitive_calls_only`, `.repeat_keep` |
 | SMRT Cells taken to be capped, and dropped, if none of their reads' base qualities is above; reads looked at per sample | Q40; 100,000 | `final_filters.capped_quality`, `precompute.smrt_cell_reads` |
+| Workflow 3's funnel of rates by filter (ticket 56): the steps after final filtering's, in order, on calls and opportunities alike | subread support ≥ 0.8; no other event within 10 bp; rq ≥ 0.999; `junction_disagreement` = `no`; reads ≥ 8 kb | `filter_rates.nonrepetitive_steps` |
 | Sequel II samples (the others are Revio) | da1, ob2v, stephan, carl, mbewe, samson | `sequel_ii_samples` |
 | Bases a read must cover on each side of a tract to count for it (workflow 4) | 25 bp | `scan.min_tract_flank` |
 | Bins of a tract's copies and purity, keys of workflow 4 | 5, 10, 20, 50; 90, 95, 99, 100% | `strata.tract_copies_bins`, `strata.tract_purity_bins` |
@@ -521,6 +522,7 @@ and every unresolved-haplotype region. Intermediates go to
 | 5. Haploid check | `non_rep_HaploidFilter_{species}_{sample}_diploid` | sample | `merged/indels.tsv` |
 | 6. Merge opportunities, plot | `non_rep_MergeAndPlot_{species}_{sample}_diploid` | sample | `merged/opportunities.parquet`, `plots/nonrepetitive_indels/{species}/{sample}/plots.pdf` |
 | 7. Final filtering | `non_rep_FinalFiltering_{species}_{sample}_diploid` | sample | `indels.tsv`, `opportunities.parquet`, `filter_report.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
+| 7b. Rates by filter | `non_rep_FilterRates_{species}_{sample}_diploid` | sample | `rates_by_filter.tsv`, `rates_funnel.tsv`, next to `indels.tsv` (ticket 56) |
 | 8. Germline/somatic | `non_rep_Classify_{species}_{sample}_diploid` | sample in `methylation_samples` | `indels_classified.tsv`, next to `indels.tsv` |
 
 1. **Mask.** Per contig, every tract of the three models before overlap
@@ -976,6 +978,29 @@ haploid check (`NA`): their read had no usable haploid alignment, or the
 alignment clipped the call off. Values the callers write as `NA` stay `NA` in
 the output.
 
+### Rates by filter
+
+Step 7b ([filter_rates.py](scripts/filter_rates.py), ticket 56) writes two
+small tables per sample, so rates can be plotted without the opportunity cube
+(151 MB to 19 GB a sample). Both start from the candidate tables, before final
+filtering (`merged/indels.tsv` and `merged/opportunities.parquet`). Every row
+counts, for one InDel type and size, the `unique_calls`, the
+`non_unique_calls` and the `opportunities` (summed counts), with `rate` the
+unique calls per opportunity; an InDel's size is its sequence's length.
+
+- `rates_by_filter.tsv`: one row per `metric`, `value`, type and size. A
+  metric is a key both tables carry, its value kept in both, so the rows of a
+  metric add up to the sample's, and the rate of a threshold is that of its
+  values added up. The calls-only checks of
+  `final_filters.nonrepetitive_calls_only` are metrics too (`applies_to`
+  `calls`): their values divide the calls by all the opportunities.
+- `rates_funnel.tsv`: one row per `step`, type and size, the counts after the
+  step and every one before it. The steps are final filtering's, in its order
+  and with its rules, then those of `filter_rates.nonrepetitive_steps`, on
+  both tables. The step after the last calls-only check counts what final
+  filtering keeps; the last step is the most filtered rate. A step on a tag
+  the sample lacks is skipped and its `note` says so.
+
 ### What the opportunities go through
 
 The opportunities pass the scan's filters (coverage, mask or tract, and the
@@ -1074,10 +1099,12 @@ results/
 │   ├── indels.tsv
 │   ├── indels_classified.tsv                     methylation_samples only
 │   ├── opportunities.parquet
-│   └── filter_report.tsv
+│   ├── filter_report.tsv
+│   ├── rates_by_filter.tsv
+│   └── rates_funnel.tsv
 └── repetitive_indels/{species}/{sample}/
     ├── tracts_summary.tsv
-    └── {model}/                                  the same four files
+    └── {model}/                                  the first four files above
 
 plots/
 ├── nonrepetitive_indels/{species}/{sample}/plots.pdf
@@ -1257,6 +1284,11 @@ need no approximation.
   `calls_removed`, `opportunities_before`, `opportunities_after`,
   `opportunities_removed`, `haploid_check_missing`, `note`, see
   [the report](#final-filtering-and-the-filter-report).
+- `rates_by_filter.tsv` (workflow 3): `species`, `sample`, `platform`,
+  `metric`, `value`, `applies_to`, `indel_type`, `size`, `unique_calls`,
+  `non_unique_calls`, `opportunities`, `rate`; `rates_funnel.tsv`: the same
+  with `step`, `filter`, `applies_to`, `note` in place of `metric`, `value`,
+  `applies_to`. See [Rates by filter](#rates-by-filter).
 - `indels_classified.tsv`: `indels.tsv` plus the five columns under
   [Germline or somatic](#tissue-and-cell-type-labels).
 

@@ -115,6 +115,58 @@ def has_values(con, tables, steps, column):
                            f"WHERE {kept(steps, table.name)}").fetchone()[0] for table in tables)
 
 
+def capped_smrt_cells(smrt_cells, capped_quality):
+    """The SMRT Cells none of whose reads has a base quality above `capped_quality`, by precompute's table."""
+    cells = pandas.read_csv(smrt_cells, sep="\t", dtype={"smrt_cell": str})
+    return sorted(cells.smrt_cell[cells.max_quality <= capped_quality])
+
+
+def keep_step(con, tables, steps, keep, error):
+    """
+    The step of a COLUMN=VALUES filter on both tables, after `steps`; error(message)
+    if a table lacks the column.
+    """
+    column, values = keep.split("=", 1)
+    for table in tables:
+        if column not in table.columns:
+            error(f"{keep}: the {table.name} have no column {column}")
+    # A tag the sample lacks is NA in every row that reaches the step: skip it, rather than remove everything.
+    if has_values(con, tables, steps, column):
+        return Step(keep, f"{identifier(column)} IN ({', '.join(map(literal, values.split(',')))})")
+    return Step(keep, note="skipped: NA throughout the sample")
+
+
+def calls_only_step(con, tables, steps, keep):
+    """The step of a COLUMN=VALUES filter on the calls only, after `steps`."""
+    column, values = keep.split("=", 1)
+    values = values.split(",")
+    # A check that wasn't made, such as the hap1/hap2 test on a window
+    # exported before it, is skipped and noted rather than failing the run.
+    if column not in tables[0].columns:
+        return Step(keep, note=f"skipped: the calls have no column {column}", tables=("calls",))
+    if "NA" in values or has_values(con, tables[:1], steps, column):
+        return Step(keep, f"{identifier(column)} IN ({', '.join(map(literal, values))})",
+                    note=CALLS_ONLY_NOTE, tables=("calls",))
+    return Step(keep, note="skipped: NA throughout the sample", tables=("calls",))
+
+
+def final_steps(con, tables, capped, keeps, calls_only, error):
+    """
+    The steps of final filtering, in order, for (calls, opportunities):
+    `capped` SMRT Cells, each of `keeps` on both tables, each of `calls_only`
+    on the calls. error(message) for a keep on a column a table lacks.
+    """
+    steps = [Step("input"),
+             Step("capped_smrt_cells",
+                  f"coalesce({identifier('smrt_cell')}, '') NOT IN ({', '.join(map(literal, capped))})" if capped else "true",
+                  note=",".join(capped))]
+    for keep in keeps:
+        steps.append(keep_step(con, tables, steps, keep, error))
+    for keep in calls_only:
+        steps.append(calls_only_step(con, tables, steps, keep))
+    return steps
+
+
 def record_rows(con, table, steps):
     """Records each step's rows of `table` before and after it, in one pass over the table."""
     after = [f"{table.size()} FILTER (WHERE {kept(steps[:i + 1], table.name)})" for i in range(len(steps))]
@@ -149,34 +201,8 @@ def main():
     tables = [Table(con, "calls", args.calls, args.final_calls),
               Table(con, "opportunities", args.opportunities, args.final_opportunities, count_column="count")]
 
-    cells = pandas.read_csv(args.smrt_cells, sep="\t", dtype={"smrt_cell": str})
-    capped = sorted(cells.smrt_cell[cells.max_quality <= args.capped_quality])
-    steps = [Step("input"),
-             Step("capped_smrt_cells",
-                  f"coalesce({identifier('smrt_cell')}, '') NOT IN ({', '.join(map(literal, capped))})" if capped else "true",
-                  note=",".join(capped))]
-    for keep in args.keep:
-        column, values = keep.split("=", 1)
-        for table in tables:
-            if column not in table.columns:
-                parser.error(f"--keep {keep}: the {table.name} have no column {column}")
-        # A tag the sample lacks is NA in every row that reaches the step: skip it, rather than remove everything.
-        if has_values(con, tables, steps, column):
-            steps.append(Step(keep, f"{identifier(column)} IN ({', '.join(map(literal, values.split(',')))})"))
-        else:
-            steps.append(Step(keep, note="skipped: NA throughout the sample"))
-    for keep in args.calls_only:
-        column, values = keep.split("=", 1)
-        values = values.split(",")
-        # A check that wasn't made, such as the hap1/hap2 test on a window
-        # exported before it, is skipped and noted rather than failing the run.
-        if column not in tables[0].columns:
-            steps.append(Step(keep, note=f"skipped: the calls have no column {column}", tables=("calls",)))
-        elif "NA" in values or has_values(con, tables[:1], steps, column):
-            steps.append(Step(keep, f"{identifier(column)} IN ({', '.join(map(literal, values))})",
-                              note=CALLS_ONLY_NOTE, tables=("calls",)))
-        else:
-            steps.append(Step(keep, note="skipped: NA throughout the sample", tables=("calls",)))
+    steps = final_steps(con, tables, capped_smrt_cells(args.smrt_cells, args.capped_quality), args.keep,
+                        args.calls_only, lambda message: parser.error(f"--keep {message}"))
 
     for table in tables:
         record_rows(con, table, steps)

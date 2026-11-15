@@ -2,8 +2,8 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import (Pipeline, final_filtering_options, grouped_by_length, joined_calls, joined_reads, remapping,
-                      retried, shell)
+from pipeline import (Pipeline, filter_rate_steps, final_filtering_options, grouped_by_length, joined_calls,
+                      joined_reads, remapping, retried, shell)
 
 # ---------------------------------------------------------------------------
 # InDels OUTSIDE repetitive DNA. Calls 1-3 bp insertions and deletions in single
@@ -358,6 +358,29 @@ mkdir -p {opportunities_dir}
         python {scripts}/final_filtering.py {merged_indels} {merged_opportunities} \\
             {results_calls} {results_opportunities} {results_report} \\
             --smrt-cells {path("smrt_cells")} {shell(final_filtering_options(config, species, sample))}
+        """
+
+        # Step 7b — rates by filter (ticket 56): from the candidate calls and
+        # opportunities, before final filtering, the unique calls, non-unique
+        # calls and opportunities of each value of each filter metric, and
+        # after each step of final filtering and then of the funnel's own
+        # (filter_rates in config.yaml): small tables to plot rates from
+        # without the opportunity cube.
+        rates_by_filter = path("nonrepetitive_rates_by_filter")
+        rates_funnel    = path("nonrepetitive_rates_funnel")
+
+        gwf.target(
+            f"non_rep_FilterRates_{species}_{sample}_{assembly_type}",
+            inputs=[merged_indels, merged_opportunities, path("smrt_cells")],
+            outputs=[rates_by_filter, rates_funnel],
+            cores=8,   # DuckDB reads the cube with them
+            memory="16g",
+            walltime="04:00:00",
+        ) << f"""
+        mkdir -p {resultsdir}
+        python {scripts}/filter_rates.py {merged_indels} {merged_opportunities} {rates_by_filter} {rates_funnel} \\
+            --species {species} --sample {sample} --smrt-cells {path("smrt_cells")} \\
+            {shell(final_filtering_options(config, species, sample) + filter_rate_steps(config))}
         """
 
         # Step 8 — cell-type classification, for the samples listed under
