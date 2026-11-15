@@ -337,6 +337,12 @@ scan:
     gibbon:              {pink_eric: 2_500_000}
     long_tailed_macaque: {J12013: 5_000_000}
     marmoset:            {lambiek: 5_000_000, sidonia: 5_000_000}
+  # Workflow 3's memory a window, GB, for samples that need more than
+  # indel_mutation_call.py gives them (40 for Revio samples with methylation
+  # bins, 20 for tissue samples, else 10): at 5 Mb and 20 GB, 50 of J12013's
+  # 313 scan jobs ran out of memory (ticket 54).
+  window_memory_gb_by_sample:
+    long_tailed_macaque: {J12013: 30}
   # Workflow 3 runs this many windows in one job, at the same time, one core
   # each (fewer jobs; a job takes as long as its slowest window). The job's
   # memory is the window's times this.

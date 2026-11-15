@@ -100,10 +100,12 @@ for species, samples in config["samples"].items():
         # tissues (ten for R22013) split them as well, and each scan loads the
         # sample's read-to-tissue table (12 M reads, about 2.4 GB): R22013's
         # scans peaked at 35-41 GB of 40, and 1,376 of the tissue samples'
-        # failed there (ticket 51). This is per window; a job asks for it once
-        # for each of its windows.
+        # failed there (ticket 51). A sample under scan.window_memory_gb_by_sample
+        # asks its own: J12013's 5 Mb windows needed more than 20 GB (ticket
+        # 54). This is per window; a job asks for it once for each of its
+        # windows.
         many_keys   = read_bins_inputs and not pipeline.is_listed("sequel_ii_samples", species, sample)
-        window_memory_gb = 40 if many_keys else 20 if tissue_inputs else 10
+        window_memory_gb = pipeline.window_memory_gb(species, sample, 40 if many_keys else 20 if tissue_inputs else 10)
 
         mask_dir          = folder("nonrepetitive_mask")
         calls_dir         = folder("nonrepetitive_calls")

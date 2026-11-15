@@ -103,8 +103,14 @@ class Pipeline:
 
     def window_size(self, species, sample):
         """The sample's workflow 3 window, bp: its entry under scan.window_size_by_sample, if any, else scan.window_size."""
-        scan = self.config["scan"]
-        return ((scan.get("window_size_by_sample") or {}).get(species) or {}).get(sample, scan["window_size"])
+        return self._scan_by_sample("window_size_by_sample", species, sample, self.config["scan"]["window_size"])
+
+    def window_memory_gb(self, species, sample, default):
+        """The memory of the sample's workflow 3 window, GB: its entry under scan.window_memory_gb_by_sample, if any, else `default`."""
+        return self._scan_by_sample("window_memory_gb_by_sample", species, sample, default)
+
+    def _scan_by_sample(self, table, species, sample, default):
+        return ((self.config["scan"].get(table) or {}).get(species) or {}).get(sample, default)
 
     def classification_arguments(self):
         """

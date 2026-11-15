@@ -114,3 +114,14 @@ def test_a_scan_asks_memory_by_how_its_samples_reads_split_the_counts(tmp_path, 
         sample.configure(block, **{targets.SPECIES: [targets.SAMPLE]})
     scan = f"non_rep_Scan_{targets.CONTIG}_0_{targets.SPECIES}_{targets.SAMPLE}_diploid"
     assert sample.targets("indel_mutation_call")[scan].options["memory"] == memory
+
+
+def test_a_sample_listed_with_its_own_window_memory_asks_it_for_each_window(tmp_path, monkeypatch):
+    # At 5 Mb and 20 GB a window, 50 of J12013's 313 scan jobs ran out of
+    # memory (ticket 54).
+    sample = targets.sample(tmp_path, monkeypatch, "ACGT" * 50)   # one contig of 200 bp
+    sample.configure("tissue_samples", **{targets.SPECIES: [targets.SAMPLE]})
+    sample.configure("scan", window_size_by_sample={targets.SPECIES: {targets.SAMPLE: 80}},
+                     window_memory_gb_by_sample={targets.SPECIES: {targets.SAMPLE: 30}})
+    scan = f"non_rep_Scan_{targets.CONTIG}_0_{targets.SPECIES}_{targets.SAMPLE}_diploid"
+    assert sample.targets("indel_mutation_call")[scan].options["memory"] == "90g"   # 3 windows in the job

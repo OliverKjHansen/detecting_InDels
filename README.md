@@ -222,6 +222,7 @@ Parameters:
 | Excluded periods | 7 (one above `repeats.periods`) to 2000 | `repeats.long_period_max` |
 | InDel scan window, and workflow 3's windows per job (scanned at the same time, one core and the window's memory each) | 10 Mb; 4 | `scan.window_size`, `scan.windows_per_job` |
 | Workflow 3's window for the samples too heavy at 10 Mb (ticket 52) | 2.5 Mb: R21008, R22013, yoran, pink_eric; 5 Mb: J12013, lambiek, sidonia | `scan.window_size_by_sample` |
+| Workflow 3's memory a window for the samples that need more than their kind gets (40 GB Revio with methylation bins, 20 GB tissue samples, else 10 GB; ticket 54) | 30 GB: J12013 | `scan.window_memory_gb_by_sample` |
 | Workflow 3: the contigs merged in one job, by their total length | 500 Mb (chk: 13 jobs of each merge) | `scan.merge_bp_per_job` |
 | Coverage window | 0.5×–2× the sample mean | `scan.coverage_band` |
 | InDel sizes outside repeats (workflow 3) | 1–3 bp | `scan.indel_sizes` |
