@@ -477,7 +477,7 @@ filter_rates:
     nearby_event_bin: ["10-20", "20-50", "50-100", "100-1000", ">=1000", "none"]
     #rq_bin: ["0.999-0.9999", ">=0.9999"]
     #junction_disagreement: ["no"]
-    read_length_bin: ["8000-12000", "12000-16000", "16000-20000", ">=20000"]
+    #read_length_bin: ["8000-12000", "12000-16000", "16000-20000", ">=20000"]
 
 # Germline/somatic classification of reads with methylation scores, by
 # join_read_classification.sh (a bin on every call) and
