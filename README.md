@@ -235,7 +235,7 @@ Parameters:
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
 | The definition of a final call: the values each key keeps, on calls and opportunities alike; then workflow 3's steps on the calls only | workflow 3: `inner_flank_q` ≥ 93, `outer_flank_q` ≥ 60, `base_after_masked` = `no`; then the inserted bases, the haploid check and the hap1/hap2 test. Workflow 4: `kmerQ_pass` = `pass`, `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `.nonrepetitive_keep`, `.nonrepetitive_calls_only`, `.repeat_keep` |
 | SMRT Cells taken to be capped, and dropped, if none of their reads' base qualities is above; reads looked at per sample | Q40; 100,000 | `final_filters.capped_quality`, `precompute.smrt_cell_reads` |
-| Workflow 3's funnel of rates by filter (ticket 56): the steps after final filtering's, in order, on calls and opportunities alike; the keys its rows are split by | subread support ≥ 0.8; no other event within 10 bp; rq ≥ 0.999; `junction_disagreement` = `no`; reads ≥ 8 kb; `tissue`, `methylation_bin` | `filter_rates.nonrepetitive_steps`, `filter_rates.funnel_by` |
+| Workflow 3's funnel of rates by filter (ticket 56): the steps after final filtering's, in order, on calls and opportunities alike; the keys its rows are split by | subread support ≥ 0.8; no other event within 100 bp; rq ≥ 0.999; `junction_disagreement` = `no`; reads ≥ 8 kb; `tissue`, `methylation_bin` | `filter_rates.nonrepetitive_steps`, `filter_rates.funnel_by` |
 | Sequel II samples (the others are Revio) | da1, ob2v, stephan, carl, mbewe, samson | `sequel_ii_samples` |
 | Bases a read must cover on each side of a tract to count for it (workflow 4) | 25 bp | `scan.min_tract_flank` |
 | Bins of a tract's copies and purity, keys of workflow 4 | 5, 10, 20, 50; 90, 95, 99, 100% | `strata.tract_copies_bins`, `strata.tract_purity_bins` |
@@ -1309,6 +1309,7 @@ ggplot2, and the IRkernel Jupyter kernel.
 | [tract_lengths.ipynb](plotting/tract_lengths.ipynb) | the `results/repetitive_dna/` summaries | how the M0 and M1 annotations (optionally M2) differ: tract counts, lengths, motifs and purity |
 | [repetitive_mutation_rate.ipynb](plotting/repetitive_mutation_rate.ipynb) | `results/repetitive_indels/` and the summaries | rates inside repeats per period, motif, tract length and tissue, compared between models |
 | [nonrepetitive_indels.ipynb](plotting/nonrepetitive_indels.ipynb) | `results/nonrepetitive_indels/` and `results/repetitive_indels/` | rates outside repeats per size, context, contig and tissue, and against one-unit InDels in repeat tracts |
+| [nonrepetitive_rates.Rmd](plotting/nonrepetitive_rates.Rmd) | `results/nonrepetitive_indels/*/*/rates_funnel.tsv` (ticket 56) | rates outside repeats at the funnel's most stringent step: sperm and germline testis reads against age, germline against somatic testis reads, and tissues against each other |
 
 Committed notebooks carry no outputs, while the copies on disk keep theirs.
 [.gitattributes](.gitattributes) sends every notebook through
