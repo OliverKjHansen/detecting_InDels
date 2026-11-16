@@ -235,7 +235,7 @@ Parameters:
 | Assembly bases on each side of a call's anchor | 25 | `scan.flank_width` |
 | The definition of a final call: the values each key keeps, on calls and opportunities alike; then workflow 3's steps on the calls only | workflow 3: `inner_flank_q` ≥ 93, `outer_flank_q` ≥ 60, `base_after_masked` = `no`; then the inserted bases, the haploid check and the hap1/hap2 test. Workflow 4: `kmerQ_pass` = `pass`, `read_end_distance_bin` ≥ 100 bp | `final_filters.keep`, `.nonrepetitive_keep`, `.nonrepetitive_calls_only`, `.repeat_keep` |
 | SMRT Cells taken to be capped, and dropped, if none of their reads' base qualities is above; reads looked at per sample | Q40; 100,000 | `final_filters.capped_quality`, `precompute.smrt_cell_reads` |
-| Workflow 3's funnel of rates by filter (ticket 56): the steps after final filtering's, in order, on calls and opportunities alike | subread support ≥ 0.8; no other event within 10 bp; rq ≥ 0.999; `junction_disagreement` = `no`; reads ≥ 8 kb | `filter_rates.nonrepetitive_steps` |
+| Workflow 3's funnel of rates by filter (ticket 56): the steps after final filtering's, in order, on calls and opportunities alike; the keys its rows are split by | subread support ≥ 0.8; no other event within 10 bp; rq ≥ 0.999; `junction_disagreement` = `no`; reads ≥ 8 kb; `tissue`, `methylation_bin` | `filter_rates.nonrepetitive_steps`, `filter_rates.funnel_by` |
 | Sequel II samples (the others are Revio) | da1, ob2v, stephan, carl, mbewe, samson | `sequel_ii_samples` |
 | Bases a read must cover on each side of a tract to count for it (workflow 4) | 25 bp | `scan.min_tract_flank` |
 | Bins of a tract's copies and purity, keys of workflow 4 | 5, 10, 20, 50; 90, 95, 99, 100% | `strata.tract_copies_bins`, `strata.tract_purity_bins` |
@@ -994,12 +994,16 @@ unique calls per opportunity; an InDel's size is its sequence's length.
   values added up. The calls-only checks of
   `final_filters.nonrepetitive_calls_only` are metrics too (`applies_to`
   `calls`): their values divide the calls by all the opportunities.
-- `rates_funnel.tsv`: one row per `step`, type and size, the counts after the
-  step and every one before it. The steps are final filtering's, in its order
-  and with its rules, then those of `filter_rates.nonrepetitive_steps`, on
-  both tables. The step after the last calls-only check counts what final
-  filtering keeps; the last step is the most filtered rate. A step on a tag
-  the sample lacks is skipped and its `note` says so.
+- `rates_funnel.tsv`: one row per `step`, `tissue`, `methylation_bin`, type
+  and size, the counts after the step and every one before it. The steps are
+  final filtering's, in its order and with its rules, then those of
+  `filter_rates.nonrepetitive_steps`, on both tables. The step after the last
+  calls-only check counts what final filtering keeps; the last step is the
+  most filtered rate. A step on a tag the sample lacks is skipped and its
+  `note` says so. The rows are split by the keys under `filter_rates.funnel_by`
+  (`NA` for a sample without tissue labels or methylation scores); the strata
+  of a step add up to the sample's, and germline against somatic is a choice
+  of bins.
 
 ### What the opportunities go through
 
@@ -1287,8 +1291,8 @@ need no approximation.
 - `rates_by_filter.tsv` (workflow 3): `species`, `sample`, `platform`,
   `metric`, `value`, `applies_to`, `indel_type`, `size`, `unique_calls`,
   `non_unique_calls`, `opportunities`, `rate`; `rates_funnel.tsv`: the same
-  with `step`, `filter`, `applies_to`, `note` in place of `metric`, `value`,
-  `applies_to`. See [Rates by filter](#rates-by-filter).
+  with `step`, `filter`, `applies_to`, `note`, `tissue`, `methylation_bin` in
+  place of `metric`, `value`, `applies_to`. See [Rates by filter](#rates-by-filter).
 - `indels_classified.tsv`: `indels.tsv` plus the five columns under
   [Germline or somatic](#tissue-and-cell-type-labels).
 

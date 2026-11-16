@@ -200,3 +200,38 @@ def test_two_empty_tables_give_headers_only(tmp_path):
     by_filter, funnel = rates(tmp_path, calls(tmp_path, []), opportunities(tmp_path, []))
     assert by_filter == funnel == []
     assert (tmp_path / "funnel.tsv").read_text().startswith("species\tsample\tplatform\tstep\t")
+
+
+def test_the_funnel_is_split_by_the_by_columns_and_its_strata_add_up_to_the_sample(tmp_path):
+    # Per tissue and methylation bin, so the rate of each can be plotted after
+    # any step; every stratum gets the same steps.
+    call_table = table(tmp_path / "calls.tsv",
+                       ["#contig", "indel_type", "unique", "indel_string", "smrt_cell", "rq_bin", "tissue", "methylation_bin"],
+                       [("c1", "deletion", "unique", "A", "m1", ">=0.9999", "testis", "-12"),
+                        ("c1", "deletion", "unique", "A", "m1", ">=0.9999", "testis", "-12"),
+                        ("c1", "deletion", "unique", "A", "m1", "0.99-0.999", "testis", "-12"),
+                        ("c1", "deletion", "unique", "A", "m1", ">=0.9999", "blood", "4")])
+    opportunity_table = table(tmp_path / "opportunities.tsv",
+                              ["contig", "indel_type", "size", "context", "smrt_cell", "rq_bin", "tissue", "methylation_bin",
+                               "count"],
+                              [("c1", "deletion", 1, "A", "m1", ">=0.9999", "testis", "-12", 1000),
+                               ("c1", "deletion", 1, "A", "m1", "0.99-0.999", "testis", "-12", 1000),
+                               ("c1", "deletion", 1, "A", "m1", ">=0.9999", "blood", "4", 500)])
+    _, funnel = rates(tmp_path, call_table, opportunity_table, "--step", "rq_bin=>=0.9999",
+                      "--by", "tissue", "--by", "methylation_bin")
+    strata = {(row["filter"], row["tissue"], row["methylation_bin"]): counts(row) for row in funnel}
+    assert strata == {("input", "testis", "-12"): given(3, 0, 2000), ("input", "blood", "4"): given(1, 0, 500),
+                      ("capped_smrt_cells", "testis", "-12"): given(3, 0, 2000),
+                      ("capped_smrt_cells", "blood", "4"): given(1, 0, 500),
+                      ("rq_bin=>=0.9999", "testis", "-12"): given(2, 0, 1000),
+                      ("rq_bin=>=0.9999", "blood", "4"): given(1, 0, 500)}
+    header = (tmp_path / "funnel.tsv").read_text().split("\n")[0].split("\t")
+    assert header[header.index("note") + 1:header.index("indel_type")] == ["tissue", "methylation_bin"]
+
+
+def test_a_by_column_a_table_lacks_stops_the_run_with_its_name(tmp_path):
+    call_table = calls(tmp_path, [("deletion", "unique", "A", "m1", ">=0.9999", "True")])
+    opportunity_table = opportunities(tmp_path, [("deletion", 1, "m1", ">=0.9999", 100)])
+    with pytest.raises(subprocess.CalledProcessError) as failure:
+        rates(tmp_path, call_table, opportunity_table, "--by", "tissue")
+    assert b"--by tissue: the calls have no column tissue" in failure.value.stderr

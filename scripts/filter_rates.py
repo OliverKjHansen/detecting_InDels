@@ -5,7 +5,8 @@ filtering, from which a rate can be plotted without the opportunity cube.
 
     python filter_rates.py <calls.tsv> <opportunities.parquet> <by_filter.tsv> <funnel.tsv> \\
         --species S --sample X --platform <Revio | "Sequel II"> --smrt-cells <smrt_cells.tsv> --capped-quality <Q> \\
-        [--keep COLUMN=VALUE[,VALUE...] ...] [--calls-only COLUMN=VALUE[,VALUE...] ...] [--step COLUMN=VALUE[,VALUE...] ...]
+        [--keep COLUMN=VALUE[,VALUE...] ...] [--calls-only COLUMN=VALUE[,VALUE...] ...] [--step COLUMN=VALUE[,VALUE...] ...] \\
+        [--by COLUMN ...]
 
 Every row counts, for one InDel type and size, the unique calls, the
 non-unique calls and the opportunities (summed counts), and gives the rate:
@@ -24,7 +25,9 @@ its rules (final_filtering.py: the capped SMRT Cells, each --keep, each
 --calls-only), then each --step, on both tables like a --keep. A step on a
 tag the sample lacks is skipped, as there, and its note says so. The step
 after the last --calls-only is final filtering's output; the last step is the
-most filtered rate.
+most filtered rate. Each --by column, a key of both tables (tissue,
+methylation_bin), splits every step's rows by its values: the strata of a
+step add up to the sample's.
 """
 import argparse
 import os
@@ -40,7 +43,7 @@ GROUPS = ["indel_type", "size"]
 SAMPLE = ["species", "sample", "platform"]
 COUNTS = ["indel_type", "size", "unique_calls", "non_unique_calls", "opportunities", "rate"]
 BY_FILTER_COLUMNS = SAMPLE + ["metric", "value", "applies_to"] + COUNTS
-FUNNEL_COLUMNS = SAMPLE + ["step", "filter", "applies_to", "note"] + COUNTS
+FUNNEL_STEP = ["step", "filter", "applies_to", "note"]
 
 
 def with_size(table):
@@ -99,21 +102,22 @@ def after_each_step(con, table, relation, steps, groups):
     return {tuple(row[:len(groups)]): [count or 0 for count in row[len(groups):]] for row in rows}
 
 
-def funnel_rows(con, calls, opportunities, steps):
-    """The rows of funnel.tsv, as dicts."""
-    called = after_each_step(con, calls, with_size(calls), steps, GROUPS + ["unique"])
-    counted = after_each_step(con, opportunities, with_size(opportunities), steps, GROUPS)
-    kinds = sorted(set(counted) | {key[:-1] for key in called}, key=str)
+def funnel_rows(con, calls, opportunities, steps, by):
+    """The rows of funnel.tsv, as dicts: per step, per value of each of the `by` columns, type and size."""
+    groups = by + GROUPS
+    called = after_each_step(con, calls, with_size(calls), steps, groups + ["unique"])
+    counted = after_each_step(con, opportunities, with_size(opportunities), steps, groups)
+    strata = sorted(set(counted) | {key[:-1] for key in called}, key=str)
     none = [0] * len(steps)
     rows = []
     for i, step in enumerate(steps):
-        for indel_type, size in kinds:
-            unique_calls = called.get((indel_type, size, "unique"), none)[i]
-            opportunities_ = counted.get((indel_type, size), none)[i]
+        for stratum in strata:
+            unique_calls = called.get((*stratum, "unique"), none)[i]
+            opportunities_ = counted.get(stratum, none)[i]
             rows.append({"step": i + 1, "filter": step.name,
                          "applies_to": "both" if len(step.tables) == 2 else ",".join(step.tables), "note": step.note,
-                         "indel_type": indel_type, "size": size, "unique_calls": unique_calls,
-                         "non_unique_calls": called.get((indel_type, size, "non-unique"), none)[i],
+                         **dict(zip(groups, stratum)), "unique_calls": unique_calls,
+                         "non_unique_calls": called.get((*stratum, "non-unique"), none)[i],
                          "opportunities": opportunities_, "rate": rate(unique_calls, opportunities_)})
     return rows
 
@@ -140,11 +144,16 @@ def main():
     parser.add_argument("--keep", action="append", default=[], metavar="COLUMN=VALUE[,VALUE...]")
     parser.add_argument("--calls-only", action="append", default=[], metavar="COLUMN=VALUE[,VALUE...]")
     parser.add_argument("--step", action="append", default=[], metavar="COLUMN=VALUE[,VALUE...]")
+    parser.add_argument("--by", action="append", default=[], metavar="COLUMN")
     args = parser.parse_args()
 
     con = connect()
     calls = Table(con, "calls", args.calls, None)
     opportunities = Table(con, "opportunities", args.opportunities, None, count_column="count")
+    for column in args.by:
+        for table in (calls, opportunities):
+            if column not in table.columns:
+                parser.error(f"--by {column}: the {table.name} have no column {column}")
     metrics = [column for column in calls.columns if column in opportunities.columns and column not in NOT_METRICS]
     calls_only = [column for column in (keep.split("=", 1)[0] for keep in args.calls_only)
                   if column in calls.columns and column not in opportunities.columns]
@@ -155,7 +164,8 @@ def main():
                         args.calls_only, lambda message: parser.error(f"--keep {message}"))
     for step in args.step:
         steps.append(keep_step(con, tables, steps, step, lambda message: parser.error(f"--step {message}")))
-    write(funnel_rows(con, calls, opportunities, steps), FUNNEL_COLUMNS, args, args.funnel)
+    write(funnel_rows(con, calls, opportunities, steps, args.by), SAMPLE + FUNNEL_STEP + args.by + COUNTS, args,
+          args.funnel)
 
 
 if __name__ == "__main__":

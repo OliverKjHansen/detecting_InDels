@@ -183,3 +183,4 @@ def test_workflow_3_rates_each_sample_by_filter_from_its_candidate_tables_with_f
     assert options(rates["spec"], "--step") == [f"{column}={','.join(map(str, values))}" for column, values
                                                 in config["filter_rates"]["nonrepetitive_steps"].items()]
     assert options(rates["spec"], "--step")
+    assert options(rates["spec"], "--by") == config["filter_rates"]["funnel_by"] == ["tissue", "methylation_bin"]

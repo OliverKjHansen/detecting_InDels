@@ -2,7 +2,7 @@ from functools import partial
 
 from gwf import Workflow
 
-from pipeline import (Pipeline, filter_rate_steps, final_filtering_options, grouped_by_length, joined_calls,
+from pipeline import (Pipeline, filter_rate_options, final_filtering_options, grouped_by_length, joined_calls,
                       joined_reads, remapping, retried, shell)
 
 # ---------------------------------------------------------------------------
@@ -364,8 +364,8 @@ mkdir -p {opportunities_dir}
         # opportunities, before final filtering, the unique calls, non-unique
         # calls and opportunities of each value of each filter metric, and
         # after each step of final filtering and then of the funnel's own
-        # (filter_rates in config.yaml): small tables to plot rates from
-        # without the opportunity cube.
+        # (filter_rates in config.yaml), per tissue and methylation bin: small
+        # tables to plot rates from without the opportunity cube.
         rates_by_filter = path("nonrepetitive_rates_by_filter")
         rates_funnel    = path("nonrepetitive_rates_funnel")
 
@@ -380,7 +380,7 @@ mkdir -p {opportunities_dir}
         mkdir -p {resultsdir}
         python {scripts}/filter_rates.py {merged_indels} {merged_opportunities} {rates_by_filter} {rates_funnel} \\
             --species {species} --sample {sample} --smrt-cells {path("smrt_cells")} \\
-            {shell(final_filtering_options(config, species, sample) + filter_rate_steps(config))}
+            {shell(final_filtering_options(config, species, sample) + filter_rate_options(config))}
         """
 
         # Step 8 — cell-type classification, for the samples listed under

@@ -180,11 +180,16 @@ def final_filtering_options(config, species, sample, repeats=False):
     return options
 
 
-def filter_rate_steps(config):
-    """filter_rates.py's own funnel steps, as arguments: workflow 3's under `filter_rates` (ticket 56)."""
+def filter_rate_options(config):
+    """
+    filter_rates.py's own options, as arguments: workflow 3's funnel steps and
+    the keys its rows are split by, under `filter_rates` (ticket 56).
+    """
     options = []
     for column, values in config["filter_rates"]["nonrepetitive_steps"].items():
         options += ["--step", f"{column}={','.join(map(str, values))}"]
+    for column in config["filter_rates"]["funnel_by"]:
+        options += ["--by", column]
     return options
 
 
