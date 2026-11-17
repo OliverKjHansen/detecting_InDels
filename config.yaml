@@ -476,9 +476,11 @@ filter_rates:
   nonrepetitive_steps:
     subread_support: ["0.8-0.9", "0.9-1", ">=1"]
     nearby_event_bin: ["100-1000", ">=1000", "none"]
-    rq_bin: ["0.999-0.9999", ">=0.9999"]
     junction_disagreement: ["no"]
     read_end_distance_bin: ["300-500", "500-1000", ">=1000"]
+    repeats_next: ["no", "NA"]
+    kmerQ_pass: ["pass"]
+    #rq_bin: ["0.999-0.9999", ">=0.9999"]
     #read_length_bin: ["8000-12000", "12000-16000", "16000-20000", ">=20000"]
 
 # Germline/somatic classification of reads with methylation scores, by
