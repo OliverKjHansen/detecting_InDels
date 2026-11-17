@@ -34,6 +34,7 @@ dependencies:
   # External binaries invoked from workflow recipes
   - samtools
   - bedtools
+  - mosdepth   # the measurable genome's depth bands
   - pbmm2
   - trf
   - ucsc-fasplit

@@ -152,6 +152,38 @@ for species, samples in config["samples"].items():
         done
         """
 
+        # Step 1b — the measurable genome: the bases of the contigs analysed
+        # outside the mask whose depth is within the coverage band, the
+        # positions where the scan can count an opportunity. A rate per bp
+        # times it is the InDels the measurable genome holds. mosdepth counts
+        # the depth as the scan's pileup does (every read, with any flag, and
+        # a read with a deletion at the position) and splits the positions
+        # into below, in and above the band that measurable_genome.py band
+        # gives from the mean coverage.
+        depth_bands       = path("nonrepetitive_depth_bands")
+        measurable_genome = path("nonrepetitive_measurable_genome")
+        coverage_band     = " ".join(map(str, config["scan"]["coverage_band"]))
+        contigs_bed       = path("long_contigs")
+
+        gwf.target(
+            f"non_rep_MeasurableGenome_{species}_{sample}_{assembly_type}",
+            inputs=[alignment, coverage, contigs_bed] + list(masks.values()),
+            outputs=[depth_bands, measurable_genome],
+            cores=8,      # mosdepth's decompression threads
+            memory="32g",  # the mask's intervals, tens of millions
+            walltime="04:00:00",
+        ) << f"""
+        set -e
+        mkdir -p {folder("nonrepetitive_depth_bands")} {resultsdir}
+        quantize=$(python {scripts}/measurable_genome.py band --coverage-band {coverage_band} {coverage})
+        MOSDEPTH_Q0=below MOSDEPTH_Q1=in MOSDEPTH_Q2=above \\
+            mosdepth --threads 7 --fast-mode --flag 0 --mapq 0 --no-per-base --quantize "$quantize" \\
+            {depth_bands.removesuffix(".quantized.bed.gz")} {alignment}
+        python {scripts}/measurable_genome.py count {contigs_bed} {depth_bands} {measurable_genome} \\
+            --coverage {coverage} --coverage-band {coverage_band} --species {species} --sample {sample} \\
+            --masks {" ".join(masks.values())}
+        """
+
         # Step 2 runs per window. The windows [0, chunk_size),
         # [chunk_size, 2*chunk_size), ... tile each contig, and every pileup
         # position belongs to exactly one window, so each call and each

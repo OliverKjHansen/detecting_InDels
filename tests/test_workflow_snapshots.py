@@ -184,3 +184,29 @@ def test_workflow_3_rates_each_sample_by_filter_from_its_candidate_tables_with_f
                                                 in config["filter_rates"]["nonrepetitive_steps"].items()]
     assert options(rates["spec"], "--step")
     assert options(rates["spec"], "--by") == config["filter_rates"]["funnel_by"] == ["tissue", "methylation_bin"]
+
+
+def test_workflow_3_counts_each_samples_measurable_genome_from_its_mask_its_bam_and_its_coverage(tmp_path, monkeypatch):
+    # The bases of the contigs analysed outside the mask, at a depth within
+    # the scan's coverage band, with the depth counted as the scan's pileup
+    # counts it: every read, with any flag, deletions included.
+    import shlex
+    root = os.path.realpath(tmp_path)
+    config = write_config(root)
+    targets = load_targets("indel_mutation_call", root, monkeypatch)
+    for sample in ("s1", "s2"):   # s2's BAM is an alignment override
+        measurable = targets[f"non_rep_MeasurableGenome_ape_{sample}_diploid"]
+        mask = targets[f"non_rep_Mask_ape_{sample}_diploid"]
+        scan = next(target for name, target in targets.items()
+                    if name.startswith("non_rep_Scan_") and name.endswith(f"_ape_{sample}_diploid"))
+        assert set(mask["outputs"]) <= set(measurable["inputs"])
+        scanned = [path for path in scan["inputs"] if path.endswith((".bam", "avg_coverage.txt"))]
+        assert len(scanned) == 2 and set(scanned) <= set(measurable["inputs"])
+        assert [path.split("/", 1)[1] for path in measurable["outputs"] if path.endswith(".tsv")] == [
+            f"results/nonrepetitive_indels/ape/{sample}/measurable_genome.tsv"]
+        words = shlex.split(measurable["spec"])
+        mosdepth = words[words.index("mosdepth"):]
+        assert {"--fast-mode", "--no-per-base"} <= set(mosdepth)
+        assert mosdepth[mosdepth.index("--flag") + 1] == "0" and mosdepth[mosdepth.index("--mapq") + 1] == "0"
+        band = [words[i + 1:i + 3] for i, word in enumerate(words) if word == "--coverage-band"]
+        assert band == [list(map(str, config["scan"]["coverage_band"]))] * 2

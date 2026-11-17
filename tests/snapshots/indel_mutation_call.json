@@ -24,14 +24,14 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "16g",
+   "memory": "24g",
    "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/results/nonrepetitive_indels/ape/s1/rates_by_filter.tsv",
    "{ROOT}/results/nonrepetitive_indels/ape/s1/rates_funnel.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/filter_rates.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s1/rates_by_filter.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/rates_funnel.tsv \\\n            --species ape --sample s1 --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv \\\n            --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA --step 'subread_support=0.8-0.9,0.9-1,>=1' --step 'nearby_event_bin=100-1000,>=1000,none' --step 'rq_bin=0.999-0.9999,>=0.9999' --step junction_disagreement=no --step 'read_length_bin=8000-12000,12000-16000,16000-20000,>=20000' --by tissue --by methylation_bin\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s1\n        python {ROOT}/scripts/filter_rates.py {ROOT}/output/nonrepetitive_indels/ape/s1/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s1/merged/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s1/rates_by_filter.tsv {ROOT}/results/nonrepetitive_indels/ape/s1/rates_funnel.tsv \\\n            --species ape --sample s1 --smrt-cells {ROOT}/output/precompute/ape/s1/smrt_cells.tsv \\\n            --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA --step 'subread_support=0.8-0.9,0.9-1,>=1' --step 'nearby_event_bin=100-1000,>=1000,none' --step junction_disagreement=no --step 'read_end_distance_bin=300-500,500-1000,>=1000' --step repeats_next=no,NA --step kmerQ_pass=pass --by tissue --by methylation_bin\n        "
  },
  "non_rep_FilterRates_ape_s2_diploid": {
   "inputs": [
@@ -42,14 +42,14 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "16g",
+   "memory": "24g",
    "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/results/nonrepetitive_indels/ape/s2/rates_by_filter.tsv",
    "{ROOT}/results/nonrepetitive_indels/ape/s2/rates_funnel.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/filter_rates.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s2/rates_by_filter.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/rates_funnel.tsv \\\n            --species ape --sample s2 --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv \\\n            --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA --step 'subread_support=0.8-0.9,0.9-1,>=1' --step 'nearby_event_bin=100-1000,>=1000,none' --step 'rq_bin=0.999-0.9999,>=0.9999' --step junction_disagreement=no --step 'read_length_bin=8000-12000,12000-16000,16000-20000,>=20000' --by tissue --by methylation_bin\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/ape/s2\n        python {ROOT}/scripts/filter_rates.py {ROOT}/output/nonrepetitive_indels/ape/s2/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/ape/s2/merged/opportunities.parquet {ROOT}/results/nonrepetitive_indels/ape/s2/rates_by_filter.tsv {ROOT}/results/nonrepetitive_indels/ape/s2/rates_funnel.tsv \\\n            --species ape --sample s2 --smrt-cells {ROOT}/output/precompute/ape/s2/smrt_cells.tsv \\\n            --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA --step 'subread_support=0.8-0.9,0.9-1,>=1' --step 'nearby_event_bin=100-1000,>=1000,none' --step junction_disagreement=no --step 'read_end_distance_bin=300-500,500-1000,>=1000' --step repeats_next=no,NA --step kmerQ_pass=pass --by tissue --by methylation_bin\n        "
  },
  "non_rep_FilterRates_monkey_s3_diploid": {
   "inputs": [
@@ -60,14 +60,14 @@
   "options": {
    "account": "mutationalscanning",
    "cores": 8,
-   "memory": "16g",
+   "memory": "24g",
    "walltime": "04:00:00"
   },
   "outputs": [
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/rates_by_filter.tsv",
    "{ROOT}/results/nonrepetitive_indels/monkey/s3/rates_funnel.tsv"
   ],
-  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/filter_rates.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.parquet {ROOT}/results/nonrepetitive_indels/monkey/s3/rates_by_filter.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/rates_funnel.tsv \\\n            --species monkey --sample s3 --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv \\\n            --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA --step 'subread_support=0.8-0.9,0.9-1,>=1' --step 'nearby_event_bin=100-1000,>=1000,none' --step 'rq_bin=0.999-0.9999,>=0.9999' --step junction_disagreement=no --step 'read_length_bin=8000-12000,12000-16000,16000-20000,>=20000' --by tissue --by methylation_bin\n        "
+  "spec": "\n        mkdir -p {ROOT}/results/nonrepetitive_indels/monkey/s3\n        python {ROOT}/scripts/filter_rates.py {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/indels.tsv {ROOT}/output/nonrepetitive_indels/monkey/s3/merged/opportunities.parquet {ROOT}/results/nonrepetitive_indels/monkey/s3/rates_by_filter.tsv {ROOT}/results/nonrepetitive_indels/monkey/s3/rates_funnel.tsv \\\n            --species monkey --sample s3 --smrt-cells {ROOT}/output/precompute/monkey/s3/smrt_cells.tsv \\\n            --platform Revio --capped-quality 40 --keep 'inner_flank_q=>=93' --keep 'outer_flank_q=60-93,>=93' --keep base_after_masked=no --calls-only inserted_bases_pass=pass,NA --calls-only haploid_check=True,NA --calls-only hap1_check=True,NA --calls-only hap2_check=True,NA --step 'subread_support=0.8-0.9,0.9-1,>=1' --step 'nearby_event_bin=100-1000,>=1000,none' --step junction_disagreement=no --step 'read_end_distance_bin=300-500,500-1000,>=1000' --step repeats_next=no,NA --step kmerQ_pass=pass --by tissue --by methylation_bin\n        "
  },
  "non_rep_FinalFiltering_ape_s1_diploid": {
   "inputs": [
@@ -403,6 +403,64 @@
    "{ROOT}/output/nonrepetitive_indels/monkey/s3/mask/c2.bed"
   ],
   "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/mask\n        for contig in c2; do\n            python {ROOT}/scripts/merge_regions.py {ROOT}/output/repetitive_dna/monkey/s3/bases/${contig}_M0.bed {ROOT}/output/repetitive_dna/monkey/s3/bases/${contig}_M1.bed {ROOT}/output/repetitive_dna/monkey/s3/bases/${contig}_M2.bed {ROOT}/output/precompute/monkey/s3/unresolved_haplotypes/${contig}.bed {ROOT}/output/repetitive_dna/monkey/s3/excluded/${contig}.bed > {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed.tmp\n            mv {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed.tmp {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/${contig}.bed\n        done\n        "
+ },
+ "non_rep_MeasurableGenome_ape_s1_diploid": {
+  "inputs": [
+   "{ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam",
+   "{ROOT}/output/precompute/ape/s1/avg_coverage.txt",
+   "{ROOT}/output/precompute/ape/s1/long_contigs.bed",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed",
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/mask/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 8,
+   "memory": "32g",
+   "walltime": "04:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/nonrepetitive_indels/ape/s1/depth/bands.quantized.bed.gz",
+   "{ROOT}/results/nonrepetitive_indels/ape/s1/measurable_genome.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s1/depth {ROOT}/results/nonrepetitive_indels/ape/s1\n        quantize=$(python {ROOT}/scripts/measurable_genome.py band --coverage-band 0.5 2.0 {ROOT}/output/precompute/ape/s1/avg_coverage.txt)\n        MOSDEPTH_Q0=below MOSDEPTH_Q1=in MOSDEPTH_Q2=above \\\n            mosdepth --threads 7 --fast-mode --flag 0 --mapq 0 --no-per-base --quantize \"$quantize\" \\\n            {ROOT}/output/nonrepetitive_indels/ape/s1/depth/bands {ROOT}/bam/ape/s1/kinetics/s1_kinetics_diploid.bam\n        python {ROOT}/scripts/measurable_genome.py count {ROOT}/output/precompute/ape/s1/long_contigs.bed {ROOT}/output/nonrepetitive_indels/ape/s1/depth/bands.quantized.bed.gz {ROOT}/results/nonrepetitive_indels/ape/s1/measurable_genome.tsv \\\n            --coverage {ROOT}/output/precompute/ape/s1/avg_coverage.txt --coverage-band 0.5 2.0 --species ape --sample s1 \\\n            --masks {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c1.bed {ROOT}/output/nonrepetitive_indels/ape/s1/mask/c2.bed\n        "
+ },
+ "non_rep_MeasurableGenome_ape_s2_diploid": {
+  "inputs": [
+   "{ROOT}/override/s2_diploid.bam",
+   "{ROOT}/output/precompute/ape/s2/avg_coverage.txt",
+   "{ROOT}/output/precompute/ape/s2/long_contigs.bed",
+   "{ROOT}/output/nonrepetitive_indels/ape/s2/mask/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 8,
+   "memory": "32g",
+   "walltime": "04:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/nonrepetitive_indels/ape/s2/depth/bands.quantized.bed.gz",
+   "{ROOT}/results/nonrepetitive_indels/ape/s2/measurable_genome.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/ape/s2/depth {ROOT}/results/nonrepetitive_indels/ape/s2\n        quantize=$(python {ROOT}/scripts/measurable_genome.py band --coverage-band 0.5 2.0 {ROOT}/output/precompute/ape/s2/avg_coverage.txt)\n        MOSDEPTH_Q0=below MOSDEPTH_Q1=in MOSDEPTH_Q2=above \\\n            mosdepth --threads 7 --fast-mode --flag 0 --mapq 0 --no-per-base --quantize \"$quantize\" \\\n            {ROOT}/output/nonrepetitive_indels/ape/s2/depth/bands {ROOT}/override/s2_diploid.bam\n        python {ROOT}/scripts/measurable_genome.py count {ROOT}/output/precompute/ape/s2/long_contigs.bed {ROOT}/output/nonrepetitive_indels/ape/s2/depth/bands.quantized.bed.gz {ROOT}/results/nonrepetitive_indels/ape/s2/measurable_genome.tsv \\\n            --coverage {ROOT}/output/precompute/ape/s2/avg_coverage.txt --coverage-band 0.5 2.0 --species ape --sample s2 \\\n            --masks {ROOT}/output/nonrepetitive_indels/ape/s2/mask/c2.bed\n        "
+ },
+ "non_rep_MeasurableGenome_monkey_s3_diploid": {
+  "inputs": [
+   "{ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam",
+   "{ROOT}/output/precompute/monkey/s3/avg_coverage.txt",
+   "{ROOT}/output/precompute/monkey/s3/long_contigs.bed",
+   "{ROOT}/output/nonrepetitive_indels/monkey/s3/mask/c2.bed"
+  ],
+  "options": {
+   "account": "mutationalscanning",
+   "cores": 8,
+   "memory": "32g",
+   "walltime": "04:00:00"
+  },
+  "outputs": [
+   "{ROOT}/output/nonrepetitive_indels/monkey/s3/depth/bands.quantized.bed.gz",
+   "{ROOT}/results/nonrepetitive_indels/monkey/s3/measurable_genome.tsv"
+  ],
+  "spec": "\n        set -e\n        mkdir -p {ROOT}/output/nonrepetitive_indels/monkey/s3/depth {ROOT}/results/nonrepetitive_indels/monkey/s3\n        quantize=$(python {ROOT}/scripts/measurable_genome.py band --coverage-band 0.5 2.0 {ROOT}/output/precompute/monkey/s3/avg_coverage.txt)\n        MOSDEPTH_Q0=below MOSDEPTH_Q1=in MOSDEPTH_Q2=above \\\n            mosdepth --threads 7 --fast-mode --flag 0 --mapq 0 --no-per-base --quantize \"$quantize\" \\\n            {ROOT}/output/nonrepetitive_indels/monkey/s3/depth/bands {ROOT}/bam/monkey/s3/kinetics/s3_kinetics_diploid.bam\n        python {ROOT}/scripts/measurable_genome.py count {ROOT}/output/precompute/monkey/s3/long_contigs.bed {ROOT}/output/nonrepetitive_indels/monkey/s3/depth/bands.quantized.bed.gz {ROOT}/results/nonrepetitive_indels/monkey/s3/measurable_genome.tsv \\\n            --coverage {ROOT}/output/precompute/monkey/s3/avg_coverage.txt --coverage-band 0.5 2.0 --species monkey --sample s3 \\\n            --masks {ROOT}/output/nonrepetitive_indels/monkey/s3/mask/c2.bed\n        "
  },
  "non_rep_MergeAndPlot_ape_s1_diploid": {
   "inputs": [

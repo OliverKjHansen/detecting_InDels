@@ -220,6 +220,7 @@ layout:
   # tables and the FASTQs are big, so gzipped (ticket 32); from the merge on,
   # the opportunities are a cube in Parquet, queried with DuckDB (ticket 40).
   nonrepetitive_mask:                 "{output}/nonrepetitive_indels/{species}/{sample}/mask/{contig}.bed"
+  nonrepetitive_depth_bands:          "{output}/nonrepetitive_indels/{species}/{sample}/depth/bands.quantized.bed.gz"
   nonrepetitive_window_calls:         "{output}/nonrepetitive_indels/{species}/{sample}/calls/chunks/{contig}_{start}_{end}.tsv"
   nonrepetitive_window_opportunities: "{output}/nonrepetitive_indels/{species}/{sample}/opportunities/chunks/{contig}_{start}_{end}.tsv.gz"
   nonrepetitive_window_reads:         "{output}/nonrepetitive_indels/{species}/{sample}/fastq/chunks/{contig}_{start}_{end}.fastq.gz"
@@ -241,6 +242,7 @@ layout:
   nonrepetitive_classification_reads: "{results}/nonrepetitive_indels/{species}/{sample}/classification_reads.tsv"
   nonrepetitive_rates_by_filter:      "{results}/nonrepetitive_indels/{species}/{sample}/rates_by_filter.tsv"
   nonrepetitive_rates_funnel:         "{results}/nonrepetitive_indels/{species}/{sample}/rates_funnel.tsv"
+  nonrepetitive_measurable_genome:    "{results}/nonrepetitive_indels/{species}/{sample}/measurable_genome.tsv"
 
   # Written by repetitive_indel_call.py (workflow 4): the reads and their
   # remapping are shared by the models, everything else is per model.

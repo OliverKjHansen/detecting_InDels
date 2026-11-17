@@ -133,7 +133,7 @@ Workflows 3 and 4 have the same shape:
 |---|---|
 | Workflow engine | [GWF](https://gwf.app/) ≥ 1.7, submitting to Slurm |
 | Python | pysam, pandas, intervaltree, pyyaml, duckdb; pytest for the tests |
-| Binaries | samtools, bedtools, pbmm2, faSplit, TRF 4.10, mreps |
+| Binaries | samtools, bedtools, mosdepth, pbmm2, faSplit, TRF 4.10, mreps |
 | R | ggplot2, dplyr, tidyr for the diagnostic plots; also readr and the IRkernel Jupyter kernel for the notebooks, and duckdb to query the opportunity cube |
 
 On the cluster, [environment.yml](environment.yml) provides everything except
@@ -514,6 +514,7 @@ and every unresolved-haplotype region. Intermediates go to
 | Step | Target | Runs per | Output |
 |---|---|---|---|
 | 1. Build the mask | `non_rep_Mask_{species}_{sample}_diploid` | sample | `mask/{contig}.bed` |
+| 1b. Measurable genome | `non_rep_MeasurableGenome_{species}_{sample}_diploid` | sample | `depth/bands.quantized.bed.gz`; `measurable_genome.tsv` in `results/nonrepetitive_indels/{species}/{sample}/` |
 | 2. Scan | `non_rep_Scan_{contig}_{start}_{species}_{sample}_diploid`, named after its first window | `scan.windows_per_job` 10 Mb windows (or the sample's `scan.window_size_by_sample`), scanned at the same time | `calls/chunks/`, `opportunities/chunks/`, `fastq/chunks/` |
 | 3. Join the windows | `non_rep_MergeWindows_{contig}_{species}_{sample}_diploid`, named after its first contig | contigs adding up to `scan.merge_bp_per_job`, one after the other | `calls/{contig}.tsv`, `fastq/{contig}.fastq.gz` |
 | 3b. Sum the opportunities | `non_rep_MergeOpportunities_{contig}_{species}_{sample}_diploid`, named after its first contig | the same contigs, or for a tissue sample those adding up to `scan.tissue_sum_bp_per_job` (ticket 55); a sum that fails its check is retried up to three times in the job (ticket 41) | `opportunities/{contig}.parquet` |
@@ -528,6 +529,8 @@ and every unresolved-haplotype region. Intermediates go to
 1. **Mask.** Per contig, every tract of the three models before overlap
    resolution (`bases/{contig}_{model}.bed`), the unresolved-haplotype regions
    and the excluded group, merged with [merge_regions.py](scripts/merge_regions.py).
+   Step 1b counts the bases it leaves at a depth the scan takes (see [The
+   measurable genome](#the-measurable-genome)).
 2. **Scan.** [nonrepetitive_scan.py](scripts/nonrepetitive_scan.py) runs
    `nonrepetitive_scan()` from [utilities.py](scripts/utilities.py). At each
    position of the window, every read with a base there (each event's anchor
@@ -1005,6 +1008,26 @@ unique calls per opportunity; an InDel's size is its sequence's length.
   of a step add up to the sample's, and germline against somatic is a choice
   of bins.
 
+### The measurable genome
+
+Step 1b ([measurable_genome.py](scripts/measurable_genome.py)) counts, per
+sample, the positions where the scan can count an opportunity: the bases of
+the contigs analysed (`long_contigs.bed`) outside the mask whose depth is
+within the [coverage window](#coverage). A rate per bp times it is the InDels
+the measurable genome holds, the second axis of `nonrepetitive_rates.Rmd`.
+mosdepth counts the depth as the scan's pileup does (`--fast-mode --flag 0
+--mapq 0`: every read, with any flag, and a read with a deletion at the
+position) and splits the positions into below, in and above the window
+(`depth/bands.quantized.bed.gz`). Its thresholds come from
+`measurable_genome.py band`: the whole depths from half to twice the mean
+coverage, both included, and at least 1. `measurable_genome.tsv` has one row:
+`contigs_bp`, `masked_bp`, `below_band_bp` and `above_band_bp` (unmasked bases
+at a depth outside the window; a base without reads is below) and
+`measurable_bp`, which add up to `contigs_bp`. It is a count of positions, so
+a little more than the opportunities can use: an event that touches the mask,
+or lacks two read bases on each side, is not counted, though its position is
+measurable.
+
 ### What the opportunities go through
 
 The opportunities pass the scan's filters (coverage, mask or tract, and the
@@ -1105,7 +1128,8 @@ results/
 │   ├── opportunities.parquet
 │   ├── filter_report.tsv
 │   ├── rates_by_filter.tsv
-│   └── rates_funnel.tsv
+│   ├── rates_funnel.tsv
+│   └── measurable_genome.tsv
 └── repetitive_indels/{species}/{sample}/
     ├── tracts_summary.tsv
     └── {model}/                                  the first four files above
@@ -1293,6 +1317,10 @@ need no approximation.
   `non_unique_calls`, `opportunities`, `rate`; `rates_funnel.tsv`: the same
   with `step`, `filter`, `applies_to`, `note`, `tissue`, `methylation_bin` in
   place of `metric`, `value`, `applies_to`. See [Rates by filter](#rates-by-filter).
+- `measurable_genome.tsv` (workflow 3): `species`, `sample`, `mean_coverage`,
+  `min_depth` and `max_depth` (the whole depths of the coverage window),
+  `contigs_bp`, `masked_bp`, `below_band_bp`, `above_band_bp`,
+  `measurable_bp`. See [The measurable genome](#the-measurable-genome).
 - `indels_classified.tsv`: `indels.tsv` plus the five columns under
   [Germline or somatic](#tissue-and-cell-type-labels).
 
@@ -1309,7 +1337,7 @@ ggplot2, and the IRkernel Jupyter kernel.
 | [tract_lengths.ipynb](plotting/tract_lengths.ipynb) | the `results/repetitive_dna/` summaries | how the M0 and M1 annotations (optionally M2) differ: tract counts, lengths, motifs and purity |
 | [repetitive_mutation_rate.ipynb](plotting/repetitive_mutation_rate.ipynb) | `results/repetitive_indels/` and the summaries | rates inside repeats per period, motif, tract length and tissue, compared between models |
 | [nonrepetitive_indels.ipynb](plotting/nonrepetitive_indels.ipynb) | `results/nonrepetitive_indels/` and `results/repetitive_indels/` | rates outside repeats per size, context, contig and tissue, and against one-unit InDels in repeat tracts |
-| [nonrepetitive_rates.Rmd](plotting/nonrepetitive_rates.Rmd) | `results/nonrepetitive_indels/*/*/rates_funnel.tsv` (ticket 56) | rates outside repeats at the funnel's most stringent step: sperm and germline testis reads against age, germline against somatic testis reads, and tissues against each other |
+| [nonrepetitive_rates.Rmd](plotting/nonrepetitive_rates.Rmd) | `results/nonrepetitive_indels/*/*/rates_funnel.tsv` (ticket 56) and `measurable_genome.tsv` | rates outside repeats at the funnel's most stringent step: sperm and germline testis reads against age, germline against somatic testis reads, and tissues against each other |
 
 Committed notebooks carry no outputs, while the copies on disk keep theirs.
 [.gitattributes](.gitattributes) sends every notebook through
@@ -1371,6 +1399,7 @@ Two approximations to keep in mind when reading the rates:
 | [tests/test_read_bins.py](tests/test_read_bins.py) | the compact read bins: every read's bin as the classification table gives it, `NA` for a read missing from it, 9 bytes a read, more bins than a byte holds refused, and workflow 1's target writing them |
 | [tests/test_final_filtering.py](tests/test_final_filtering.py) | the final filtering stage: a filter on a feature spread alike in calls and opportunities leaves the rate unchanged, capped SMRT Cells (from their reads' base qualities) dropped and listed, a filter on a missing tag skipped and noted, the platform on every row, the report; Parquet, plain and gzipped tables |
 | [tests/test_opportunity_tables.py](tests/test_opportunity_tables.py) | the opportunity cube: a contig's windows summed per key into Parquet, sorted by key as text, counts past 4 billion exact, `size`, `k` and `count` as numbers, an empty cube for a contig without opportunities, a sample's contigs joined with its species and sample, nothing left behind when a sum or a join fails, a count that isn't a whole number, a key with a NUL byte or windows with different columns failing the sum |
+| [tests/test_measurable_genome.py](tests/test_measurable_genome.py) | the measurable genome: the coverage window's whole depths for mosdepth, both edges included and never depth 0; the unmasked bases in the window, with overlapping mask intervals joined and the masks and bands cut to the contigs analysed, a contig without reads all below the window; depth bands without the labels below, in and above refused |
 | [tests/test_tract_unit.py](tests/test_tract_unit.py) | workflow 4's unit: one tract per spanning read, reads ending in the tract or its flank counting for neither, the tract keys on both tables, calls and opportunities of a tract tested on the same bases, overlapping tracts refused, windows adding up by tract; the slippage and other classes |
 | [tests/test_tract_edges.py](tests/test_tract_edges.py) | InDels at a tract's edge (L1, R1, R2): slippage anchored before a tract or a partial unit is the tract's, slippage of the next tract is that tract's, every event near a tract counted by one workflow, opportunities tested on the same bases, windows still adding up |
 | [tests/test_denominators.py](tests/test_denominators.py) | denominators that match the calls (D1, D3, D4): the bases calls and opportunities are tested on, insertion opportunities per gap, events at read ends |
