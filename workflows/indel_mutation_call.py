@@ -374,7 +374,7 @@ mkdir -p {opportunities_dir}
             inputs=[merged_indels, merged_opportunities, path("smrt_cells")],
             outputs=[rates_by_filter, rates_funnel],
             cores=8,   # DuckDB reads the cube with them
-            memory="16g",
+            memory="24g",
             walltime="04:00:00",
         ) << f"""
         mkdir -p {resultsdir}
